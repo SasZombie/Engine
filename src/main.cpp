@@ -9,7 +9,7 @@ extern "C" const char *__lsan_default_suppressions();
 int main()
 {
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
-    constexpr float gravity = 500.f, dragCoef = 0.47f, circleRad = 25.f, e = 0.5f;
+    constexpr float circleRad = 25.f, e = 0.5f;
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
@@ -24,6 +24,7 @@ int main()
     sas::Kinematics k;
     k.inverseMass = 0.2f;
     k.restituition = e;
+    k.velocity.x = 500;
 
     sas::Body defaultCircle{{sas::ShapeType::Circle, circleRad}, t, &k};
 
@@ -31,8 +32,6 @@ int main()
 
     float dt = 0;
 
-
-    // dsasad
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
     sas::PhysicsSettings &settings = world.settings;
 

@@ -27,7 +27,7 @@ endif()
 add_library(sas_physics src/PhysicsWorld.cpp)
 target_include_directories(sas_physics PUBLIC include)
 
-target_link_libraries(sas_physics INTERFACE project_warnings project_sanitizers)
+target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers)
 
 add_executable(main src/main.cpp)
 
