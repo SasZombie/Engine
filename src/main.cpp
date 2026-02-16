@@ -20,37 +20,71 @@ int main()
     t.position = {400, 225};
     t.scale = {1, 1};
 
-
     sas::Kinematics k;
     k.inverseMass = 0.2f;
     k.restituition = e;
     k.velocity.x = 500;
 
-    sas::Body defaultCircle{{sas::ShapeType::Circle, circleRad}, t, &k};
-
+    sas::Body defaultCircle{{sas::ShapeType::Circle, circleRad}, t, k};
     circles.emplace_back(defaultCircle);
-
-    float dt = 0;
 
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
     sas::PhysicsSettings &settings = world.settings;
+    
+    sas::Body *currentBody = nullptr;
+    
+    float dt = 0;
 
     while (!WindowShouldClose())
     {
         dt = GetFrameTime();
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
         {
             const auto &[x, y] = GetMousePosition();
-            sas::Transform t1;
-            t1.position = {x, y};
-            t1.scale = {1};
-            // Leaks!!!
-            sas::Kinematics *kin = new sas::Kinematics;
-            kin->inverseMass = 0.2f;
-            kin->restituition = e;
 
-            circles.emplace_back(sas::Shape{sas::ShapeType::Circle, circleRad}, t1, kin);
+            if (currentBody)
+            {
+                currentBody->transform.position = {x, y};
+            }
+            else
+            {
+                sas::Transform t1;
+                t1.position = {x, y};
+                t1.scale = {1};
+
+                sas::Body body{sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
+
+                circles.push_back(body);
+
+                currentBody = &circles.back();
+            }
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        {
+            sas::Kinematics kin;
+            kin.inverseMass = 0.2f;
+            kin.restituition = e;
+
+            const auto&[x, y] = GetMouseDelta();
+            kin.velocity = {x * 10, y * 10};
+            currentBody->kinematics = kin;
+
+            currentBody = nullptr;
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+        {
+            sas::Kinematics kin;
+            kin.inverseMass = 0.2f;
+            kin.restituition = 1;
+
+            const auto&[x, y] = GetMouseDelta();
+            kin.velocity = {x * 10, y * 10};
+            currentBody->kinematics = kin;
+
+            currentBody = nullptr;
         }
 
         if (IsKeyPressed(KEY_R))
@@ -95,11 +129,14 @@ int main()
         {
             DrawCircle(circle.transform.position.x, circle.transform.position.y, circle.shape.radius, MAROON);
         }
+        
         const std::string msg1("Gravity = " + std::to_string(settings.gravity));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));
+        const std::string msg3("Objects = " + std::to_string(circles.size()));
 
         DrawText(msg1.c_str(), 0, 0, 30, RED);
         DrawText(msg2.c_str(), 0, 30, 30, RED);
+        DrawText(msg3.c_str(), 0, 60, 30, RED);
 
         EndDrawing();
     }

@@ -19,7 +19,7 @@ namespace sas
         union
         {
             float radius;
-            math::Vec2 dimension;
+            math::Vec2 halfSizes;
         };
     };
 
@@ -27,7 +27,7 @@ namespace sas
     {
         Shape shape;
         Transform transform;
-        Kinematics* kinematics;
+        Kinematics kinematics;
     };
     
 } // namespace sas

@@ -11,6 +11,7 @@ namespace sas
         float gravity = 500.f;
         float dragCoeff = 0.47f;
         float groundFriction = 0.98f;
+        float wallFriction = 0.98f;
     };
 
     class PhysicsWorld
@@ -30,9 +31,10 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
+        void Reset(Body &obj) const noexcept;
+
         void ResolveBroadLower(Body &obj, float wall) const noexcept;
         void ResolveBroadHigher(Body &obj, float wall) const noexcept;
-
     };
 
 } // namespace sas
