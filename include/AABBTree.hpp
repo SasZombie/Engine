@@ -34,6 +34,8 @@ namespace sas
         {
             return children[0] == nullptr;
         }
+
+        void Draw() const;
     };
 
     class AABBTree
@@ -46,11 +48,14 @@ namespace sas
     public:
         void insert(const Body &c) noexcept;
 
+        void Query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
         void Query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
 
         void remove(Node *leaf) noexcept;
 
         void UpdateObject(const Body &body) noexcept;
+
+        void Draw() const;
 
 
         ~AABBTree() noexcept

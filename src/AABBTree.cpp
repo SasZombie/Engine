@@ -1,5 +1,7 @@
 #include "AABBTree.hpp"
 
+#include <raylib.h>
+
 sas::AABB sas::ComputeFatAABB(const Body &body) noexcept
 {
     // TODO: Add support for square
@@ -105,6 +107,11 @@ void sas::AABBTree::Query(Node *node, const AABB &targetAABB, std::vector<uint32
     }
 }
 
+void sas::AABBTree::Query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
+{
+    Query(root, targetAABB, results);
+}
+
 void sas::AABBTree::remove(Node *leaf) noexcept
 {
     if (leaf == root)
@@ -172,4 +179,22 @@ void sas::AABBTree::Clear(Node *node) noexcept
     Clear(node->children[1]);
 
     delete node;
+}
+
+void sas::Node::Draw() const
+{
+    float width = aabb.maxX - aabb.minX;
+    float height = aabb.maxY - aabb.minY;
+    DrawRectangleLines(aabb.minX, aabb.minY, width, height, isLeaf() ? GREEN : YELLOW);
+
+    if (children[0])
+        children[0]->Draw();
+    if (children[1])
+        children[1]->Draw();
+}
+
+
+void sas::AABBTree::Draw() const
+{
+    root->Draw();
 }

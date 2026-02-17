@@ -1,5 +1,7 @@
 #include "PhysicsWorld.hpp"
 
+#include <iostream>
+
 sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
 {
@@ -8,7 +10,7 @@ void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
 {
     root.insert(body);
 }
-void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) const noexcept
+void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt)  noexcept
 {
     for (auto &obj : objects)
     {
@@ -19,6 +21,29 @@ void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) const noexcep
             ResolveConstraints(obj, dt);
 
             Reset(obj);
+        }
+
+        root.UpdateObject(obj);
+        root.Draw();
+        std::vector<uint32_t> potentialCollisions;
+        root.Query(ComputeFatAABB(obj), potentialCollisions);
+
+        for (uint32_t other : potentialCollisions)
+        {
+            if (obj.bodyID == other)
+                continue;
+
+            // Narrow phase
+            float dx = obj.transform.position.x - objects[other].transform.position.x;
+            float dy = obj.transform.position.y - objects[other].transform.position.y;
+            float distanceSq = dx * dx + dy * dy;
+            float combinedRad = obj.shape.radius + objects[other].shape.radius;
+
+            if (distanceSq <= combinedRad * combinedRad)
+            {
+                obj.isColliding = true;
+                objects[other].isColliding = true;
+            }
         }
     }
 }
@@ -79,8 +104,8 @@ void sas::PhysicsWorld::ResolveBroadLower(Body &obj, float wall) const noexcept
         {
             obj.kinematics.velocity.x *= -obj.kinematics.restituition;
         }
-        
-        if(std::abs(obj.kinematics.velocity.y) > 0.1f)
+
+        if (std::abs(obj.kinematics.velocity.y) > 0.1f)
         {
             obj.kinematics.velocity.y *= settings.wallFriction;
         }
@@ -102,7 +127,7 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
         {
             obj.kinematics.velocity.x *= -obj.kinematics.restituition;
         }
-        if(std::abs(obj.kinematics.velocity.y) > 0.1f)
+        if (std::abs(obj.kinematics.velocity.y) > 0.1f)
         {
             obj.kinematics.velocity.y *= settings.wallFriction;
         }
@@ -114,7 +139,7 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
     }
 }
 
-void sas::PhysicsWorld::Reset(Body& obj) const noexcept
+void sas::PhysicsWorld::Reset(Body &obj) const noexcept
 {
     obj.kinematics.acceleration = {0, 0};
 }

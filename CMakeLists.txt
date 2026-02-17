@@ -30,7 +30,7 @@ add_library(sas_physics
 )
 target_include_directories(sas_physics PUBLIC include)
 
-target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers)
+target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers raylib GL m pthread dl rt X11)
 
 add_executable(main src/main.cpp)
 

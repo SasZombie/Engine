@@ -30,9 +30,11 @@ int main()
 
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
     sas::PhysicsSettings &settings = world.settings;
-    
+
     sas::Body *currentBody = nullptr;
-    
+
+    world.addToCollisionPool(defaultCircle);
+
     float dt = 0;
 
     while (!WindowShouldClose())
@@ -56,6 +58,7 @@ int main()
                 sas::Body body{circles.size(), sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
 
                 circles.push_back(body);
+                world.addToCollisionPool(body);
 
                 currentBody = &circles.back();
             }
@@ -67,7 +70,7 @@ int main()
             kin.inverseMass = 0.2f;
             kin.restituition = e;
 
-            const auto&[x, y] = GetMouseDelta();
+            const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
             currentBody->kinematics = kin;
 
@@ -80,7 +83,7 @@ int main()
             kin.inverseMass = 0.2f;
             kin.restituition = 1;
 
-            const auto&[x, y] = GetMouseDelta();
+            const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
             currentBody->kinematics = kin;
 
@@ -120,16 +123,15 @@ int main()
             }
         }
 
-        world.Step(circles, dt);
-
         BeginDrawing();
         ClearBackground(BLACK);
+        world.Step(circles, dt);
 
         for (auto &circle : circles)
         {
-            DrawCircle(circle.transform.position.x, circle.transform.position.y, circle.shape.radius, MAROON);
+            DrawCircle(circle.transform.position.x, circle.transform.position.y, circle.shape.radius, circle.isColliding ? GREEN : MAROON);
         }
-        
+
         const std::string msg1("Gravity = " + std::to_string(settings.gravity));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));
         const std::string msg3("Objects = " + std::to_string(circles.size()));

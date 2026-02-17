@@ -30,6 +30,8 @@ namespace sas
         Shape shape;
         Transform transform;
         Kinematics kinematics;
+
+        bool isColliding = false;
     };
     
 } // namespace sas

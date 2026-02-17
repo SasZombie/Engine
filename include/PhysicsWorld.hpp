@@ -20,7 +20,7 @@ namespace sas
         PhysicsSettings settings;
 
         void addToCollisionPool(const Body& body) noexcept;
-        void Step(std::vector<Body> &objects, float dt) const noexcept;
+        void Step(std::vector<Body> &objects, float dt)  noexcept;
 
         PhysicsWorld(Rectangle dims) noexcept;
         ~PhysicsWorld() noexcept = default;
