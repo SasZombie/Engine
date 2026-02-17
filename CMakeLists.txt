@@ -24,7 +24,10 @@ else()
     target_compile_options(project_warnings INTERFACE -O3)
 endif()
 
-add_library(sas_physics src/PhysicsWorld.cpp)
+add_library(sas_physics
+    src/PhysicsWorld.cpp
+    src/AABBTree.cpp
+)
 target_include_directories(sas_physics PUBLIC include)
 
 target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers)
@@ -39,7 +42,10 @@ target_link_libraries(main PRIVATE
 )
 
 include(FetchContent)
-FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/heads/main.zip)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/heads/main.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 

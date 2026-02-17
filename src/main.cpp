@@ -25,7 +25,7 @@ int main()
     k.restituition = e;
     k.velocity.x = 500;
 
-    sas::Body defaultCircle{{sas::ShapeType::Circle, circleRad}, t, k};
+    sas::Body defaultCircle{0, {sas::ShapeType::Circle, circleRad}, t, k};
     circles.emplace_back(defaultCircle);
 
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
@@ -53,7 +53,7 @@ int main()
                 t1.position = {x, y};
                 t1.scale = {1};
 
-                sas::Body body{sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
+                sas::Body body{circles.size(), sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
 
                 circles.push_back(body);
 

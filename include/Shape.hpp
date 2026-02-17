@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 #include "Transform.hpp"
 #include "Kinematics.hpp"
@@ -25,6 +26,7 @@ namespace sas
 
     struct Body
     {
+        uint32_t bodyID;
         Shape shape;
         Transform transform;
         Kinematics kinematics;

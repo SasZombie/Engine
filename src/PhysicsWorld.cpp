@@ -4,6 +4,10 @@ sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
 {
 }
+void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
+{
+    root.insert(body);
+}
 void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) const noexcept
 {
     for (auto &obj : objects)

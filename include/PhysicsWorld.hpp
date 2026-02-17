@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "Shape.hpp"
+#include "AABBTree.hpp"
 #include "Primitives.hpp"
 
 namespace sas
@@ -19,6 +19,7 @@ namespace sas
     public:
         PhysicsSettings settings;
 
+        void addToCollisionPool(const Body& body) noexcept;
         void Step(std::vector<Body> &objects, float dt) const noexcept;
 
         PhysicsWorld(Rectangle dims) noexcept;
@@ -26,6 +27,7 @@ namespace sas
 
     private:
         Rectangle boundaries;
+        AABBTree root;
         void ApplyForces(Body &obj) const noexcept;
 
         void Integrate(Body &obj, float dt) const noexcept;
