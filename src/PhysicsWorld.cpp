@@ -1,19 +1,25 @@
 #include "PhysicsWorld.hpp"
 
-#include <iostream>
+#include "Util.hpp"
 
 sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
 {
 }
+void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
+{
+    root.Draw(cb);
+}
 void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
 {
-    root.insert(body);
+    root.insert(body.bodyID, ComputeFatAABB(body));
 }
-void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt)  noexcept
+
+void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) noexcept
 {
     for (auto &obj : objects)
     {
+        obj.isColliding = false;
         if (obj.kinematics.inverseMass > 0.f)
         {
             ApplyForces(obj);
@@ -21,28 +27,71 @@ void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt)  noexcept
             ResolveConstraints(obj, dt);
 
             Reset(obj);
+            const float velocityLength = obj.kinematics.velocity.length();
+
+            const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
+            root.UpdateObject(obj, predictiveMargin);
         }
+    }
+    // Collision
+    for (auto &obj : objects)
+    {
+        if (floatAlmostEqual(obj.kinematics.inverseMass, 0.0f) && obj.kinematics.velocity.lengthSq() < 0.01f)
+            continue;
 
-        root.UpdateObject(obj);
-        root.Draw();
         std::vector<uint32_t> potentialCollisions;
-        root.Query(ComputeFatAABB(obj), potentialCollisions);
 
-        for (uint32_t other : potentialCollisions)
+        root.Query(ComputeTightAABB(obj), potentialCollisions);
+
+        for (uint32_t otherID : potentialCollisions)
         {
-            if (obj.bodyID == other)
+            if (obj.bodyID >= otherID)
                 continue;
 
             // Narrow phase
-            float dx = obj.transform.position.x - objects[other].transform.position.x;
-            float dy = obj.transform.position.y - objects[other].transform.position.y;
+            float dx = obj.transform.position.x - objects[otherID].transform.position.x;
+            float dy = obj.transform.position.y - objects[otherID].transform.position.y;
             float distanceSq = dx * dx + dy * dy;
-            float combinedRad = obj.shape.radius + objects[other].shape.radius;
+            float combinedRad = obj.shape.radius + objects[otherID].shape.radius;
 
             if (distanceSq <= combinedRad * combinedRad)
             {
                 obj.isColliding = true;
-                objects[other].isColliding = true;
+                objects[otherID].isColliding = true;
+                auto &other = objects[otherID];
+
+                const math::Vec2 relativeVector = other.transform.position - obj.transform.position;
+
+                const float distance = relativeVector.length();
+                const math::Vec2 normal = relativeVector / distance;
+
+                const math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
+
+                float velAlongNormal = math::dotProduct(relVel, normal);
+
+                if (velAlongNormal > 0)
+                    continue;
+                ;
+
+                float overlap = combinedRad - distance;
+                
+                float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+                if (totalInvMass > 0.0f)
+                {
+                    // 0.2f to 0.8f is a "slack" factor (Baumgarte) to prevent jitter
+                    math::Vec2 percent = normal * (overlap / totalInvMass) * 0.5f;
+
+                    obj.transform.position = obj.transform.position - percent * obj.kinematics.inverseMass;
+                    other.transform.position = other.transform.position + percent * other.kinematics.inverseMass;
+                }
+
+                float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
+                float j = -(1 + e) * velAlongNormal;
+                j = j / (obj.kinematics.inverseMass + other.kinematics.inverseMass);
+
+                math::Vec2 impulse = normal * j;
+                obj.kinematics.velocity = obj.kinematics.velocity - impulse * obj.kinematics.inverseMass;
+                other.kinematics.velocity = other.kinematics.velocity + impulse * other.kinematics.inverseMass;
             }
         }
     }

@@ -19,6 +19,10 @@ namespace sas
     public:
         PhysicsSettings settings;
 
+        //Visualizing hitboxes
+        //Not Optimized
+        void DrawDebug(const DrawCallback& cb) const noexcept;
+
         void addToCollisionPool(const Body& body) noexcept;
         void Step(std::vector<Body> &objects, float dt)  noexcept;
 
@@ -33,6 +37,7 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
+
         void Reset(Body &obj) const noexcept;
 
         void ResolveBroadLower(Body &obj, float wall) const noexcept;

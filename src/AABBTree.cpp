@@ -1,16 +1,17 @@
 #include "AABBTree.hpp"
 
-#include <raylib.h>
-
-sas::AABB sas::ComputeFatAABB(const Body &body) noexcept
+sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 {
     // TODO: Add support for square
-    float margin = 2.0f;
     return {
         body.transform.position.x - body.shape.radius - margin,
         body.transform.position.y - body.shape.radius - margin,
         body.transform.position.x + body.shape.radius + margin,
         body.transform.position.y + body.shape.radius + margin};
+}
+
+sas::AABB sas::ComputeTightAABB(const Body &body) noexcept {
+    return ComputeFatAABB(body, 0.0f); 
 }
 
 bool sas::AABBOverlap(const AABB &a, const AABB &b) noexcept
@@ -34,13 +35,13 @@ float sas::GetAreaAABB(const AABB &a) noexcept
     return width * height;
 }
 
-void sas::AABBTree::insert(const Body &c) noexcept
+void sas::AABBTree::insert(uint32_t bodyID, const AABB& aabb) noexcept
 {
     Node *leaf = new Node();
-    leaf->objectID = c.bodyID;
-    leaf->aabb = ComputeFatAABB(c);
+    leaf->objectID = bodyID;
+    leaf->aabb = aabb;
 
-    leafMap[c.bodyID] = leaf;
+    leafMap[bodyID] = leaf;
 
     if (!root)
     {
@@ -150,9 +151,8 @@ void sas::AABBTree::remove(Node *leaf) noexcept
     }
 }
 
-void sas::AABBTree::UpdateObject(const Body &body) noexcept
+void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
 {
-
     float cx = body.transform.position.x;
     float cy = body.transform.position.y;
     float rad = body.shape.radius;
@@ -166,7 +166,7 @@ void sas::AABBTree::UpdateObject(const Body &body) noexcept
 
         remove(curNode);
         delete curNode;
-        insert(body);
+        insert(body.bodyID, ComputeFatAABB(body, margin));
     }
 }
 
@@ -181,20 +181,18 @@ void sas::AABBTree::Clear(Node *node) noexcept
     delete node;
 }
 
-void sas::Node::Draw() const
+void sas::Node::Draw(const DrawCallback& cb) const
 {
-    float width = aabb.maxX - aabb.minX;
-    float height = aabb.maxY - aabb.minY;
-    DrawRectangleLines(aabb.minX, aabb.minY, width, height, isLeaf() ? GREEN : YELLOW);
-
+    cb(aabb, isLeaf());
+    
     if (children[0])
-        children[0]->Draw();
+        children[0]->Draw(cb);
     if (children[1])
-        children[1]->Draw();
+        children[1]->Draw(cb);
 }
 
 
-void sas::AABBTree::Draw() const
+void sas::AABBTree::Draw(const DrawCallback& cb) const
 {
-    root->Draw();
+    root->Draw(cb);
 }

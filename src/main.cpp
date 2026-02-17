@@ -35,6 +35,11 @@ int main()
 
     world.addToCollisionPool(defaultCircle);
 
+    auto lambda = [](const sas::AABB& b, bool isLeaf) {
+        float width = b.maxX - b.minX;
+        float height = b.maxY - b.minY;
+        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW);};
+
     float dt = 0;
 
     while (!WindowShouldClose())
@@ -53,7 +58,7 @@ int main()
             {
                 sas::Transform t1;
                 t1.position = {x, y};
-                t1.scale = {1};
+                t1.scale = sas::math::Vec2{1};
 
                 sas::Body body{circles.size(), sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
 
@@ -123,9 +128,12 @@ int main()
             }
         }
 
+        world.Step(circles, dt);
+
         BeginDrawing();
         ClearBackground(BLACK);
-        world.Step(circles, dt);
+
+        world.DrawDebug(lambda);
 
         for (auto &circle : circles)
         {

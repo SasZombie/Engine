@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "Shape.hpp"
 namespace sas
@@ -12,17 +13,19 @@ namespace sas
         float maxX, maxY;
     };
 
-    AABB ComputeFatAABB(const Body &body) noexcept;
+    AABB ComputeFatAABB(const Body &body, float margin = 10.f) noexcept;
 
     bool AABBOverlap(const AABB &a, const AABB &b) noexcept;
 
     AABB AABBUnion(const AABB &a, const AABB &b) noexcept;
+    AABB ComputeTightAABB(const Body &body) noexcept;
 
     float GetAreaAABB(const AABB &a) noexcept;
 
+    using DrawCallback = std::function<void(const AABB&, bool isLeaf)>;
+    
     struct Node
     {
-
         AABB aabb;
 
         Node *parent = nullptr;
@@ -35,7 +38,7 @@ namespace sas
             return children[0] == nullptr;
         }
 
-        void Draw() const;
+        void Draw(const DrawCallback& cb) const;
     };
 
     class AABBTree
@@ -46,16 +49,16 @@ namespace sas
         void Clear(Node *node) noexcept;
 
     public:
-        void insert(const Body &c) noexcept;
+        void insert(uint32_t bodyID, const AABB& aabb) noexcept;
 
         void Query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
         void Query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
 
         void remove(Node *leaf) noexcept;
 
-        void UpdateObject(const Body &body) noexcept;
+        void UpdateObject(const Body &body, float margin = 0.f) noexcept;
 
-        void Draw() const;
+        void Draw(const DrawCallback& cb) const;
 
 
         ~AABBTree() noexcept

@@ -20,7 +20,7 @@ namespace sas
             };
 
             constexpr Vec2() : x(0), y(0) {}
-            constexpr Vec2(float val) : x(val), y(val) {}
+            constexpr explicit Vec2(float val) : x(val), y(val) {}
             constexpr Vec2(float nx, float ny) : x(nx), y(ny) {}
 
             constexpr Vec2 operator+(const Vec2 &other) const
@@ -79,7 +79,7 @@ namespace sas
             static constexpr int ElementCount = 3;
 
             constexpr Vec3() : x(0), y(0), z(0) {}
-            constexpr Vec3(float val) : x(val), y(val), z(val) {}
+            constexpr explicit Vec3(float val) : x(val), y(val), z(val) {}
             constexpr Vec3(float nx, float ny, float nz) : x(nx), y(ny), z(nz) {}
 
             // data(0, 1, 2) is proven to be one next to the other
@@ -164,7 +164,7 @@ namespace sas
             };
 
             constexpr Vec4() : x(0), y(0), z(0), w(0) {}
-            constexpr Vec4(float val) : x(val), y(val), z(val), w(val) {}
+            constexpr explicit Vec4(float val) : x(val), y(val), z(val), w(val) {}
 
             constexpr Vec4(float nx, float ny, float nz, float nw) : x(nx), y(ny), z(nz), w(nw) {}
 
