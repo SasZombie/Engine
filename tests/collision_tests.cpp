@@ -1,46 +1,74 @@
 #include <gtest/gtest.h>
-#include "PhysicsWorld.hpp"
+#include "Fixture.hpp"
 
-static constexpr float WIDTH = 800, HEIGHT = 450;
-
-TEST(CollisionTests, CircleCollide)
+TEST_F(FixtureTest, CircleCollide)
 {
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-    std::vector<sas::Body> circles;
+    AddCircle({0, 0}, {1, 1}, 0.f);
+    AddCircle({0, 0}, {1, 1}, 0.f);
 
-    sas::Transform t1;
-    t1.position = {470, 50};
+    world->addToCollisionPool(bodies[0]);
+    world->addToCollisionPool(bodies[1]);
+    world->Step(bodies, 0.01f);
 
-    sas::Kinematics k1;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
-    circles.emplace_back(0, sas::Shape{sas::ShapeType::Circle, 10.f}, t1, k1);
+    ASSERT_TRUE(bodies[0].isColliding);
+    ASSERT_TRUE(bodies[1].isColliding);
+}
 
-    sas::Transform t2;
-    t1.position = {-50, 50};
 
-    sas::Kinematics k2;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
+TEST_F(FixtureTest, CirclesDontCollide)
+{
+    AddCircle({0, 0}, {1, 1}, 0.f);
+    AddCircle({100, 20}, {1, 1}, 0.f);
 
-    circles.emplace_back(1, sas::Shape{sas::ShapeType::Circle, 10.f}, t2, k2);
+    world->addToCollisionPool(bodies[0]);
+    world->addToCollisionPool(bodies[1]);
+    world->Step(bodies, 0.01f);
 
-    sas::Transform t3;
-    t1.position = {1000, 50};
+    ASSERT_FALSE(bodies[0].isColliding);
+    ASSERT_FALSE(bodies[1].isColliding);
+}
 
-    sas::Kinematics k3;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
-    circles.emplace_back(2, sas::Shape{sas::ShapeType::Circle, 10.f}, t3, k3);
+TEST_F(FixtureTest, CirclesColideAfterMoving)
+{
+    AddCircle({0, 0}, {100, 0}, 0.f);
+    AddCircle({50, 0}, {-100, 0}, 0.f);
 
-    float dt = 0.01f;
-    world.Step(circles, dt);
+    world->addToCollisionPool(bodies[0]);
+    world->addToCollisionPool(bodies[1]);
 
-    EXPECT_LE(circles[0].transform.position.y, HEIGHT);
-    EXPECT_LE(circles[1].transform.position.x, WIDTH);
-    EXPECT_GE(circles[2].transform.position.x, 0);
+    bool bothColide = false;
+
+    for(float i = 0; i < 10; i = i + 0.1)
+    {
+        world->Step(bodies, 0.01f);
+        if(bodies[0].isColliding && bodies[1].isColliding)
+        {
+            bothColide = true;
+        } 
+    }
+
+    ASSERT_TRUE(bothColide);
+}
+
+
+TEST_F(FixtureTest, CirclesDontColideAfterMoving)
+{
+    AddCircle({0, 0}, {-10, 0}, 0.f);
+    AddCircle({50, 0}, {10, 0}, 0.f);
+
+    world->addToCollisionPool(bodies[0]);
+    world->addToCollisionPool(bodies[1]);
+
+    bool bothColide = false;
+
+    for(float i = 0; i < 10; i = i + 0.1)
+    {
+        world->Step(bodies, 0.01f);
+        if(bodies[0].isColliding && bodies[1].isColliding)
+        {
+            bothColide = true;
+        } 
+    }
+
+    ASSERT_FALSE(bothColide);;
 }

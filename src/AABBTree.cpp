@@ -1,5 +1,7 @@
 #include "AABBTree.hpp"
 
+#include <iostream>
+
 sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 {
     // TODO: Add support for square
@@ -10,8 +12,9 @@ sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
         body.transform.position.y + body.shape.radius + margin};
 }
 
-sas::AABB sas::ComputeTightAABB(const Body &body) noexcept {
-    return ComputeFatAABB(body, 0.0f); 
+sas::AABB sas::ComputeTightAABB(const Body &body) noexcept
+{
+    return ComputeFatAABB(body, 0.0f);
 }
 
 bool sas::AABBOverlap(const AABB &a, const AABB &b) noexcept
@@ -35,7 +38,7 @@ float sas::GetAreaAABB(const AABB &a) noexcept
     return width * height;
 }
 
-void sas::AABBTree::insert(uint32_t bodyID, const AABB& aabb) noexcept
+void sas::AABBTree::insert(uint32_t bodyID, const AABB &aabb) noexcept
 {
     Node *leaf = new Node();
     leaf->objectID = bodyID;
@@ -153,6 +156,8 @@ void sas::AABBTree::remove(Node *leaf) noexcept
 
 void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
 {
+    if (leafMap.find(body.bodyID) == leafMap.end())
+        return;
     float cx = body.transform.position.x;
     float cy = body.transform.position.y;
     float rad = body.shape.radius;
@@ -181,18 +186,24 @@ void sas::AABBTree::Clear(Node *node) noexcept
     delete node;
 }
 
-void sas::Node::Draw(const DrawCallback& cb) const
+void sas::Node::Draw(const DrawCallback &cb) const
 {
     cb(aabb, isLeaf());
-    
+
     if (children[0])
         children[0]->Draw(cb);
     if (children[1])
         children[1]->Draw(cb);
 }
 
-
-void sas::AABBTree::Draw(const DrawCallback& cb) const
+void sas::AABBTree::Draw(const DrawCallback &cb) const
 {
     root->Draw(cb);
+}
+
+void sas::AABBTree::Clear() noexcept
+{
+    Clear(root);
+    root = nullptr;
+    leafMap.clear();
 }

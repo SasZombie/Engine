@@ -35,12 +35,19 @@ int main()
 
     world.addToCollisionPool(defaultCircle);
 
-    auto lambda = [](const sas::AABB& b, bool isLeaf) {
+    auto lambda = [](const sas::AABB &b, bool isLeaf)
+    {
         float width = b.maxX - b.minX;
         float height = b.maxY - b.minY;
-        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW);};
+        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); };
+
+    world.settings.dragCoeff = 0;
+    world.settings.gravity = 0;
+    world.settings.wallFriction = 0;
+    world.settings.groundFriction = 0;
 
     float dt = 0;
+    bool drawHitbox = false;
 
     while (!WindowShouldClose())
     {
@@ -97,6 +104,7 @@ int main()
 
         if (IsKeyPressed(KEY_R))
         {
+            world.Clear();
             circles.clear();
         }
 
@@ -123,9 +131,13 @@ int main()
             }
             else
             {
-
                 settings.dragCoeff -= 0.1;
             }
+        }
+
+        if (IsKeyPressed(KEY_L))
+        {
+            drawHitbox = false;
         }
 
         world.Step(circles, dt);
@@ -133,7 +145,11 @@ int main()
         BeginDrawing();
         ClearBackground(BLACK);
 
-        world.DrawDebug(lambda);
+        if (drawHitbox)
+        {
+
+            world.DrawDebug(lambda);
+        }
 
         for (auto &circle : circles)
         {

@@ -60,7 +60,8 @@ namespace sas
 
         void Draw(const DrawCallback& cb) const;
 
-
+        void Clear() noexcept;
+        
         ~AABBTree() noexcept
         {
             Clear(root);

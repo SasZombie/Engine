@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "PhysicsWorld.hpp"
+#include "Fixture.hpp"
 
 static constexpr float WIDTH = 800, HEIGHT = 450;
 
@@ -36,8 +36,8 @@ TEST(PhysicsTests, CircleIsBounded)
     k1.velocity = {0, 0};
     k1.restituition = 0.5f;
     circles.emplace_back(circles.size(), sas::Shape{sas::ShapeType::Circle, 10.f}, t3, k3);
-    
     float dt = 0.01f;
+
     world.Step(circles, dt);
 
     EXPECT_LE(circles[0].transform.position.y, HEIGHT);

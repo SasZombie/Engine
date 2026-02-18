@@ -24,7 +24,10 @@ namespace sas
         void DrawDebug(const DrawCallback& cb) const noexcept;
 
         void addToCollisionPool(const Body& body) noexcept;
-        void Step(std::vector<Body> &objects, float dt)  noexcept;
+        void Step(std::vector<Body> &objects, float dt) noexcept;
+
+        void Clear() noexcept;
+
 
         PhysicsWorld(Rectangle dims) noexcept;
         ~PhysicsWorld() noexcept = default;
@@ -37,11 +40,15 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
+        void CheckCollision(std::vector<Body> &objects, Body& obj) noexcept;
 
         void Reset(Body &obj) const noexcept;
 
         void ResolveBroadLower(Body &obj, float wall) const noexcept;
         void ResolveBroadHigher(Body &obj, float wall) const noexcept;
+      
+        void ResolveBroadCeil(Body &obj, float wall) const noexcept;
+        void ResolveBroadGround(Body &obj, float wall) const noexcept;
     };
 
 } // namespace sas
