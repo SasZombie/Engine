@@ -6,6 +6,12 @@
 
 extern "C" const char *__lsan_default_suppressions();
 
+struct Entity
+{
+
+};
+
+
 int main()
 {
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
@@ -25,7 +31,7 @@ int main()
     k.restituition = e;
     k.velocity.x = 500;
 
-    sas::Body defaultCircle{0, {sas::ShapeType::Circle, circleRad}, t, k};
+    sas::Body defaultCircle{t, k, {sas::ShapeType::Circle, circleRad}, 0};
     circles.emplace_back(defaultCircle);
 
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
@@ -41,10 +47,6 @@ int main()
         float height = b.maxY - b.minY;
         DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); };
 
-    world.settings.dragCoeff = 0;
-    world.settings.gravity = 0;
-    world.settings.wallFriction = 0;
-    world.settings.groundFriction = 0;
 
     float dt = 0;
     bool drawHitbox = false;
@@ -66,8 +68,8 @@ int main()
                 sas::Transform t1;
                 t1.position = {x, y};
                 t1.scale = sas::math::Vec2{1};
-
-                sas::Body body{circles.size(), sas::Shape{sas::ShapeType::Circle, circleRad}, t1, {}};
+                
+                sas::Body body{t1, {}, sas::Shape{sas::ShapeType::Circle, circleRad}, circles.size()};
 
                 circles.push_back(body);
                 world.addToCollisionPool(body);

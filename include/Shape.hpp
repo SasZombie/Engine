@@ -26,11 +26,11 @@ namespace sas
 
     struct Body
     {
-        uint32_t bodyID;
-        Shape shape;
         Transform transform;
         Kinematics kinematics;
-
+        
+        Shape shape;
+        uint32_t bodyID;
         bool isColliding = false;
     };
     

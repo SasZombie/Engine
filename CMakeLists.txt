@@ -49,11 +49,11 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(PhysicsTests
+add_executable(Tests
     tests/physics_tests.cpp
     tests/collision_tests.cpp
 )
-target_link_libraries(PhysicsTests PRIVATE
+target_link_libraries(Tests PRIVATE
     sas_physics
     project_warnings
     project_sanitizers

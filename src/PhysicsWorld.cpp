@@ -10,6 +10,10 @@ void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
 {
     root.Draw(cb);
 }
+uint32_t sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans) noexcept
+{
+    return 0;
+}
 void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
 {
     root.insert(body.bodyID, ComputeFatAABB(body));
@@ -55,6 +59,7 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
             continue;
         auto &other = objects[otherID];
 
+
         float dx = obj.transform.position.x - other.transform.position.x;
         float dy = obj.transform.position.y - other.transform.position.y;
         float distanceSq = dx * dx + dy * dy;
@@ -91,6 +96,9 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
             obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
             other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
         }
+
+        contacts.emplace_back(obj.bodyID, otherID, normal, 1);
+
     }
 }
 

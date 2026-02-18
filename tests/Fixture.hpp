@@ -22,7 +22,7 @@ protected:
         k.restituition = restitution;
         k.inverseMass = 1.0f;
         
-        bodies.emplace_back(bodies.size(), sas::Shape{sas::ShapeType::Circle, 10.f}, t, k);
+        bodies.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, bodies.size());
     }
 
     std::unique_ptr<sas::PhysicsWorld> world;
