@@ -12,8 +12,8 @@ TEST_F(FixtureTest, CircleCollide)
     AddCircle(t, k);
     AddCircle(t, k);
 
-    world->addToCollisionPool(world->bodies[0]);
-    world->addToCollisionPool(world->bodies[1]);
+    world->AddToCollisionPool(world->bodies[0]);
+    world->AddToCollisionPool(world->bodies[1]);
     world->Step(0.01f);
 
     ASSERT_TRUE(world->bodies[0].isColliding);
@@ -31,8 +31,8 @@ TEST_F(FixtureTest, CirclesDontCollide)
     AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
     AddCircle({{100, 20}, {0, 0}, {0, 0}}, k);
 
-    world->addToCollisionPool(world->bodies[0]);
-    world->addToCollisionPool(world->bodies[1]);
+    world->AddToCollisionPool(world->bodies[0]);
+    world->AddToCollisionPool(world->bodies[1]);
     world->Step(0.01f);
 
     ASSERT_FALSE(world->bodies[0].isColliding);
@@ -50,8 +50,8 @@ TEST_F(FixtureTest, CirclesColideAfterMoving)
     AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
     AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
 
-    world->addToCollisionPool(world->bodies[0]);
-    world->addToCollisionPool(world->bodies[1]);
+    world->AddToCollisionPool(world->bodies[0]);
+    world->AddToCollisionPool(world->bodies[1]);
 
     bool bothColide = false;
 
@@ -78,8 +78,8 @@ TEST_F(FixtureTest, CirclesDontColideAfterMoving)
     AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
     AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
 
-    world->addToCollisionPool(world->bodies[0]);
-    world->addToCollisionPool(world->bodies[1]);
+    world->AddToCollisionPool(world->bodies[0]);
+    world->AddToCollisionPool(world->bodies[1]);
 
     bool bothColide = false;
 

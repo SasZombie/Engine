@@ -157,11 +157,27 @@ int main()
 
         if(IsKeyPressed(KEY_K))
         {
+            if(collision)
+            {
+                for(auto& elem : entities)
+                {
+                    elem.bodyHandle.SetCollisionOff();
+                }
+            }else
+            {
+                for(auto& elem : entities)
+                {
+                    elem.bodyHandle.SetCollisionOn();
+                }
+            }
+
             collision = !collision;
         }
+
         if (IsKeyPressed(KEY_DELETE))
         {
             if (!entities.empty())
+
             {
                 world.RemoveBody(entities.back().bodyHandle);
                 entities.pop_back();
@@ -175,7 +191,6 @@ int main()
 
         if (drawHitbox)
         {
-
             world.DrawDebug(lambda);
         }
 

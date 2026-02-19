@@ -154,6 +154,58 @@ void sas::AABBTree::remove(Node *leaf) noexcept
     }
 }
 
+void sas::AABBTree::internal_remove_node(Node *leaf) noexcept
+{
+    if (leaf == root)
+    {
+        root = nullptr;
+        return;
+    }
+
+    Node *parent = leaf->parent;
+    Node *grandParent = parent->parent;
+    Node *sibling = (parent->children[0] == leaf) ? parent->children[1] : parent->children[0];
+
+    if (grandParent)
+    {
+        if (grandParent->children[0] == parent) grandParent->children[0] = sibling;
+        else grandParent->children[1] = sibling;
+
+        sibling->parent = grandParent;
+        
+        // Update AABBs up the tree
+        Node *walk = grandParent;
+        while (walk)
+        {
+            walk->aabb = AABBUnion(walk->children[0]->aabb, walk->children[1]->aabb);
+            walk = walk->parent;
+        }
+    }
+    else
+    {
+        root = sibling;
+        sibling->parent = nullptr;
+    }
+
+    // IMPORTANT: The leaf is now detached. 
+    // We delete the PARENT (the internal node) because it's no longer needed.
+    delete parent; 
+}
+
+void sas::AABBTree::remove(uint32_t id) noexcept
+{
+    auto it = leafMap.find(id);
+    if(it != leafMap.end())
+    {
+        Node* leaf = it->second;
+        internal_remove_node(leaf); 
+        
+        leafMap.erase(it);
+
+        delete leaf; 
+    }
+}
+
 void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
 {
     if (leafMap.find(body.bodyID) == leafMap.end())

@@ -36,6 +36,7 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
 
     if (indToRemove != lastIndex)
     {
+        bodies[indToRemove].flags = 0;
         bodies[indToRemove] = std::move(bodies[lastIndex]);
 
         sparse[lastID] = indToRemove;
@@ -46,8 +47,9 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
     dense.pop_back();
 
     sparse[bodyID] = -1;
-    
+
     freeIDs.push_back(bodyID);
+    root.remove(bodyID);
 }
 
 uint32_t sas::PhysicsWorld::GetNextId() noexcept
@@ -77,13 +79,19 @@ void sas::PhysicsWorld::Step(float dt) noexcept
             const float velocityLength = obj.kinematics.velocity.length();
 
             const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
-            root.UpdateObject(obj, predictiveMargin);
+            if (obj.flags & Filter::Active)
+            {
+                root.UpdateObject(obj, predictiveMargin);
+            }
         }
     }
 
     for (auto &obj : bodies)
     {
-        CheckCollision(obj);
+        if(obj.flags & Filter::Active)
+        {
+            CheckCollision(obj);
+        }
     }
 }
 
@@ -275,9 +283,14 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
     }
 }
 
-void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
+void sas::PhysicsWorld::AddToCollisionPool(const Body &body) noexcept
 {
     root.insert(body.bodyID, ComputeFatAABB(body));
+}
+
+void sas::PhysicsWorld::RemoveFromCollisionPool(const Body &body) noexcept
+{
+    root.remove(body.bodyID);
 }
 
 void sas::PhysicsWorld::Reset(Body &obj) const noexcept

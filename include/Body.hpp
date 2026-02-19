@@ -12,7 +12,8 @@ namespace sas
 
         enum BodyFlags : uint32_t
         {
-            Active = 1 << 0
+            Active = 1 << 0,
+            Static = 1 << 1
         };
 
         enum CollisionFlags : uint32_t
@@ -50,9 +51,8 @@ namespace sas
         };
     };
 
-    class Body
+    struct Body
     {
-    public:
         Transform transform;
         Kinematics kinematics;
 
@@ -62,7 +62,6 @@ namespace sas
         uint32_t flags;
         uint32_t filter;
         
-        // TODO: Delete this soon
         bool isColliding = false;
     };
 

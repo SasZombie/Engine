@@ -54,7 +54,8 @@ namespace sas
 
         BodyHandle CreateBody(Shape shape, const Transform &trans) noexcept;
 
-        void addToCollisionPool(const Body &body) noexcept;
+        void AddToCollisionPool(const Body &body) noexcept;
+        void RemoveFromCollisionPool(const Body &body) noexcept;
         void Step(float dt) noexcept;
 
         bool BodyExists(uint32_t id) const noexcept;
@@ -116,24 +117,33 @@ namespace sas
 
         void SetBodyActive() noexcept
         {
-
         }
 
         void SetBodyInactive() noexcept
         {
-
         }
 
         void SetCollisionOff() noexcept
         {
-            // world->GetBody(id).filter = Filter::MaskNone | Filter::LayerNone;
-            world->addToCollisionPool(world->GetBody(id));
+            auto &b = world->GetBody(id);
+
+            if (b.flags & Filter::Active)
+            {
+                b.flags &= ~Filter::Active;
+                world->RemoveFromCollisionPool(b);
+            }
         }
 
         void SetCollisionOn() noexcept
         {
-            // world->GetBody(id).filter = Filter::MaskAll | Filter::LayerAll;
-            world->addToCollisionPool(world->GetBody(id));
+            auto &b = world->GetBody(id);
+
+            if (!(b.flags & Filter::Active))
+            {
+                b.flags |= Filter::Active;
+
+                world->AddToCollisionPool(b);
+            }
         }
 
         ~BodyHandle() = default;

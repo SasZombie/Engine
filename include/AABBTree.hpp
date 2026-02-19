@@ -48,14 +48,17 @@ namespace sas
         Node *root = nullptr;
         std::unordered_map<uint32_t, Node *> leafMap;
         void Clear(Node *node) noexcept;
+        void remove(Node *leaf) noexcept;
 
+        void internal_remove_node(Node *leaf) noexcept;
+        
     public:
         void insert(uint32_t bodyID, const AABB& aabb) noexcept;
 
         void Query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
         void Query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
 
-        void remove(Node *leaf) noexcept;
+        void remove(uint32_t id) noexcept;
 
         void UpdateObject(const Body &body, float margin = 0.f) noexcept;
 
