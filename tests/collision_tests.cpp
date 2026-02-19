@@ -3,72 +3,94 @@
 
 TEST_F(FixtureTest, CircleCollide)
 {
-    AddCircle({0, 0}, {1, 1}, 0.f);
-    AddCircle({0, 0}, {1, 1}, 0.f);
+    sas::Transform t;
+    t.position = {0, 0};
 
-    world->addToCollisionPool(bodies[0]);
-    world->addToCollisionPool(bodies[1]);
-    world->Step(bodies, 0.01f);
+    sas::Kinematics k;
+    k.velocity = {1, 1};
 
-    ASSERT_TRUE(bodies[0].isColliding);
-    ASSERT_TRUE(bodies[1].isColliding);
+    AddCircle(t, k);
+    AddCircle(t, k);
+
+    world->addToCollisionPool(world->bodies[0]);
+    world->addToCollisionPool(world->bodies[1]);
+    world->Step(0.01f);
+
+    ASSERT_TRUE(world->bodies[0].isColliding);
+    ASSERT_TRUE(world->bodies[1].isColliding);
 }
-
 
 TEST_F(FixtureTest, CirclesDontCollide)
 {
-    AddCircle({0, 0}, {1, 1}, 0.f);
-    AddCircle({100, 20}, {1, 1}, 0.f);
+    sas::Transform t;
+    t.position = {0, 0};
 
-    world->addToCollisionPool(bodies[0]);
-    world->addToCollisionPool(bodies[1]);
-    world->Step(bodies, 0.01f);
+    sas::Kinematics k;
+    k.velocity = {1, 1};
 
-    ASSERT_FALSE(bodies[0].isColliding);
-    ASSERT_FALSE(bodies[1].isColliding);
+    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    AddCircle({{100, 20}, {0, 0}, {0, 0}}, k);
+
+    world->addToCollisionPool(world->bodies[0]);
+    world->addToCollisionPool(world->bodies[1]);
+    world->Step(0.01f);
+
+    ASSERT_FALSE(world->bodies[0].isColliding);
+    ASSERT_FALSE(world->bodies[1].isColliding);
 }
 
 TEST_F(FixtureTest, CirclesColideAfterMoving)
 {
-    AddCircle({0, 0}, {100, 0}, 0.f);
-    AddCircle({50, 0}, {-100, 0}, 0.f);
+    sas::Kinematics k;
+    k.velocity = {1, 1};
 
-    world->addToCollisionPool(bodies[0]);
-    world->addToCollisionPool(bodies[1]);
+    sas::Kinematics k2;
+    k2.velocity = {-100, 0};
+
+    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+
+    world->addToCollisionPool(world->bodies[0]);
+    world->addToCollisionPool(world->bodies[1]);
 
     bool bothColide = false;
 
-    for(float i = 0; i < 10; i = i + 0.1)
+    for (float i = 0; i < 10; i = i + 0.1)
     {
-        world->Step(bodies, 0.01f);
-        if(bodies[0].isColliding && bodies[1].isColliding)
+        world->Step(0.01f);
+        if (world->bodies[0].isColliding && world->bodies[1].isColliding)
         {
             bothColide = true;
-        } 
+        }
     }
 
     ASSERT_TRUE(bothColide);
 }
 
-
 TEST_F(FixtureTest, CirclesDontColideAfterMoving)
 {
-    AddCircle({0, 0}, {-10, 0}, 0.f);
-    AddCircle({50, 0}, {10, 0}, 0.f);
+    sas::Kinematics k;
+    k.velocity = {-10, 0};
 
-    world->addToCollisionPool(bodies[0]);
-    world->addToCollisionPool(bodies[1]);
+    sas::Kinematics k2;
+    k2.velocity = {10, 0};
+
+    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+
+    world->addToCollisionPool(world->bodies[0]);
+    world->addToCollisionPool(world->bodies[1]);
 
     bool bothColide = false;
 
-    for(float i = 0; i < 10; i = i + 0.1)
+    for (float i = 0; i < 10; i = i + 0.1)
     {
-        world->Step(bodies, 0.01f);
-        if(bodies[0].isColliding && bodies[1].isColliding)
+        world->Step(0.01f);
+        if (world->bodies[0].isColliding && world->bodies[1].isColliding)
         {
             bothColide = true;
-        } 
+        }
     }
 
-    ASSERT_FALSE(bothColide);;
+    ASSERT_FALSE(bothColide);
 }

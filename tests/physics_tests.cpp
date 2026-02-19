@@ -1,55 +1,60 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-static constexpr float WIDTH = 800, HEIGHT = 450;
+// static constexpr float WIDTH = 800, HEIGHT = 450;
 
-TEST(PhysicsTests, CircleIsBounded)
+TEST_F(FixtureTest, CircleIsBounded)
 {
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-    std::vector<sas::Body> circles;
-
     sas::Transform t1;
     t1.position = {470, 50};
 
-    sas::Kinematics k1;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
-    circles.emplace_back(t1, k1, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t1, {});
 
     sas::Transform t2;
-    t1.position = {-50, 50};
-
-    sas::Kinematics k2;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
-
-    circles.emplace_back(t2, k2, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    t2.position = {-50, 50};
+    AddCircle(t2, {});
 
     sas::Transform t3;
-    t1.position = {1000, 50};
+    t3.position = {1000, 50};
 
-    sas::Kinematics k3;
-    k1.inverseMass = 1.0f;
-    k1.velocity = {0, 0};
-    k1.restituition = 0.5f;
-    circles.emplace_back(t3, k3, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
-    float dt = 0.01f;
+    AddCircle(t3, {});
 
-    world.Step(circles, dt);
+    sas::Transform t4;
+    t4.position = {-100, 50};
 
-    EXPECT_LE(circles[0].transform.position.y, HEIGHT);
-    EXPECT_LE(circles[1].transform.position.x, WIDTH);
-    EXPECT_GE(circles[2].transform.position.x, 0);
+    AddCircle(t4, {});
+
+    float dt = 0.1f;
+
+    world->Step(dt);
+
+    EXPECT_LE(world->bodies[0].transform.position.y, HEIGHT);
+    EXPECT_LE(world->bodies[1].transform.position.x, WIDTH);
+    EXPECT_GE(world->bodies[2].transform.position.x, 0);
+    EXPECT_GE(world->bodies[3].transform.position.x, 0);
 }
 
-TEST(PhysicsTests, CircleStopsOnFloor)
+TEST_F(FixtureTest, CircleStopsOnFloor)
 {
-    sas::PhysicsWorld world({0, 0, WIDTH, HEIGHT});
-    world.settings.gravity = 500.0f;
-    std::vector<sas::Body> circles;
+    sas::Transform t;
+    t.position = {400, 440};
+
+    sas::Kinematics k;
+    k.inverseMass = 1.0f;
+    k.velocity = {0, 100};
+    k.restituition = 0.5f;
+
+    AddCircle(t, k);
+
+    float dt = 0.1f;
+    world->Step(dt);
+
+    EXPECT_LT(world->bodies[0].kinematics.velocity.y, 0);
+    EXPECT_EQ(world->bodies[0].transform.position.y, HEIGHT - world->bodies[0].shape.radius);
+}
+
+TEST_F(FixtureTest, CircleBouncesOnFloor)
+{
 
     sas::Transform t;
     t.position = {400, 440};
@@ -59,46 +64,20 @@ TEST(PhysicsTests, CircleStopsOnFloor)
     k.velocity = {0, 100};
     k.restituition = 0.5f;
 
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t, k);
 
     float dt = 0.1f;
-    world.Step(circles, dt);
+    world->Step(dt);
 
-    EXPECT_LT(circles[0].kinematics.velocity.y, 0);
-    EXPECT_EQ(circles[0].transform.position.y, HEIGHT - circles[0].shape.radius);
+    EXPECT_LT(world->bodies[0].kinematics.velocity.y, 0);
+
+    world->Step(dt);
+
+    EXPECT_LE(world->bodies[0].transform.position.y, HEIGHT - world->bodies[0].shape.radius);
 }
 
-TEST(PhysicsTests, CircleBouncesOnFloor)
+TEST_F(FixtureTest, EnergyLossOnHighDrop)
 {
-    sas::PhysicsWorld world({0, 0, WIDTH, HEIGHT});
-    world.settings.gravity = 500.0f;
-    std::vector<sas::Body> circles;
-
-    sas::Transform t;
-    t.position = {400, 440};
-
-    sas::Kinematics k;
-    k.inverseMass = 1.0f;
-    k.velocity = {0, 100};
-    k.restituition = 0.5f;
-
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
-
-    float dt = 0.1f;
-    world.Step(circles, dt);
-
-    EXPECT_LT(circles[0].kinematics.velocity.y, 0);
-
-    world.Step(circles, dt);
-
-    EXPECT_LE(circles[0].transform.position.y, HEIGHT - circles[0].shape.radius);
-}
-
-TEST(PhysicsTests, EnergyLossOnHighDrop)
-{
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-
     sas::Transform t;
     t.position = {400, 50};
 
@@ -107,8 +86,7 @@ TEST(PhysicsTests, EnergyLossOnHighDrop)
     k.velocity = {0, 0};
     k.restituition = 0.5f;
 
-    std::vector<sas::Body> circles;
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t, k);
 
     float dt = 0.01f;
     bool hasBounced = false;
@@ -116,9 +94,9 @@ TEST(PhysicsTests, EnergyLossOnHighDrop)
 
     for (int i = 0; i < 200; ++i)
     {
-        float lastVelY = circles[0].kinematics.velocity.y;
-        world.Step(circles, dt);
-        float currentVelY = circles[0].kinematics.velocity.y;
+        float lastVelY = world->bodies[0].kinematics.velocity.y;
+        world->Step(dt);
+        float currentVelY = world->bodies[0].kinematics.velocity.y;
 
         if (lastVelY > 0 && currentVelY < 0)
         {
@@ -127,7 +105,7 @@ TEST(PhysicsTests, EnergyLossOnHighDrop)
 
         if (hasBounced && currentVelY <= 0)
         {
-            peakHeightAfterBounce = std::min(peakHeightAfterBounce, circles[0].transform.position.y);
+            peakHeightAfterBounce = std::min(peakHeightAfterBounce, world->bodies[0].transform.position.y);
         }
     }
 
@@ -135,11 +113,8 @@ TEST(PhysicsTests, EnergyLossOnHighDrop)
     EXPECT_GT(peakHeightAfterBounce, 100.0f);
 }
 
-TEST(PhysicsTests, CircleBouncesOnWall)
+TEST_F(FixtureTest, CircleBouncesOnWall)
 {
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-
     sas::Transform t;
     t.position = {750, 225};
 
@@ -148,25 +123,21 @@ TEST(PhysicsTests, CircleBouncesOnWall)
     k.velocity = {0, 0};
     k.restituition = 0.5f;
 
-    std::vector<sas::Body> circles;
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t, k);
 
     float dt = 0.01f;
     float currentVelX;
     for (int i = 0; i < 200; ++i)
     {
-        world.Step(circles, dt);
-        currentVelX = circles[0].kinematics.velocity.x;
+        world->Step(dt);
+        currentVelX = world->bodies[0].kinematics.velocity.x;
     }
 
     EXPECT_LE(currentVelX, 0);
 }
 
-TEST(PhysicsTests, CircleIsInnelastic)
+TEST_F(FixtureTest, CircleIsInnelastic)
 {
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-
     sas::Transform t;
     t.position = {750, 225};
 
@@ -175,25 +146,23 @@ TEST(PhysicsTests, CircleIsInnelastic)
     k.velocity = {0, 0};
     k.restituition = 0.0f;
 
-    std::vector<sas::Body> circles;
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t, k);
 
     float dt = 0.01f;
     for (int i = 0; i < 20; ++i)
     {
-        world.Step(circles, dt);
+        world->Step(dt);
     }
 
-    EXPECT_EQ(circles[0].kinematics.velocity.x, 0);
+    EXPECT_EQ(world->bodies[0].kinematics.velocity.x, 0);
 }
 
-TEST(PhysicsTests, CircleIsPerfectEllastic)
+TEST_F(FixtureTest, CircleIsPerfectEllastic)
 {
-    sas::PhysicsWorld world({0, 0, 800, 450});
-    world.settings.gravity = 500.0f;
-    world.settings.dragCoeff = 0.f;
-    world.settings.groundFriction = 1.f;
-    world.settings.wallFriction = 1.f;
+    world->settings.gravity = 500.0f;
+    world->settings.dragCoeff = 0.f;
+    world->settings.groundFriction = 1.f;
+    world->settings.wallFriction = 1.f;
 
     sas::Transform t;
     t.position = {750, 225};
@@ -203,18 +172,14 @@ TEST(PhysicsTests, CircleIsPerfectEllastic)
     k.velocity = {400.f, 0};
     k.restituition = 1.0f;
 
-    std::vector<sas::Body> circles;
-    circles.emplace_back(t, k, sas::Shape{sas::ShapeType::Circle, 10.f}, circles.size());
+    AddCircle(t, k);
 
     float dt = 0.01f;
     for (int i = 0; i < 10; ++i)
     {
-        world.Step(circles, dt);
+        world->Step(dt);
     }
 
-    EXPECT_NEAR(std::abs(circles[0].kinematics.velocity.x), 400, 50);
+    EXPECT_NEAR(std::abs(world->bodies[0].kinematics.velocity.x), 400, 50);
 
-    world.settings.dragCoeff = 0.47f;
-    world.settings.wallFriction = 0.98f;
-    world.settings.groundFriction = 0.98f;
 }

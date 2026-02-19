@@ -8,9 +8,12 @@ extern "C" const char *__lsan_default_suppressions();
 
 struct Entity
 {
+    sas::Transform bodyTransform;
 
+    sas::BodyHandle bodyHandle;
+
+    Color c;
 };
-
 
 int main()
 {
@@ -20,7 +23,7 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
 
-    std::vector<sas::Body> circles;
+    std::vector<Entity> entities;
 
     sas::Transform t;
     t.position = {400, 225};
@@ -31,22 +34,22 @@ int main()
     k.restituition = e;
     k.velocity.x = 500;
 
-    sas::Body defaultCircle{t, k, {sas::ShapeType::Circle, circleRad}, 0};
-    circles.emplace_back(defaultCircle);
-
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
     sas::PhysicsSettings &settings = world.settings;
 
     sas::Body *currentBody = nullptr;
 
-    world.addToCollisionPool(defaultCircle);
+    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t);
+    Entity firstEntity{{}, firstBH, MAROON};
+    entities.push_back(firstEntity);
+
+    entities[0].bodyHandle->kinematics = k;
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
     {
         float width = b.maxX - b.minX;
         float height = b.maxY - b.minY;
         DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); };
-
 
     float dt = 0;
     bool drawHitbox = false;
@@ -68,13 +71,12 @@ int main()
                 sas::Transform t1;
                 t1.position = {x, y};
                 t1.scale = sas::math::Vec2{1};
-                
-                sas::Body body{t1, {}, sas::Shape{sas::ShapeType::Circle, circleRad}, circles.size()};
 
-                circles.push_back(body);
-                world.addToCollisionPool(body);
+                sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Circle, circleRad}, t1);
 
-                currentBody = &circles.back();
+                Entity temp{{}, bh, MAROON};
+                entities.push_back(temp);
+                currentBody = bh.get();
             }
         }
 
@@ -107,7 +109,7 @@ int main()
         if (IsKeyPressed(KEY_R))
         {
             world.Clear();
-            circles.clear();
+            entities.clear();
         }
 
         if (IsKeyPressed(KEY_Q))
@@ -142,7 +144,16 @@ int main()
             drawHitbox = false;
         }
 
-        world.Step(circles, dt);
+        if (IsKeyPressed(KEY_DELETE))
+        {
+            if (!entities.empty())
+            {
+                world.RemoveBody(entities.back().bodyHandle);
+                entities.pop_back();
+            }
+        }
+
+        world.Step(dt);
 
         BeginDrawing();
         ClearBackground(BLACK);
@@ -153,14 +164,15 @@ int main()
             world.DrawDebug(lambda);
         }
 
-        for (auto &circle : circles)
+        for (auto &entity : entities)
         {
-            DrawCircle(circle.transform.position.x, circle.transform.position.y, circle.shape.radius, circle.isColliding ? GREEN : MAROON);
+            const auto &circle = entity.bodyHandle.get();
+            DrawCircle(circle->transform.position.x, circle->transform.position.y, circle->shape.radius, entity.c);
         }
 
         const std::string msg1("Gravity = " + std::to_string(settings.gravity));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));
-        const std::string msg3("Objects = " + std::to_string(circles.size()));
+        const std::string msg3("Objects = " + std::to_string(entities.size()));
 
         DrawText(msg1.c_str(), 0, 0, 30, RED);
         DrawText(msg2.c_str(), 0, 30, 30, RED);

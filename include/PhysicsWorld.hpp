@@ -23,12 +23,15 @@ namespace sas
 
         float depth;
     };
+    class PhysicsWorld;
+    struct BodyHandle;
 
     class PhysicsWorld
     {
     public:
         PhysicsSettings settings;
         uint32_t idCounter = 0;
+
     private:
         Rectangle boundaries;
         AABBTree root;
@@ -37,16 +40,28 @@ namespace sas
         // Cashe locality
         // World keeps body
         std::vector<Body> bodies;
+
+        //Found this funny ahh pattern
+        std::vector<int> sparse;
+        std::vector<uint32_t> dense;
+        std::vector<uint32_t> freeIDs;
+
         std::vector<Contact> contacts;
-        
+
         // Visualizing hitboxes
         // Not Optimized
         void DrawDebug(const DrawCallback &cb) const noexcept;
 
-        uint32_t CreateBody(Shape shape, const Transform& trans) noexcept;  
+        BodyHandle CreateBody(Shape shape, const Transform &trans) noexcept;
 
         void addToCollisionPool(const Body &body) noexcept;
-        void Step(std::vector<Body> &objects, float dt) noexcept;
+        void Step(float dt) noexcept;
+
+        bool BodyExists(uint32_t id) const noexcept;
+        Body &GetBody(uint32_t id) noexcept;
+
+        void RemoveBody(const BodyHandle& handle) noexcept;
+        void RemoveBody(uint32_t bodyID) noexcept;
 
         void Clear() noexcept;
 
@@ -59,15 +74,47 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
-        void CheckCollision(std::vector<Body> &objects, Body &obj) noexcept;
+        void CheckCollision(Body &obj) noexcept;
 
         void Reset(Body &obj) const noexcept;
+
+        uint32_t GetNextId() noexcept;
 
         void ResolveBroadLower(Body &obj, float wall) const noexcept;
         void ResolveBroadHigher(Body &obj, float wall) const noexcept;
 
         void ResolveBroadCeil(Body &obj, float wall) const noexcept;
         void ResolveBroadGround(Body &obj, float wall) const noexcept;
+    };
+
+    struct BodyHandle
+    {
+    private:
+        uint32_t id;
+        PhysicsWorld *world;
+
+    public:
+        BodyHandle(uint32_t bodyID, PhysicsWorld *pworld)
+            : id(bodyID), world(pworld)
+        {
+        }
+
+        Body *operator->()
+        {
+            return &world->GetBody(id);
+        }
+
+        bool isValid() const noexcept
+        {
+            return world->BodyExists(id);
+        }
+
+        Body *get() const
+        {
+            return &world->GetBody(id);
+        }
+
+        ~BodyHandle() = default;
     };
 
 } // namespace sas

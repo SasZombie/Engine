@@ -6,22 +6,65 @@ sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
 {
 }
-void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
+
+sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans) noexcept
 {
-    root.Draw(cb);
-}
-uint32_t sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans) noexcept
-{
-    return 0;
-}
-void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
-{
-    root.insert(body.bodyID, ComputeFatAABB(body));
+    uint32_t newID = GetNextId();
+    uint32_t internalIndex = static_cast<uint32_t>(bodies.size());
+
+    if (newID >= sparse.size())
+    {
+        sparse.resize(newID + 1, -1);
+    }
+
+    bodies.emplace_back(trans, Kinematics{}, shape, newID);
+
+    sparse[newID] = internalIndex;
+    dense.emplace_back(newID);
+
+    return {newID, this};
 }
 
-void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) noexcept
+void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
 {
-    for (auto &obj : objects)
+    if (bodies.empty())
+        return;
+    int indToRemove = sparse[bodyID];
+    int lastIndex = static_cast<int>(bodies.size()) - 1;
+
+    uint32_t lastID = dense[lastIndex];
+
+    if (indToRemove != lastIndex)
+    {
+        bodies[indToRemove] = std::move(bodies[lastIndex]);
+
+        sparse[lastID] = indToRemove;
+        dense[indToRemove] = lastID;
+    }
+
+    bodies.pop_back();
+    dense.pop_back();
+
+    sparse[bodyID] = -1;
+
+    freeIDs.push_back(bodyID);
+}
+
+uint32_t sas::PhysicsWorld::GetNextId() noexcept
+{
+    if (!freeIDs.empty())
+    {
+        uint32_t recycledID = freeIDs.back();
+        freeIDs.pop_back();
+        return recycledID;
+    }
+
+    return idCounter++;
+}
+
+void sas::PhysicsWorld::Step(float dt) noexcept
+{
+    for (auto &obj : bodies)
     {
         obj.isColliding = false;
         if (obj.kinematics.inverseMass > 0.f)
@@ -38,13 +81,13 @@ void sas::PhysicsWorld::Step(std::vector<Body> &objects, float dt) noexcept
         }
     }
 
-    for (auto &obj : objects)
+    for (auto &obj : bodies)
     {
-        CheckCollision(objects, obj);
+        CheckCollision(obj);
     }
 }
 
-void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) noexcept
+void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 {
     if (floatAlmostEqual(obj.kinematics.inverseMass, 0.0f) && obj.kinematics.velocity.lengthSq() < 0.01f)
         return;
@@ -57,8 +100,7 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
     {
         if (obj.bodyID >= otherID)
             continue;
-        auto &other = objects[otherID];
-
+        auto &other = bodies[otherID];
 
         float dx = obj.transform.position.x - other.transform.position.x;
         float dy = obj.transform.position.y - other.transform.position.y;
@@ -66,7 +108,7 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
         float combinedRad = obj.shape.radius + other.shape.radius;
 
         if (distanceSq > combinedRad * combinedRad)
-            continue; 
+            continue;
 
         float distance = std::sqrt(distanceSq);
         math::Vec2 normal = (distance > 0.0001f)
@@ -86,7 +128,7 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
             other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
         }
 
-        if (velAlongNormal < 0) 
+        if (velAlongNormal < 0)
         {
             float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
             float j = -(1.0f + e) * velAlongNormal;
@@ -98,13 +140,14 @@ void sas::PhysicsWorld::CheckCollision(std::vector<Body> &objects, Body &obj) no
         }
 
         contacts.emplace_back(obj.bodyID, otherID, normal, 1);
-
     }
 }
 
 void sas::PhysicsWorld::Clear() noexcept
 {
     root.Clear();
+    bodies.clear();
+    idCounter = 0;
 }
 
 void sas::PhysicsWorld::ApplyForces(Body &obj) const noexcept
@@ -232,7 +275,32 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
     }
 }
 
+void sas::PhysicsWorld::addToCollisionPool(const Body &body) noexcept
+{
+    root.insert(body.bodyID, ComputeFatAABB(body));
+}
+
 void sas::PhysicsWorld::Reset(Body &obj) const noexcept
 {
     obj.kinematics.acceleration = {0, 0};
+}
+
+bool sas::PhysicsWorld::BodyExists(uint32_t id) const noexcept
+{
+    return (bodies.size() <= id);
+}
+
+sas::Body &sas::PhysicsWorld::GetBody(uint32_t id) noexcept
+{
+    return bodies[sparse[id]];
+}
+
+void sas::PhysicsWorld::RemoveBody(const BodyHandle &handle) noexcept
+{
+    RemoveBody(handle.get()->bodyID);
+}
+
+void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
+{
+    root.Draw(cb);
 }
