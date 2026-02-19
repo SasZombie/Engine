@@ -46,7 +46,7 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
     dense.pop_back();
 
     sparse[bodyID] = -1;
-
+    
     freeIDs.push_back(bodyID);
 }
 
@@ -285,9 +285,10 @@ void sas::PhysicsWorld::Reset(Body &obj) const noexcept
     obj.kinematics.acceleration = {0, 0};
 }
 
+// TODO
 bool sas::PhysicsWorld::BodyExists(uint32_t id) const noexcept
 {
-    return (bodies.size() <= id);
+    return false;
 }
 
 sas::Body &sas::PhysicsWorld::GetBody(uint32_t id) noexcept

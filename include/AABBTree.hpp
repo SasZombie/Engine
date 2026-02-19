@@ -4,7 +4,8 @@
 #include <vector>
 #include <functional>
 
-#include "Shape.hpp"
+#include "Body.hpp"
+
 namespace sas
 {
     struct AABB

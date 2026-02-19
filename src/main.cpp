@@ -23,6 +23,10 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
 
+    sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
+    sas::PhysicsSettings &settings = world.settings;
+    sas::Body *currentBody = nullptr;
+
     std::vector<Entity> entities;
 
     sas::Transform t;
@@ -34,25 +38,28 @@ int main()
     k.restituition = e;
     k.velocity.x = 500;
 
-    sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
-    sas::PhysicsSettings &settings = world.settings;
-
-    sas::Body *currentBody = nullptr;
-
     sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t);
-    Entity firstEntity{{}, firstBH, MAROON};
-    entities.push_back(firstEntity);
 
+    Entity firstEntity{{}, firstBH, MAROON};
+    firstEntity.bodyHandle->filter;
+
+    firstEntity.bodyHandle.SetCollisionOn();
+
+    entities.push_back(firstEntity);
     entities[0].bodyHandle->kinematics = k;
+
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
     {
         float width = b.maxX - b.minX;
         float height = b.maxY - b.minY;
-        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); };
+        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); 
+    };
+
 
     float dt = 0;
     bool drawHitbox = false;
+    bool collision = true;
 
     while (!WindowShouldClose())
     {
@@ -75,6 +82,10 @@ int main()
                 sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Circle, circleRad}, t1);
 
                 Entity temp{{}, bh, MAROON};
+                if(collision)
+                {
+                    temp.bodyHandle.SetCollisionOn();
+                }
                 entities.push_back(temp);
                 currentBody = bh.get();
             }
@@ -141,9 +152,13 @@ int main()
 
         if (IsKeyPressed(KEY_L))
         {
-            drawHitbox = false;
+            drawHitbox = !drawHitbox;
         }
 
+        if(IsKeyPressed(KEY_K))
+        {
+            collision = !collision;
+        }
         if (IsKeyPressed(KEY_DELETE))
         {
             if (!entities.empty())

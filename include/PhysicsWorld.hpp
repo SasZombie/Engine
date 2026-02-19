@@ -41,7 +41,7 @@ namespace sas
         // World keeps body
         std::vector<Body> bodies;
 
-        //Found this funny ahh pattern
+        // Found this funny ahh pattern
         std::vector<int> sparse;
         std::vector<uint32_t> dense;
         std::vector<uint32_t> freeIDs;
@@ -60,7 +60,7 @@ namespace sas
         bool BodyExists(uint32_t id) const noexcept;
         Body &GetBody(uint32_t id) noexcept;
 
-        void RemoveBody(const BodyHandle& handle) noexcept;
+        void RemoveBody(const BodyHandle &handle) noexcept;
         void RemoveBody(uint32_t bodyID) noexcept;
 
         void Clear() noexcept;
@@ -87,7 +87,7 @@ namespace sas
         void ResolveBroadGround(Body &obj, float wall) const noexcept;
     };
 
-    struct BodyHandle
+    class BodyHandle
     {
     private:
         uint32_t id;
@@ -112,6 +112,28 @@ namespace sas
         Body *get() const
         {
             return &world->GetBody(id);
+        }
+
+        void SetBodyActive() noexcept
+        {
+
+        }
+
+        void SetBodyInactive() noexcept
+        {
+
+        }
+
+        void SetCollisionOff() noexcept
+        {
+            // world->GetBody(id).filter = Filter::MaskNone | Filter::LayerNone;
+            world->addToCollisionPool(world->GetBody(id));
+        }
+
+        void SetCollisionOn() noexcept
+        {
+            // world->GetBody(id).filter = Filter::MaskAll | Filter::LayerAll;
+            world->addToCollisionPool(world->GetBody(id));
         }
 
         ~BodyHandle() = default;
