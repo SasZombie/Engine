@@ -34,20 +34,16 @@ int main()
     t.scale = {1, 1};
 
     sas::Kinematics k;
-    k.inverseMass = 0.2f;
+    k.inverseMass = 0.f;
     k.restituition = e;
-    k.velocity.x = 500;
+    k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t);
+    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t, sas::Filter::Active | sas::Filter::Static);
 
     Entity firstEntity{{}, firstBH, MAROON};
-    firstEntity.bodyHandle->filter;
-
-    firstEntity.bodyHandle.SetCollisionOn();
 
     entities.push_back(firstEntity);
     entities[0].bodyHandle->kinematics = k;
-
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
     {
@@ -107,7 +103,7 @@ int main()
         if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
         {
             sas::Kinematics kin;
-            kin.inverseMass = 0.0f;
+            kin.inverseMass = 0.5f;
             kin.restituition = 1;
 
             const auto &[x, y] = GetMouseDelta();
@@ -195,10 +191,6 @@ int main()
 
         for (auto &entity : entities)
         {
-            if(entity.bodyHandle.IsColliding())
-            {
-                std::cout << "Collision \n";
-            }
             const auto &circle = entity.bodyHandle.get();
             
             DrawCircle(circle->transform.position.x, circle->transform.position.y, circle->shape.radius, entity.c);

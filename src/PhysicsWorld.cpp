@@ -2,12 +2,24 @@
 
 #include "Util.hpp"
 
+#include <iostream>
+
 sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
 {
 }
 
-sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans) noexcept
+sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, uint32_t options) noexcept
+{
+    return CreateBodyFull(shape, trans, {}, options);
+}
+
+sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+{
+    return CreateBodyFull(shape, trans, {}, options);
+}
+
+sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     uint32_t newID = GetNextId();
     uint32_t internalIndex = static_cast<uint32_t>(bodies.size());
@@ -18,10 +30,16 @@ sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &tran
         collisionFlags.resize(newID + 1, 0);
     }
 
-    bodies.emplace_back(trans, Kinematics{}, shape, newID);
+    bodies.emplace_back(trans, kin, shape, newID, options);
 
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
+
+    if (options & Filter::Active)
+    {
+
+        AddToCollisionPool(bodies.back());
+    }
 
     return {newID, this};
 }
@@ -70,21 +88,22 @@ void sas::PhysicsWorld::Step(float dt) noexcept
     contacts.clear();
     for (auto &obj : bodies)
     {
-        if (obj.kinematics.inverseMass > 0.f)
+        bool isStatic = obj.flags & Filter::Static;
+        if (!(obj.flags & Filter::Active))
+            continue;
+
+        if (!isStatic && (obj.kinematics.inverseMass > 0.f))
         {
             ApplyForces(obj);
             Integrate(obj, dt);
             ResolveConstraints(obj, dt);
             Reset(obj);
-
-            const float velocityLength = obj.kinematics.velocity.length();
-
-            const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
-            if (obj.flags & Filter::Active)
-            {
-                root.UpdateObject(obj, predictiveMargin);
-            }
         }
+        const float velocityLength = obj.kinematics.velocity.length();
+
+        const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
+
+        root.UpdateObject(obj, predictiveMargin);
     }
 
     for (auto &obj : bodies)
@@ -100,8 +119,12 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
 void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 {
-    if (floatAlmostEqual(obj.kinematics.inverseMass, 0.0f) && obj.kinematics.velocity.lengthSq() < 0.01f)
+    if(obj.flags & Filter::Static)
+    {
+        obj.kinematics.velocity = {0, 0};
+        obj.kinematics.inverseMass = 0;
         return;
+    }
 
     std::vector<uint32_t> potentialCollisions;
 
@@ -109,9 +132,12 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 
     for (uint32_t otherID : potentialCollisions)
     {
-        if (obj.bodyID >= otherID)
-            continue;
         auto &other = bodies[otherID];
+
+        bool otherIsStatic = (other.flags & Filter::Static);
+
+        if (!otherIsStatic && obj.bodyID >= otherID)
+            continue;
 
         float dx = obj.transform.position.x - other.transform.position.x;
         float dy = obj.transform.position.y - other.transform.position.y;
@@ -153,7 +179,6 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
         contacts.emplace_back(obj.bodyID, otherID, normal, 1);
     }
 }
-
 
 void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
 {

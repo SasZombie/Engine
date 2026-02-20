@@ -60,7 +60,6 @@ namespace sas
 
         uint32_t bodyID;
         uint32_t flags;
-        uint32_t filter;
         
     };
 

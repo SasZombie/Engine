@@ -56,7 +56,8 @@ namespace sas
         // Not Optimized
         void DrawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle CreateBody(Shape shape, const Transform &trans) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = 0) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options = 0)noexcept;
 
         void AddToCollisionPool(const Body &body) noexcept;
         void RemoveFromCollisionPool(const Body &body) noexcept;
@@ -88,6 +89,8 @@ namespace sas
         void Reset(Body &obj) const noexcept;
 
         uint32_t GetNextId() noexcept;
+
+        BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options) noexcept;
 
         void ResolveBroadLower(Body &obj, float wall) const noexcept;
         void ResolveBroadHigher(Body &obj, float wall) const noexcept;
