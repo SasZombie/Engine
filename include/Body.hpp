@@ -62,7 +62,6 @@ namespace sas
         uint32_t flags;
         uint32_t filter;
         
-        bool isColliding = false;
     };
 
 } // namespace sas

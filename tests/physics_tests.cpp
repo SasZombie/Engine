@@ -31,7 +31,7 @@ TEST_F(FixtureTest, CircleIsBounded)
     EXPECT_LE(world->bodies[0].transform.position.y, HEIGHT);
     EXPECT_LE(world->bodies[1].transform.position.x, WIDTH);
     EXPECT_GE(world->bodies[2].transform.position.x, 0);
-    EXPECT_GE(world->bodies[3].transform.position.x, 0);
+    EXPECT_GE(world->bodies[3].transform.position.y, 0);
 }
 
 TEST_F(FixtureTest, CircleStopsOnFloor)

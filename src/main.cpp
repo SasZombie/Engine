@@ -107,7 +107,7 @@ int main()
         if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
         {
             sas::Kinematics kin;
-            kin.inverseMass = 0.2f;
+            kin.inverseMass = 0.0f;
             kin.restituition = 1;
 
             const auto &[x, y] = GetMouseDelta();
@@ -177,7 +177,6 @@ int main()
         if (IsKeyPressed(KEY_DELETE))
         {
             if (!entities.empty())
-
             {
                 world.RemoveBody(entities.back().bodyHandle);
                 entities.pop_back();
@@ -196,7 +195,12 @@ int main()
 
         for (auto &entity : entities)
         {
+            if(entity.bodyHandle.IsColliding())
+            {
+                std::cout << "Collision \n";
+            }
             const auto &circle = entity.bodyHandle.get();
+            
             DrawCircle(circle->transform.position.x, circle->transform.position.y, circle->shape.radius, entity.c);
         }
 

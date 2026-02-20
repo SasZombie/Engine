@@ -14,11 +14,13 @@ protected:
         world->Clear();
     }
 
-    void AddCircle(sas::Transform trans, sas::Kinematics kin) {
+    sas::BodyHandle AddCircle(sas::Transform trans, sas::Kinematics kin) {
         
         sas::BodyHandle bh = world->CreateBody(sas::Shape{sas::ShapeType::Circle, 10.f}, trans);
 
         bh->kinematics = kin;
+
+        return bh;
     }
 
     std::unique_ptr<sas::PhysicsWorld> world;

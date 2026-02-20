@@ -15,6 +15,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &tran
     if (newID >= sparse.size())
     {
         sparse.resize(newID + 1, -1);
+        collisionFlags.resize(newID + 1, 0);
     }
 
     bodies.emplace_back(trans, Kinematics{}, shape, newID);
@@ -66,9 +67,9 @@ uint32_t sas::PhysicsWorld::GetNextId() noexcept
 
 void sas::PhysicsWorld::Step(float dt) noexcept
 {
+    contacts.clear();
     for (auto &obj : bodies)
     {
-        obj.isColliding = false;
         if (obj.kinematics.inverseMass > 0.f)
         {
             ApplyForces(obj);
@@ -88,11 +89,13 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
     for (auto &obj : bodies)
     {
-        if(obj.flags & Filter::Active)
+        if (obj.flags & Filter::Active)
         {
             CheckCollision(obj);
         }
     }
+
+    UpdateCollisionFlags();
 }
 
 void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
@@ -148,6 +151,19 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
         }
 
         contacts.emplace_back(obj.bodyID, otherID, normal, 1);
+    }
+}
+
+
+void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
+{
+
+    std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
+
+    for (const auto &contact : contacts)
+    {
+        collisionFlags[contact.bodyA] = 1;
+        collisionFlags[contact.bodyB] = 1;
     }
 }
 
@@ -304,9 +320,38 @@ bool sas::PhysicsWorld::BodyExists(uint32_t id) const noexcept
     return false;
 }
 
+bool sas::PhysicsWorld::IsBodyInCollision(uint32_t id) const noexcept
+{
+    return collisionFlags[id] != 0;
+}
+
 sas::Body &sas::PhysicsWorld::GetBody(uint32_t id) noexcept
 {
     return bodies[sparse[id]];
+}
+
+std::vector<sas::CollisionInfo> sas::PhysicsWorld::GetAllCollisions(uint32_t id) noexcept
+{
+    if (!IsBodyInCollision(id))
+        return {};
+
+    std::vector<sas::CollisionInfo> collisions;
+
+    collisions.reserve(8);
+
+    for (const auto &contact : contacts)
+    {
+        if (contact.bodyA == id)
+        {
+            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.depth);
+        }
+        else if (contact.bodyB == id)
+        {
+            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.depth);
+        }
+    }
+
+    return collisions;
 }
 
 void sas::PhysicsWorld::RemoveBody(const BodyHandle &handle) noexcept

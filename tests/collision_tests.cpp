@@ -9,15 +9,15 @@ TEST_F(FixtureTest, CircleCollide)
     sas::Kinematics k;
     k.velocity = {1, 1};
 
-    AddCircle(t, k);
-    AddCircle(t, k);
+    const auto& bh1 = AddCircle(t, k);
+    const auto& bh2 = AddCircle(t, k);
 
     world->AddToCollisionPool(world->bodies[0]);
     world->AddToCollisionPool(world->bodies[1]);
     world->Step(0.01f);
 
-    ASSERT_TRUE(world->bodies[0].isColliding);
-    ASSERT_TRUE(world->bodies[1].isColliding);
+    ASSERT_TRUE(bh1.IsColliding());
+    ASSERT_TRUE(bh2.IsColliding());
 }
 
 TEST_F(FixtureTest, CirclesDontCollide)
@@ -28,15 +28,16 @@ TEST_F(FixtureTest, CirclesDontCollide)
     sas::Kinematics k;
     k.velocity = {1, 1};
 
-    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    AddCircle({{100, 20}, {0, 0}, {0, 0}}, k);
+    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    const auto& bh2 = AddCircle({{100, 20}, {0, 0}, {0, 0}}, k);
 
     world->AddToCollisionPool(world->bodies[0]);
     world->AddToCollisionPool(world->bodies[1]);
     world->Step(0.01f);
 
-    ASSERT_FALSE(world->bodies[0].isColliding);
-    ASSERT_FALSE(world->bodies[1].isColliding);
+
+    ASSERT_FALSE(bh1.IsColliding());
+    ASSERT_FALSE(bh2.IsColliding());
 }
 
 TEST_F(FixtureTest, CirclesColideAfterMoving)
@@ -47,8 +48,8 @@ TEST_F(FixtureTest, CirclesColideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
 
-    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    const auto& bh2 = AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
 
     world->AddToCollisionPool(world->bodies[0]);
     world->AddToCollisionPool(world->bodies[1]);
@@ -58,7 +59,7 @@ TEST_F(FixtureTest, CirclesColideAfterMoving)
     for (float i = 0; i < 10; i = i + 0.1)
     {
         world->Step(0.01f);
-        if (world->bodies[0].isColliding && world->bodies[1].isColliding)
+        if (bh1.IsColliding() && bh2.IsColliding())
         {
             bothColide = true;
         }
@@ -75,8 +76,8 @@ TEST_F(FixtureTest, CirclesDontColideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {10, 0};
 
-    AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
+    const auto& bh2 = AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
 
     world->AddToCollisionPool(world->bodies[0]);
     world->AddToCollisionPool(world->bodies[1]);
@@ -86,7 +87,7 @@ TEST_F(FixtureTest, CirclesDontColideAfterMoving)
     for (float i = 0; i < 10; i = i + 0.1)
     {
         world->Step(0.01f);
-        if (world->bodies[0].isColliding && world->bodies[1].isColliding)
+        if (bh1.IsColliding() && bh2.IsColliding())
         {
             bothColide = true;
         }

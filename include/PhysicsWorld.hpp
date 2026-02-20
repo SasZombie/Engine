@@ -6,6 +6,7 @@
 
 namespace sas
 {
+    struct CollisionInfo;
     struct PhysicsSettings
     {
         float gravity = 500.f;
@@ -23,6 +24,8 @@ namespace sas
 
         float depth;
     };
+
+    
     class PhysicsWorld;
     struct BodyHandle;
 
@@ -43,6 +46,7 @@ namespace sas
 
         // Found this funny ahh pattern
         std::vector<int> sparse;
+        std::vector<int> collisionFlags;
         std::vector<uint32_t> dense;
         std::vector<uint32_t> freeIDs;
 
@@ -58,8 +62,10 @@ namespace sas
         void RemoveFromCollisionPool(const Body &body) noexcept;
         void Step(float dt) noexcept;
 
-        bool BodyExists(uint32_t id) const noexcept;
-        Body &GetBody(uint32_t id) noexcept;
+        [[nodiscard]] bool BodyExists(uint32_t id) const noexcept;
+        [[nodiscard]] bool IsBodyInCollision(uint32_t id) const noexcept;
+        [[nodiscard]] Body &GetBody(uint32_t id) noexcept;
+        [[nodiscard]] std::vector<CollisionInfo> GetAllCollisions(uint32_t id) noexcept;
 
         void RemoveBody(const BodyHandle &handle) noexcept;
         void RemoveBody(uint32_t bodyID) noexcept;
@@ -76,6 +82,8 @@ namespace sas
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
         void CheckCollision(Body &obj) noexcept;
+        void UpdateCollisionFlags() noexcept;
+
 
         void Reset(Body &obj) const noexcept;
 
@@ -123,6 +131,11 @@ namespace sas
         {
         }
 
+        [[nodiscard]] bool IsColliding() const noexcept
+        {
+            return world->IsBodyInCollision(id);
+        }
+
         void SetCollisionOff() noexcept
         {
             auto &b = world->GetBody(id);
@@ -132,6 +145,11 @@ namespace sas
                 b.flags &= ~Filter::Active;
                 world->RemoveFromCollisionPool(b);
             }
+        }
+
+        [[nodiscard]] std::vector<CollisionInfo> GetCollisions() const noexcept
+        {
+            return world->GetAllCollisions(id);
         }
 
         void SetCollisionOn() noexcept
@@ -148,5 +166,15 @@ namespace sas
 
         ~BodyHandle() = default;
     };
+
+    struct CollisionInfo
+    {
+        BodyHandle other;
+
+        math::Vec2 normal;
+
+        float depth;
+    };
+
 
 } // namespace sas

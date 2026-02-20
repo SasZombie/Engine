@@ -61,6 +61,17 @@ namespace sas
 
                 return *this * invLen;
             }
+
+            // So cringe ngl
+            friend constexpr Vec2 operator*(float scalar, const Vec2 &v)
+            {
+                return v * scalar;
+            }
+
+            friend constexpr Vec2 operator/(float scalar, const Vec2& v) 
+            {
+                return v / scalar;
+            }
         };
 
         static_assert(sizeof(Vec2) == 16);
@@ -144,6 +155,16 @@ namespace sas
                 float invLen = 1.f / std::sqrt(lenSq);
 
                 return *this * invLen;
+            }
+
+            friend constexpr Vec3 operator*(float scalar, const Vec3 &v)
+            {
+                return v * scalar;
+            }
+
+            friend constexpr Vec3 operator/(float scalar, const Vec3& v) 
+            {
+                return v / scalar;
             }
         };
 
@@ -234,10 +255,19 @@ namespace sas
 
                 return *this * invLen;
             }
+
+            friend constexpr Vec4 operator*(float scalar, const Vec4 &v)
+            {
+                return v * scalar;
+            }
+
+            friend constexpr Vec4 operator/(float scalar, const Vec4& v) 
+            {
+                return v / scalar;
+            }
         };
 
         static_assert(sizeof(Vec4) == 16);
-
 
         // Vec3 crossProduct(const Vec3 &v1, const Vec3 &v2) noexcept
         // {
