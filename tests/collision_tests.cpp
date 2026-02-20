@@ -3,95 +3,121 @@
 
 TEST_F(FixtureTest, CircleCollide)
 {
-    sas::Transform t;
-    t.position = {0, 0};
+    sas::Transform t1;
+    t1.position = {400, 400};
 
-    sas::Kinematics k;
-    k.velocity = {1, 1};
+    sas::Transform t2;
+    t2.position = {410, 400};
 
-    const auto& bh1 = AddCircle(t, k);
-    const auto& bh2 = AddCircle(t, k);
+    sas::Kinematics k1;
+    k1.velocity = {10, 0};
 
-    world->AddToCollisionPool(world->bodies[0]);
-    world->AddToCollisionPool(world->bodies[1]);
+    sas::Kinematics k2;
+    k2.velocity = {-10, 0};
+
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
+
+    bh1.SetCollisionOn();
+    bh2.SetCollisionOn();
     world->Step(0.01f);
 
-    ASSERT_TRUE(bh1.IsColliding());
-    ASSERT_TRUE(bh2.IsColliding());
+    ASSERT_EQ(world->contacts.size(), 1);
+    EXPECT_TRUE(bh1.IsColliding());
+    EXPECT_TRUE(bh2.IsColliding());
 }
 
-TEST_F(FixtureTest, CirclesDontCollide)
+TEST_F(FixtureTest, CircleDontCollide)
 {
-    sas::Transform t;
-    t.position = {0, 0};
+    sas::Transform t1;
+    t1.position = {400, 400};
 
-    sas::Kinematics k;
-    k.velocity = {1, 1};
+    sas::Transform t2;
+    t2.position = {450, 400};
 
-    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    const auto& bh2 = AddCircle({{100, 20}, {0, 0}, {0, 0}}, k);
+    sas::Kinematics k1;
+    k1.velocity = {10, 0};
 
-    world->AddToCollisionPool(world->bodies[0]);
-    world->AddToCollisionPool(world->bodies[1]);
+    sas::Kinematics k2;
+    k2.velocity = {-10, 0};
+
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
+
+    bh1.SetCollisionOn();
+    bh2.SetCollisionOn();
     world->Step(0.01f);
 
-
-    ASSERT_FALSE(bh1.IsColliding());
-    ASSERT_FALSE(bh2.IsColliding());
+    EXPECT_FALSE(bh1.IsColliding());
+    EXPECT_FALSE(bh2.IsColliding());
 }
 
-TEST_F(FixtureTest, CirclesColideAfterMoving)
+TEST_F(FixtureTest, CircleCollideAfterMoving)
 {
-    sas::Kinematics k;
-    k.velocity = {1, 1};
+    sas::Transform t1;
+    t1.position = {310, 200};
+
+    sas::Transform t2;
+    t2.position = {510, 200};
+
+    sas::Kinematics k1;
+    k1.velocity = {100, 0};
 
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
 
-    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    const auto& bh2 = AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    world->AddToCollisionPool(world->bodies[0]);
-    world->AddToCollisionPool(world->bodies[1]);
+    bh1.SetCollisionOn();
+    bh2.SetCollisionOn();
 
     bool bothColide = false;
-
-    for (float i = 0; i < 10; i = i + 0.1)
+    for(int i = 0; i < 1500; ++i)
     {
-        world->Step(0.01f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->Step(0.016f);
+        if(bh1.IsColliding() && bh2.IsColliding())
         {
             bothColide = true;
+            break;
         }
     }
 
-    ASSERT_TRUE(bothColide);
+    EXPECT_TRUE(bothColide) << "Failed to collide! Final distance: " 
+                            << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest, CirclesDontColideAfterMoving)
+
+TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
 {
-    sas::Kinematics k;
-    k.velocity = {-10, 0};
+    sas::Transform t1;
+    t1.position = {310, 200};
+
+    sas::Transform t2;
+    t2.position = {510, 200};
+
+    sas::Kinematics k1;
+    k1.velocity = {-10, 0};
 
     sas::Kinematics k2;
     k2.velocity = {10, 0};
 
-    const auto& bh1 = AddCircle({{0, 0}, {0, 0}, {0, 0}}, k);
-    const auto& bh2 = AddCircle({{50, 0}, {0, 0}, {0, 0}}, k2);
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    world->AddToCollisionPool(world->bodies[0]);
-    world->AddToCollisionPool(world->bodies[1]);
+    bh1.SetCollisionOn();
+    bh2.SetCollisionOn();
 
     bool bothColide = false;
 
-    for (float i = 0; i < 10; i = i + 0.1)
+    for(int i = 0; i < 1500; ++i)
     {
-        world->Step(0.01f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->Step(1.f);
+        if(bh1.IsColliding() && bh2.IsColliding())
         {
             bothColide = true;
         }
     }
 
-    ASSERT_FALSE(bothColide);
+    EXPECT_FALSE(bothColide);
 }

@@ -17,6 +17,7 @@ protected:
     sas::BodyHandle AddCircle(sas::Transform trans, sas::Kinematics kin) {
         
         sas::BodyHandle bh = world->CreateBody(sas::Shape{sas::ShapeType::Circle, 10.f}, trans);
+        kin.inverseMass = 0.2f;
 
         bh->kinematics = kin;
 
