@@ -35,7 +35,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
 
-    if (options & Filter::Active)
+    if (options & Flags::Active)
     {
 
         AddToCollisionPool(bodies.back());
@@ -88,8 +88,8 @@ void sas::PhysicsWorld::Step(float dt) noexcept
     contacts.clear();
     for (auto &obj : bodies)
     {
-        bool isStatic = obj.flags & Filter::Static;
-        if (!(obj.flags & Filter::Active))
+        bool isStatic = obj.flags & Flags::Static;
+        if (!(obj.flags & Flags::Active))
             continue;
 
         if (!isStatic && (obj.kinematics.inverseMass > 0.f))
@@ -108,7 +108,7 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
     for (auto &obj : bodies)
     {
-        if (obj.flags & Filter::Active)
+        if (obj.flags & Flags::Active)
         {
             CheckCollision(obj);
         }
@@ -119,7 +119,7 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
 void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 {
-    if(obj.flags & Filter::Static)
+    if(obj.flags & Flags::Static)
     {
         obj.kinematics.velocity = {0, 0};
         obj.kinematics.inverseMass = 0;
@@ -134,7 +134,7 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
     {
         auto &other = bodies[otherID];
 
-        bool otherIsStatic = (other.flags & Filter::Static);
+        bool otherIsStatic = (other.flags & Flags::Static);
 
         if (!otherIsStatic && obj.bodyID >= otherID)
             continue;

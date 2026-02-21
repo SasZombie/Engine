@@ -7,32 +7,35 @@
 namespace sas
 {
 
-    namespace Filter
+    namespace Flags
     {
 
         enum BodyFlags : uint32_t
         {
-            Active = 1 << 0,
-            Static = 1 << 1
+            None        = 0,
+            Active      = 1 << 0,
+            Static      = 1 << 1,
+            RigidBody   = 1 << 2,
+            Trigger     = 1 << 3
         };
 
         enum CollisionFlags : uint32_t
         {
-            //Who am I?
+            // Who am I?
             LayerNone = 0,
-            LayerAll = 0x0000FFFF, 
+            LayerAll = 0x0000FFFF,
 
             Layer1 = 1 << 0,
             Layer2 = 1 << 1,
 
-            //Who did I hit?
+            // Who did I hit?
             MaskNone = 0,
-            MaskAll = 0xFFFF0000,
+            MaskAll  = 0xFFFF0000,
 
             Mask1 = 1 << 16,
             Mask2 = 1 << 17,
         };
-    } // namespace Filter
+    } // namespace Flags
 
     enum struct ShapeType
     {
@@ -60,7 +63,6 @@ namespace sas
 
         uint32_t bodyID;
         uint32_t flags;
-        
     };
 
 } // namespace sas

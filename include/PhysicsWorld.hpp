@@ -50,14 +50,16 @@ namespace sas
         std::vector<uint32_t> dense;
         std::vector<uint32_t> freeIDs;
 
+        std::vector<uint32_t> activeIDs;
+
         std::vector<Contact> contacts;
 
         // Visualizing hitboxes
         // Not Optimized
         void DrawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = 0) noexcept;
-        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options = 0)noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options = Flags::Active)noexcept;
 
         void AddToCollisionPool(const Body &body) noexcept;
         void RemoveFromCollisionPool(const Body &body) noexcept;
@@ -143,9 +145,9 @@ namespace sas
         {
             auto &b = world->GetBody(id);
 
-            if (b.flags & Filter::Active)
+            if (b.flags & Flags::Active)
             {
-                b.flags &= ~Filter::Active;
+                b.flags &= ~Flags::Active;
                 world->RemoveFromCollisionPool(b);
             }
         }
@@ -159,9 +161,9 @@ namespace sas
         {
             auto &b = world->GetBody(id);
 
-            if (!(b.flags & Filter::Active))
+            if (!(b.flags & Flags::Active))
             {
-                b.flags |= Filter::Active;
+                b.flags |= Flags::Active;
 
                 world->AddToCollisionPool(b);
             }

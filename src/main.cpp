@@ -38,7 +38,7 @@ int main()
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t, sas::Filter::Active | sas::Filter::Static);
+    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t, sas::Flags::Active | sas::Flags::Static);
 
     Entity firstEntity{{}, firstBH, MAROON};
 
