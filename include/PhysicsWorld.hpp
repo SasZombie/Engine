@@ -25,8 +25,6 @@ namespace sas
         float depth;
     };
 
-    
-    class PhysicsWorld;
     struct BodyHandle;
 
     class PhysicsWorld
@@ -49,7 +47,6 @@ namespace sas
         std::vector<int> collisionFlags;
         std::vector<uint32_t> dense;
         std::vector<uint32_t> freeIDs;
-
         std::vector<uint32_t> activeIDs;
 
         std::vector<Contact> contacts;
@@ -58,8 +55,8 @@ namespace sas
         // Not Optimized
         void DrawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active) noexcept;
-        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options = Flags::Active)noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
 
         void AddToCollisionPool(const Body &body) noexcept;
         void RemoveFromCollisionPool(const Body &body) noexcept;
@@ -87,12 +84,11 @@ namespace sas
         void CheckCollision(Body &obj) noexcept;
         void UpdateCollisionFlags() noexcept;
 
-
         void Reset(Body &obj) const noexcept;
 
         uint32_t GetNextId() noexcept;
 
-        BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics& kin, uint32_t options) noexcept;
+        BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 
         void ResolveBroadLower(Body &obj, float wall) const noexcept;
         void ResolveBroadHigher(Body &obj, float wall) const noexcept;
@@ -128,28 +124,9 @@ namespace sas
             return &world->GetBody(id);
         }
 
-        void SetBodyActive() noexcept
-        {
-        }
-
-        void SetBodyInactive() noexcept
-        {
-        }
-
         [[nodiscard]] bool IsColliding() const noexcept
         {
             return world->IsBodyInCollision(id);
-        }
-
-        void SetCollisionOff() noexcept
-        {
-            auto &b = world->GetBody(id);
-
-            if (b.flags & Flags::Active)
-            {
-                b.flags &= ~Flags::Active;
-                world->RemoveFromCollisionPool(b);
-            }
         }
 
         [[nodiscard]] std::vector<CollisionInfo> GetCollisions() const noexcept
@@ -157,7 +134,7 @@ namespace sas
             return world->GetAllCollisions(id);
         }
 
-        void SetCollisionOn() noexcept
+        void SetActive() noexcept
         {
             auto &b = world->GetBody(id);
 
@@ -165,8 +142,71 @@ namespace sas
             {
                 b.flags |= Flags::Active;
 
-                world->AddToCollisionPool(b);
+                SetCollisionOn();
             }
+        }
+
+        void SetInactive() noexcept
+        {
+            auto &b = world->GetBody(id);
+
+            if (b.flags & Flags::Active)
+            {
+                b.flags &= ~Flags::Active;
+                SetCollisionOff();
+            }
+        }
+
+        void SetRigidBodyOn() noexcept
+        {
+            auto &b = world->GetBody(id);
+
+            if (!(b.flags & Flags::RigidBody))
+            {
+                b.flags |= Flags::RigidBody;
+            }
+        }
+
+        void SetRigidBodyOff() noexcept
+        {
+            auto &b = world->GetBody(id);
+
+            if (!(b.flags & Flags::RigidBody))
+            {
+                b.flags |= Flags::RigidBody;
+            }
+        }
+
+        void SetCollisionOff() noexcept
+        {
+            auto &b = world->GetBody(id);
+            // b.collisionMask = 0;
+            world->RemoveFromCollisionPool(b);
+        }
+
+        void SetCollisionOn() noexcept
+        {
+            auto &b = world->GetBody(id);
+            world->AddToCollisionPool(b);
+        }
+
+        void SetMask(uint32_t mask) noexcept
+        {
+            auto &b = world->GetBody(id);
+
+            b.collisionMask = (b.collisionMask & 0x0000FFFF) | (mask << 16);
+        }
+
+        void SetLayer(uint32_t layerBits) noexcept
+        {
+            auto &b = world->GetBody(id);
+            b.collisionMask = (b.collisionMask & 0xFFFF0000) | (layerBits & 0x0000FFFF);
+        }
+
+        void SetCollision(uint32_t layer, uint32_t mask) noexcept
+        {
+            SetMask(mask);
+            SetLayer(layer);
         }
 
         ~BodyHandle() = default;
@@ -180,6 +220,5 @@ namespace sas
 
         float depth;
     };
-
 
 } // namespace sas

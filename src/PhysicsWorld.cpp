@@ -30,16 +30,23 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
         collisionFlags.resize(newID + 1, 0);
     }
 
-    bodies.emplace_back(trans, kin, shape, newID, options);
+    Body newBody{trans, kin, shape, newID, options, 0};
+
 
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
 
-    if (options & Flags::Active)
-    {
+    uint32_t mask = Flags::RigidBody | Flags::Static;
 
-        AddToCollisionPool(bodies.back());
+    if ((options & Flags::Active) && (options & mask))
+    {
+        newBody.collisionMask = Flags::Layer1 | Flags::Mask1;
+        activeIDs.push_back(newID);
+        AddToCollisionPool(newBody);
     }
+
+    bodies.push_back(newBody);
+
 
     return {newID, this};
 }
@@ -60,6 +67,16 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
 
         sparse[lastID] = indToRemove;
         dense[indToRemove] = lastID;
+
+        root.UpdateObject(bodies[indToRemove], 0.f);
+    }
+
+    auto it = std::find(activeIDs.begin(), activeIDs.end(), bodyID);
+
+    if (it != activeIDs.end())
+    {
+        *it = std::move(activeIDs.back());
+        activeIDs.pop_back();
     }
 
     bodies.pop_back();
@@ -86,19 +103,21 @@ uint32_t sas::PhysicsWorld::GetNextId() noexcept
 void sas::PhysicsWorld::Step(float dt) noexcept
 {
     contacts.clear();
-    for (auto &obj : bodies)
+    for (uint32_t id : activeIDs)
     {
-        bool isStatic = obj.flags & Flags::Static;
-        if (!(obj.flags & Flags::Active))
-            continue;
+        Body &obj = bodies[sparse[id]];
 
-        if (!isStatic && (obj.kinematics.inverseMass > 0.f))
+        bool isRigid = obj.flags & Flags::RigidBody;
+
+        if (isRigid && (obj.kinematics.inverseMass > 0.f))
         {
+
             ApplyForces(obj);
             Integrate(obj, dt);
             ResolveConstraints(obj, dt);
             Reset(obj);
         }
+
         const float velocityLength = obj.kinematics.velocity.length();
 
         const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
@@ -106,12 +125,11 @@ void sas::PhysicsWorld::Step(float dt) noexcept
         root.UpdateObject(obj, predictiveMargin);
     }
 
-    for (auto &obj : bodies)
+    for (uint32_t id : activeIDs)
     {
-        if (obj.flags & Flags::Active)
-        {
-            CheckCollision(obj);
-        }
+        Body &obj = bodies[sparse[id]];
+
+        CheckCollision(obj);
     }
 
     UpdateCollisionFlags();
@@ -119,7 +137,9 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
 void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 {
-    if(obj.flags & Flags::Static)
+    // Forcing static objects to to have 0 vel
+    // And 0 inverse mass otherwise
+    if (obj.flags & Flags::Static)
     {
         obj.kinematics.velocity = {0, 0};
         obj.kinematics.inverseMass = 0;
@@ -132,11 +152,20 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 
     for (uint32_t otherID : potentialCollisions)
     {
-        auto &other = bodies[otherID];
+        auto &other = bodies[sparse[otherID]];
 
         bool otherIsStatic = (other.flags & Flags::Static);
 
         if (!otherIsStatic && obj.bodyID >= otherID)
+            continue;
+
+        uint32_t objLayer = obj.collisionMask & 0x0000FFFF;
+        uint32_t objMask = (obj.collisionMask & 0xFFFF0000) >> 16;
+
+        uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
+        uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
+
+        if (!(objMask & otherLayer) || !(otherMask & objLayer))
             continue;
 
         float dx = obj.transform.position.x - other.transform.position.x;
@@ -182,7 +211,6 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
 
 void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
 {
-
     std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
 
     for (const auto &contact : contacts)
@@ -196,6 +224,14 @@ void sas::PhysicsWorld::Clear() noexcept
 {
     root.Clear();
     bodies.clear();
+    bodies.clear();
+    sparse.clear();
+    collisionFlags.clear();
+    dense.clear();
+    freeIDs.clear();
+    activeIDs.clear();
+    contacts.clear();
+
     idCounter = 0;
 }
 

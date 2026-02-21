@@ -25,7 +25,7 @@ int main()
 
     sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
     sas::PhysicsSettings &settings = world.settings;
-    sas::Body *currentBody = nullptr;
+    Entity *currentBody = nullptr;
 
     std::vector<Entity> entities;
 
@@ -55,7 +55,7 @@ int main()
 
     float dt = 0;
     bool drawHitbox = false;
-    bool collision = true;
+    bool collision = false;
 
     while (!WindowShouldClose())
     {
@@ -67,7 +67,7 @@ int main()
 
             if (currentBody)
             {
-                currentBody->transform.position = {x, y};
+                currentBody->bodyHandle->transform.position = {x, y};
             }
             else
             {
@@ -76,14 +76,13 @@ int main()
                 t1.scale = sas::math::Vec2{1};
 
                 sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Circle, circleRad}, t1);
-
                 Entity temp{{}, bh, MAROON};
                 if(collision)
                 {
-                    temp.bodyHandle.SetCollisionOn();
+                    temp.bodyHandle.SetCollisionOff();
                 }
                 entities.push_back(temp);
-                currentBody = bh.get();
+                currentBody = &entities.back();
             }
         }
 
@@ -95,7 +94,7 @@ int main()
 
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
-            currentBody->kinematics = kin;
+            currentBody->bodyHandle->kinematics = kin;
 
             currentBody = nullptr;
         }
@@ -108,7 +107,7 @@ int main()
 
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
-            currentBody->kinematics = kin;
+            currentBody->bodyHandle->kinematics = kin;
 
             currentBody = nullptr;
         }
@@ -153,20 +152,6 @@ int main()
 
         if(IsKeyPressed(KEY_K))
         {
-            if(collision)
-            {
-                for(auto& elem : entities)
-                {
-                    elem.bodyHandle.SetCollisionOff();
-                }
-            }else
-            {
-                for(auto& elem : entities)
-                {
-                    elem.bodyHandle.SetCollisionOn();
-                }
-            }
-
             collision = !collision;
         }
 

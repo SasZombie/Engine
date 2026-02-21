@@ -16,7 +16,7 @@ namespace sas
             Active      = 1 << 0,
             Static      = 1 << 1,
             RigidBody   = 1 << 2,
-            Trigger     = 1 << 3
+            // Trigger     = 1 << 3
         };
 
         enum CollisionFlags : uint32_t
@@ -63,6 +63,7 @@ namespace sas
 
         uint32_t bodyID;
         uint32_t flags;
+        uint32_t collisionMask;
     };
 
 } // namespace sas
