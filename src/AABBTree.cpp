@@ -179,11 +179,8 @@ void sas::AABBTree::remove(uint32_t id) noexcept
 
 void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
 {
-    float cx = body.transform.position.x;
-    float cy = body.transform.position.y;
-    float rad = body.shape.radius;
 
-    AABB actual = {cx - rad, cy - rad, cx + rad, cy + rad};
+    AABB actual = ComputeTightAABB(body);
 
     Node *curNode = leafMap[body.bodyID];
     if (actual.minX < curNode->aabb.minX || actual.maxX > curNode->aabb.maxX ||
@@ -218,7 +215,10 @@ void sas::Node::Draw(const DrawCallback &cb) const
 
 void sas::AABBTree::Draw(const DrawCallback &cb) const
 {
-    root->Draw(cb);
+    if(root != nullptr)
+    {
+        root->Draw(cb);
+    }
 }
 
 void sas::AABBTree::Clear() noexcept

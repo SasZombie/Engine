@@ -13,6 +13,8 @@ struct Entity
     sas::BodyHandle bodyHandle;
 
     Color c;
+
+    sas::ShapeType type;
 };
 
 int main()
@@ -38,9 +40,11 @@ int main()
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Circle, circleRad}, t, sas::Flags::Active | sas::Flags::Static);
+    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Box, circleRad}, t, sas::Flags::Active | sas::Flags::Static);
 
-    Entity firstEntity{{}, firstBH, MAROON};
+    firstBH->shape.halfSize = {25, 25};
+
+    Entity firstEntity{{}, firstBH, MAROON, sas::ShapeType::Box};
 
     entities.push_back(firstEntity);
     entities[0].bodyHandle->kinematics = k;
@@ -51,7 +55,6 @@ int main()
         float height = b.maxY - b.minY;
         DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); 
     };
-
 
     float dt = 0;
     bool drawHitbox = false;
@@ -75,8 +78,11 @@ int main()
                 t1.position = {x, y};
                 t1.scale = sas::math::Vec2{1};
 
-                sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Circle, circleRad}, t1);
-                Entity temp{{}, bh, MAROON};
+                sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Box, circleRad}, t1);
+                bh->shape.halfSize = {25, 25};
+
+                Entity temp{{}, bh, MAROON, sas::ShapeType::Box};
+
                 if(collision)
                 {
                     temp.bodyHandle.SetCollisionOff();
@@ -176,9 +182,15 @@ int main()
 
         for (auto &entity : entities)
         {
-            const auto &circle = entity.bodyHandle.get();
-            
-            DrawCircle(circle->transform.position.x, circle->transform.position.y, circle->shape.radius, entity.c);
+            const auto &handle = entity.bodyHandle.get();
+            if(entity.type == sas::ShapeType::Circle)
+            {
+                DrawCircle(handle->transform.position.x, handle->transform.position.y, handle->shape.radius, entity.c);
+            }else if(entity.type == sas::ShapeType::Box)
+            {
+                DrawRectangle(handle->transform.position.x - handle->shape.halfSize.x , handle->transform.position.y - handle->shape.halfSize.y , 
+                    handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, entity.c);
+            }
         }
 
         const std::string msg1("Gravity = " + std::to_string(settings.gravity));

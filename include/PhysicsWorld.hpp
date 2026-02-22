@@ -85,6 +85,9 @@ namespace sas
         void CheckCollisionDispatcher(Body &obj) noexcept;
         void CheckCollisionBoxBox(Body &obj, Body& other) noexcept;
         void CheckCollisionCircleBox(Body &obj, Body& other) noexcept;
+        void CheckCollisionBoxCircle(Body &obj, Body& other) noexcept;
+
+        void ResolveColision(Body& obj, Body& other, math::Vec2 normal, float overlap) noexcept;
         void UpdateCollisionFlags() noexcept;
 
         void Reset(Body &obj) const noexcept;

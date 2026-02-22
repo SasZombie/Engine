@@ -2,6 +2,7 @@
 
 #include "Util.hpp"
 
+#include <utility>
 #include <iostream>
 
 sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
@@ -176,6 +177,23 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
         {
             CheckCollisionCircleCircle(obj, other);
         }
+        else if (obj.shape.type == ShapeType::Circle && other.shape.type == ShapeType::Box)
+        {
+            CheckCollisionCircleBox(obj, other);
+        }
+        else if (obj.shape.type == ShapeType::Box && other.shape.type == ShapeType::Box)
+        {
+            CheckCollisionBoxBox(obj, other);
+        }
+        else if (obj.shape.type == ShapeType::Box && other.shape.type == ShapeType::Circle)
+        {
+            CheckCollisionBoxCircle(obj, other);
+        }
+        else
+        {
+            std::unreachable();
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
@@ -194,10 +212,44 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
                             ? math::Vec2(dx / distance, dy / distance)
                             : math::Vec2(0, 1);
 
+    float overlap = combinedRad - distance;
+
+    ResolveColision(obj, other, normal, overlap);
+}
+
+void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
+{
+    float dx = other.transform.position.x - obj.transform.position.x;
+    float px = (obj.shape.halfSize.x + other.shape.halfSize.x) - std::abs(dx);
+    if (px <= 0)
+        return;
+
+    float dy = other.transform.position.y - obj.transform.position.y;
+    float py = (obj.shape.halfSize.y + other.shape.halfSize.y) - std::abs(dy);
+    if (py <= 0)
+        return;
+
+    math::Vec2 normal;
+    float overlap;
+
+    if (px < py)
+    {
+        normal = (dx > 0) ? math::Vec2(-1, 0) : math::Vec2(1, 0);
+        overlap = px;
+    }
+    else
+    {
+        normal = (dy > 0) ? math::Vec2(0, -1) : math::Vec2(0, 1);
+        overlap = py;
+    }
+
+    ResolveColision(obj, other, normal, overlap);
+}
+
+void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap) noexcept
+{
     math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
     float velAlongNormal = math::dotProduct(relVel, normal);
-
-    float overlap = combinedRad - distance;
     float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
 
     if (totalInvMass > 0.0f)
@@ -224,8 +276,7 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
 void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
 {
 }
-
-void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
+void sas::PhysicsWorld::CheckCollisionBoxCircle(Body &obj, Body &other) noexcept
 {
 }
 
