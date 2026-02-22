@@ -58,8 +58,8 @@ namespace sas
         BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
         BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
 
-        void AddToCollisionPool(const Body &body) noexcept;
-        void RemoveFromCollisionPool(const Body &body) noexcept;
+        void AddToCollisionPool(Body &body) noexcept;
+        void RemoveFromCollisionPool(Body &body) noexcept;
         void Step(float dt) noexcept;
 
         [[nodiscard]] bool BodyExists(uint32_t id) const noexcept;
@@ -86,7 +86,7 @@ namespace sas
 
         void Reset(Body &obj) const noexcept;
 
-        uint32_t GetNextId() noexcept;
+        [[nodiscard]] uint32_t GetNextId() noexcept;
 
         BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 

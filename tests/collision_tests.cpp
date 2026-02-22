@@ -20,6 +20,7 @@ TEST_F(FixtureTest, CircleCollide)
 
     bh1.SetCollisionOn();
     bh2.SetCollisionOn();
+    
     world->Step(0.01f);
 
     ASSERT_EQ(world->contacts.size(), 1);

@@ -12,10 +12,11 @@ namespace sas
 
         enum BodyFlags : uint32_t
         {
-            None        = 0,
-            Active      = 1 << 0,
-            Static      = 1 << 1,
-            RigidBody   = 1 << 2,
+            None            = 0,
+            Active          = 1 << 0,
+            Static          = 1 << 1,
+            RigidBody       = 1 << 2,
+            InCollisionPool = 1 << 3,
             // Trigger     = 1 << 3
         };
 

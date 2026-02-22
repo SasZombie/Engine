@@ -19,6 +19,8 @@ sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &tran
     return CreateBodyFull(shape, trans, {}, options);
 }
 
+// Default
+// Flags::Active | Flags::RigidBody
 sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     uint32_t newID = GetNextId();
@@ -32,7 +34,6 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
 
     Body newBody{trans, kin, shape, newID, options, 0};
 
-
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
 
@@ -41,12 +42,12 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
     if ((options & Flags::Active) && (options & mask))
     {
         newBody.collisionMask = Flags::Layer1 | Flags::Mask1;
+
         activeIDs.push_back(newID);
         AddToCollisionPool(newBody);
     }
 
     bodies.push_back(newBody);
-
 
     return {newID, this};
 }
@@ -205,7 +206,7 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
             other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
         }
 
-        contacts.emplace_back(obj.bodyID, otherID, normal, 1);
+        contacts.emplace_back(obj.bodyID, otherID, normal, overlap);
     }
 }
 
@@ -218,21 +219,6 @@ void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
         collisionFlags[contact.bodyA] = 1;
         collisionFlags[contact.bodyB] = 1;
     }
-}
-
-void sas::PhysicsWorld::Clear() noexcept
-{
-    root.Clear();
-    bodies.clear();
-    bodies.clear();
-    sparse.clear();
-    collisionFlags.clear();
-    dense.clear();
-    freeIDs.clear();
-    activeIDs.clear();
-    contacts.clear();
-
-    idCounter = 0;
 }
 
 void sas::PhysicsWorld::ApplyForces(Body &obj) const noexcept
@@ -360,14 +346,24 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
     }
 }
 
-void sas::PhysicsWorld::AddToCollisionPool(const Body &body) noexcept
+void sas::PhysicsWorld::AddToCollisionPool(Body &body) noexcept
 {
-    root.insert(body.bodyID, ComputeFatAABB(body));
+    if(!(body.flags & Flags::InCollisionPool))
+    {
+        body.flags |= Flags::InCollisionPool;
+
+        root.insert(body.bodyID, ComputeFatAABB(body));
+    }
 }
 
-void sas::PhysicsWorld::RemoveFromCollisionPool(const Body &body) noexcept
+void sas::PhysicsWorld::RemoveFromCollisionPool(Body &body) noexcept
 {
-    root.remove(body.bodyID);
+    if(body.flags & Flags::InCollisionPool)
+    {
+        body.flags &= ~Flags::InCollisionPool;
+
+        root.remove(body.bodyID);
+    }
 }
 
 void sas::PhysicsWorld::Reset(Body &obj) const noexcept
@@ -423,4 +419,19 @@ void sas::PhysicsWorld::RemoveBody(const BodyHandle &handle) noexcept
 void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
 {
     root.Draw(cb);
+}
+
+void sas::PhysicsWorld::Clear() noexcept
+{
+    root.Clear();
+    bodies.clear();
+    bodies.clear();
+    sparse.clear();
+    collisionFlags.clear();
+    dense.clear();
+    freeIDs.clear();
+    activeIDs.clear();
+    contacts.clear();
+
+    idCounter = 0;
 }
