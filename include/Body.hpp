@@ -12,10 +12,10 @@ namespace sas
 
         enum BodyFlags : uint32_t
         {
-            None            = 0,
-            Active          = 1 << 0,
-            Static          = 1 << 1,
-            RigidBody       = 1 << 2,
+            None = 0,
+            Active = 1 << 0,
+            Static = 1 << 1,
+            RigidBody = 1 << 2,
             InCollisionPool = 1 << 3,
             // Trigger     = 1 << 3
         };
@@ -31,7 +31,7 @@ namespace sas
 
             // Who did I hit?
             MaskNone = 0,
-            MaskAll  = 0xFFFF0000,
+            MaskAll = 0xFFFF0000,
 
             Mask1 = 1 << 16,
             Mask2 = 1 << 17,
@@ -53,6 +53,16 @@ namespace sas
             float radius;
             math::Vec2 halfSize;
         };
+
+        static Shape MakeCircle(float r)
+        {
+            return {.type = ShapeType::Box, .radius = r};
+        }
+
+        static Shape MakeBox(float x, float y)
+        {
+            return {.type = ShapeType::Box, .halfSize = {x, y}};
+        }
     };
 
     struct Body

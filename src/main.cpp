@@ -40,9 +40,9 @@ int main()
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody({sas::ShapeType::Box, circleRad}, t, sas::Flags::Active | sas::Flags::Static);
+    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(25, 25), t, sas::Flags::Active | sas::Flags::Static);
 
-    firstBH->shape.halfSize = {25, 25};
+    // firstBH->shape.halfSize = {25, 25};
 
     Entity firstEntity{{}, firstBH, MAROON, sas::ShapeType::Box};
 
