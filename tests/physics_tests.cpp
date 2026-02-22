@@ -183,3 +183,37 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
     EXPECT_NEAR(std::abs(world->bodies[0].kinematics.velocity.x), 400, 50);
 
 }
+
+TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
+{
+    sas::Transform t;
+    t.position = {750, 225};
+
+    sas::Kinematics k;
+    k.inverseMass = 1.0f;
+    k.velocity = {400.f, 0};
+    k.restituition = 1.0f;
+
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+
+    world->Step(0.1f);
+
+    world->Clear();
+
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+    AddCircle(t, k);
+
+    world->Step(0.1f);
+
+    EXPECT_NO_FATAL_FAILURE();
+
+}

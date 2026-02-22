@@ -51,7 +51,7 @@ namespace sas
         union
         {
             float radius;
-            math::Vec2 halfSizes;
+            math::Vec2 halfSize;
         };
     };
 

@@ -112,7 +112,6 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
         if (isRigid && (obj.kinematics.inverseMass > 0.f))
         {
-
             ApplyForces(obj);
             Integrate(obj, dt);
             ResolveConstraints(obj, dt);
@@ -123,20 +122,24 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
         const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
 
-        root.UpdateObject(obj, predictiveMargin);
+        if (obj.flags & Flags::InCollisionPool)
+        {
+            root.UpdateObject(obj, predictiveMargin);
+        }
     }
 
     for (uint32_t id : activeIDs)
     {
         Body &obj = bodies[sparse[id]];
 
-        CheckCollision(obj);
+        CheckCollisionDispatcher(obj);
     }
 
     UpdateCollisionFlags();
 }
-
-void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
+// TODO:This sounds interesting
+// matrix[shapeA.type][shapeB.type](shapeA, shapeB)
+void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
 {
     // Forcing static objects to to have 0 vel
     // And 0 inverse mass otherwise
@@ -169,45 +172,61 @@ void sas::PhysicsWorld::CheckCollision(Body &obj) noexcept
         if (!(objMask & otherLayer) || !(otherMask & objLayer))
             continue;
 
-        float dx = obj.transform.position.x - other.transform.position.x;
-        float dy = obj.transform.position.y - other.transform.position.y;
-        float distanceSq = dx * dx + dy * dy;
-        float combinedRad = obj.shape.radius + other.shape.radius;
-
-        if (distanceSq > combinedRad * combinedRad)
-            continue;
-
-        float distance = std::sqrt(distanceSq);
-        math::Vec2 normal = (distance > 0.0001f)
-                                ? math::Vec2(dx / distance, dy / distance)
-                                : math::Vec2(0, 1);
-
-        math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
-        float velAlongNormal = math::dotProduct(relVel, normal);
-
-        float overlap = combinedRad - distance;
-        float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
-
-        if (totalInvMass > 0.0f)
+        if (obj.shape.type == ShapeType::Circle && other.shape.type == ShapeType::Circle)
         {
-            math::Vec2 correction = normal * (overlap / totalInvMass) * 0.5f;
-            obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
-            other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
+            CheckCollisionCircleCircle(obj, other);
         }
-
-        if (velAlongNormal < 0)
-        {
-            float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
-            float j = -(1.0f + e) * velAlongNormal;
-            j /= totalInvMass;
-
-            math::Vec2 impulse = normal * j;
-            obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
-            other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
-        }
-
-        contacts.emplace_back(obj.bodyID, otherID, normal, overlap);
     }
+}
+
+void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexcept
+{
+    float dx = obj.transform.position.x - other.transform.position.x;
+    float dy = obj.transform.position.y - other.transform.position.y;
+    float distanceSq = dx * dx + dy * dy;
+    float combinedRad = obj.shape.radius + other.shape.radius;
+
+    if (distanceSq > combinedRad * combinedRad)
+        return;
+
+    float distance = std::sqrt(distanceSq);
+    math::Vec2 normal = (distance > 0.0001f)
+                            ? math::Vec2(dx / distance, dy / distance)
+                            : math::Vec2(0, 1);
+
+    math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
+    float velAlongNormal = math::dotProduct(relVel, normal);
+
+    float overlap = combinedRad - distance;
+    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+
+    if (totalInvMass > 0.0f)
+    {
+        math::Vec2 correction = normal * (overlap / totalInvMass) * 0.5f;
+        obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
+        other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
+    }
+
+    if (velAlongNormal < 0)
+    {
+        float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
+        float j = -(1.0f + e) * velAlongNormal;
+        j /= totalInvMass;
+
+        math::Vec2 impulse = normal * j;
+        obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
+        other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
+    }
+
+    contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
+}
+
+void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
+{
+}
+
+void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
+{
 }
 
 void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
@@ -348,7 +367,7 @@ void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
 
 void sas::PhysicsWorld::AddToCollisionPool(Body &body) noexcept
 {
-    if(!(body.flags & Flags::InCollisionPool))
+    if (!(body.flags & Flags::InCollisionPool))
     {
         body.flags |= Flags::InCollisionPool;
 
@@ -358,7 +377,7 @@ void sas::PhysicsWorld::AddToCollisionPool(Body &body) noexcept
 
 void sas::PhysicsWorld::RemoveFromCollisionPool(Body &body) noexcept
 {
-    if(body.flags & Flags::InCollisionPool)
+    if (body.flags & Flags::InCollisionPool)
     {
         body.flags &= ~Flags::InCollisionPool;
 

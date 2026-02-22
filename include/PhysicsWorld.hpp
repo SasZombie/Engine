@@ -81,7 +81,10 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
-        void CheckCollision(Body &obj) noexcept;
+        void CheckCollisionCircleCircle(Body &obj, Body& other) noexcept;
+        void CheckCollisionDispatcher(Body &obj) noexcept;
+        void CheckCollisionBoxBox(Body &obj, Body& other) noexcept;
+        void CheckCollisionCircleBox(Body &obj, Body& other) noexcept;
         void UpdateCollisionFlags() noexcept;
 
         void Reset(Body &obj) const noexcept;
@@ -180,7 +183,7 @@ namespace sas
         void SetCollisionOff() noexcept
         {
             auto &b = world->GetBody(id);
-            // b.collisionMask = 0;
+            b.collisionMask = 0;
             world->RemoveFromCollisionPool(b);
         }
 
@@ -194,7 +197,7 @@ namespace sas
         {
             auto &b = world->GetBody(id);
 
-            b.collisionMask = (b.collisionMask & 0x0000FFFF) | (mask << 16);
+            b.collisionMask = (b.collisionMask & 0x0000FFFF) | (mask & 0xFFFF0000);
         }
 
         void SetLayer(uint32_t layerBits) noexcept

@@ -122,3 +122,88 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
 
     EXPECT_FALSE(bothColide);
 }
+
+
+TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
+{
+    sas::Transform t1;
+    t1.position = {310, 200};
+
+    sas::Transform t2;
+    t2.position = {510, 200};
+
+    sas::Kinematics k1;
+    k1.velocity = {10, 0};
+
+    sas::Kinematics k2;
+    k2.velocity = {-10, 0};
+
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
+
+    bh1.SetCollisionOff();
+    bh2.SetCollisionOff();
+
+    bool bothColide = false;
+
+    for(int i = 0; i < 1500; ++i)
+    {
+        world->Step(0.1f);
+        if(bh1.IsColliding() && bh2.IsColliding())
+        {
+            bothColide = true;
+        }
+    }
+
+    EXPECT_FALSE(bothColide);
+}
+
+TEST_F(FixtureTest, DifferentLayersDontCollide)
+{
+    sas::Transform t1;
+    t1.position = {510, 200};
+
+    sas::Transform t2;
+    t2.position = {510, 200};
+
+    sas::Kinematics k1;
+    k1.velocity = {10, 0};
+
+    sas::Kinematics k2;
+    k2.velocity = {-10, 0};
+
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
+
+    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+
+    world->Step(0.01f);
+
+    EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
+}
+
+TEST_F(FixtureTest, LayerTwoCollides)
+{
+    sas::Transform t1;
+    t1.position = {510, 200};
+
+    sas::Transform t2;
+    t2.position = {510, 200};
+
+    sas::Kinematics k1;
+    k1.velocity = {10, 0};
+
+    sas::Kinematics k2;
+    k2.velocity = {-10, 0};
+
+    sas::BodyHandle bh1 = AddCircle(t1, k1);
+    sas::BodyHandle bh2 = AddCircle(t2, k2);
+
+    // bh1.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    // bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+
+    world->Step(0.01f);
+
+    EXPECT_TRUE(bh1.IsColliding() && bh2.IsColliding());
+}

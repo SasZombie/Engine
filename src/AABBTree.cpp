@@ -4,12 +4,24 @@
 
 sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 {
-    // TODO: Add support for square
-    return {
-        body.transform.position.x - body.shape.radius - margin,
-        body.transform.position.y - body.shape.radius - margin,
-        body.transform.position.x + body.shape.radius + margin,
-        body.transform.position.y + body.shape.radius + margin};
+    float minX, minY, maxX, maxY;
+
+    if (body.shape.type == ShapeType::Circle)
+    {
+        minX = body.transform.position.x - body.shape.radius;
+        minY = body.transform.position.y - body.shape.radius;
+        maxX = body.transform.position.x + body.shape.radius;
+        maxY = body.transform.position.y + body.shape.radius;
+    }
+    else
+    {
+        minX = body.transform.position.x - body.shape.halfSize.x;
+        minY = body.transform.position.y - body.shape.halfSize.y;
+        maxX = body.transform.position.x + body.shape.halfSize.x;
+        maxY = body.transform.position.y + body.shape.halfSize.y;
+    }
+
+    return {minX - margin, minY - margin, maxX + margin, maxY + margin};
 }
 
 sas::AABB sas::ComputeTightAABB(const Body &body) noexcept
