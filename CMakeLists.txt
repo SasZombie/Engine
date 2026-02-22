@@ -53,6 +53,7 @@ add_executable(Tests
     tests/physics_tests.cpp
     tests/collision_tests_circle.cpp
     tests/collision_tests_box.cpp
+    tests/collision_tests_mixed.cpp
 )
 target_link_libraries(Tests PRIVATE
     sas_physics
