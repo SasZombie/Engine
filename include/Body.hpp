@@ -56,7 +56,7 @@ namespace sas
 
         static Shape MakeCircle(float r)
         {
-            return {.type = ShapeType::Box, .radius = r};
+            return {.type = ShapeType::Circle, .radius = r};
         }
 
         static Shape MakeBox(float x, float y)

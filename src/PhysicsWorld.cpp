@@ -3,7 +3,7 @@
 #include "Util.hpp"
 
 #include <utility>
-#include <iostream>
+#include <algorithm>
 
 sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
     : boundaries(dims)
@@ -140,6 +140,7 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 }
 // TODO:This sounds interesting
 // matrix[shapeA.type][shapeB.type](shapeA, shapeB)
+
 void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
 {
     // Forcing static objects to to have 0 vel
@@ -173,27 +174,10 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
         if (!(objMask & otherLayer) || !(otherMask & objLayer))
             continue;
 
-        if (obj.shape.type == ShapeType::Circle && other.shape.type == ShapeType::Circle)
-        {
-            CheckCollisionCircleCircle(obj, other);
-        }
-        else if (obj.shape.type == ShapeType::Circle && other.shape.type == ShapeType::Box)
-        {
-            CheckCollisionCircleBox(obj, other);
-        }
-        else if (obj.shape.type == ShapeType::Box && other.shape.type == ShapeType::Box)
-        {
-            CheckCollisionBoxBox(obj, other);
-        }
-        else if (obj.shape.type == ShapeType::Box && other.shape.type == ShapeType::Circle)
-        {
-            CheckCollisionBoxCircle(obj, other);
-        }
-        else
-        {
-            std::unreachable();
-            exit(EXIT_FAILURE);
-        }
+        // This will crash if obj.shape.type is greater than the types
+        // So if the user somehow updates the shape type with some random value
+        // GG
+        (this->*DispatchTable[static_cast<int>(obj.shape.type)][static_cast<int>(other.shape.type)])(obj, other);
     }
 }
 
@@ -275,9 +259,54 @@ void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 norma
 
 void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
 {
+    math::Vec2 d = obj.transform.position - other.transform.position;
+
+    math::Vec2 closest = d;
+
+    closest.x = std::clamp(closest.x, -other.shape.halfSize.x, other.shape.halfSize.x);
+    closest.y = std::clamp(closest.y, -other.shape.halfSize.y, other.shape.halfSize.y);
+
+    math::Vec2 normalVec = d - closest;
+    float dSq = normalVec.x * normalVec.x + normalVec.y * normalVec.y;
+    float r = obj.shape.radius;
+
+    bool inside = floatAlmostEqual(dSq, 0.f);
+
+    if (!inside && dSq > r * r)
+        return; 
+
+    math::Vec2 normal;
+    float overlap;
+
+    if (inside)
+    {
+        float px = other.shape.halfSize.x - std::abs(d.x);
+        float py = other.shape.halfSize.y - std::abs(d.y);
+
+        if (px < py)
+        {
+            normal = (d.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
+            overlap = r + px;
+        }
+        else
+        {
+            normal = (d.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
+            overlap = r + py;
+        }
+    }
+    else
+    {
+        float dist = std::sqrt(dSq);
+        normal = normalVec / dist; 
+        overlap = r - dist;
+    }
+
+    //Asta!!
+    ResolveColision(obj, other, normal, overlap);
 }
 void sas::PhysicsWorld::CheckCollisionBoxCircle(Body &obj, Body &other) noexcept
 {
+    CheckCollisionCircleBox(other, obj);
 }
 
 void sas::PhysicsWorld::UpdateCollisionFlags() noexcept

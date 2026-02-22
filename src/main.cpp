@@ -59,6 +59,9 @@ int main()
     float dt = 0;
     bool drawHitbox = false;
     bool collision = false;
+    bool shapeType = true;
+
+    sas::ShapeType st;
 
     while (!WindowShouldClose())
     {
@@ -78,10 +81,9 @@ int main()
                 t1.position = {x, y};
                 t1.scale = sas::math::Vec2{1};
 
-                sas::BodyHandle bh = world.CreateBody({sas::ShapeType::Box, circleRad}, t1);
-                bh->shape.halfSize = {25, 25};
+                sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
 
-                Entity temp{{}, bh, MAROON, sas::ShapeType::Box};
+                Entity temp{{}, bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
 
                 if(collision)
                 {
@@ -101,7 +103,7 @@ int main()
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
             currentBody->bodyHandle->kinematics = kin;
-
+        
             currentBody = nullptr;
         }
 
@@ -109,15 +111,20 @@ int main()
         {
             sas::Kinematics kin;
             kin.inverseMass = 0.5f;
-            kin.restituition = 1;
+            kin.restituition = 1.f;
 
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
             currentBody->bodyHandle->kinematics = kin;
 
+
             currentBody = nullptr;
         }
 
+        if(IsKeyPressed(KEY_S))
+        {
+            shapeType = !shapeType;
+        }
         if (IsKeyPressed(KEY_R))
         {
             world.Clear();

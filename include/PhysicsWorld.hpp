@@ -81,13 +81,13 @@ namespace sas
         void Integrate(Body &obj, float dt) const noexcept;
 
         void ResolveConstraints(Body &obj, float dt) const noexcept;
-        void CheckCollisionCircleCircle(Body &obj, Body& other) noexcept;
+        void CheckCollisionCircleCircle(Body &obj, Body &other) noexcept;
         void CheckCollisionDispatcher(Body &obj) noexcept;
-        void CheckCollisionBoxBox(Body &obj, Body& other) noexcept;
-        void CheckCollisionCircleBox(Body &obj, Body& other) noexcept;
-        void CheckCollisionBoxCircle(Body &obj, Body& other) noexcept;
+        void CheckCollisionBoxBox(Body &obj, Body &other) noexcept;
+        void CheckCollisionCircleBox(Body &obj, Body &other) noexcept;
+        void CheckCollisionBoxCircle(Body &obj, Body &other) noexcept;
 
-        void ResolveColision(Body& obj, Body& other, math::Vec2 normal, float overlap) noexcept;
+        void ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap) noexcept;
         void UpdateCollisionFlags() noexcept;
 
         void Reset(Body &obj) const noexcept;
@@ -101,6 +101,12 @@ namespace sas
 
         void ResolveBroadCeil(Body &obj, float wall) const noexcept;
         void ResolveBroadGround(Body &obj, float wall) const noexcept;
+
+        using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
+        static inline const CollisionFunc DispatchTable[2][2] = {
+            {&sas::PhysicsWorld::CheckCollisionCircleCircle, &sas::PhysicsWorld::CheckCollisionCircleBox},
+            {&sas::PhysicsWorld::CheckCollisionBoxCircle,    &sas::PhysicsWorld::CheckCollisionBoxBox}
+        };
     };
 
     class BodyHandle
