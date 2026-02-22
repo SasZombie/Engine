@@ -51,7 +51,8 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(Tests
     tests/physics_tests.cpp
-    tests/collision_tests.cpp
+    tests/collision_tests_circle.cpp
+    tests/collision_tests_box.cpp
 )
 target_link_libraries(Tests PRIVATE
     sas_physics

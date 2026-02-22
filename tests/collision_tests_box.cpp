@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, CircleCollide)
+TEST_F(FixtureTest, BoxCollide)
 {
     sas::Transform t1;
     t1.position = {400, 400};
@@ -15,8 +15,8 @@ TEST_F(FixtureTest, CircleCollide)
     sas::Kinematics k2;
     k2.velocity = {-10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollisionOn();
     bh2.SetCollisionOn();
@@ -28,7 +28,7 @@ TEST_F(FixtureTest, CircleCollide)
     EXPECT_TRUE(bh2.IsColliding());
 }
 
-TEST_F(FixtureTest, CircleDontCollide)
+TEST_F(FixtureTest, BoxDontCollide)
 {
     sas::Transform t1;
     t1.position = {400, 400};
@@ -42,8 +42,8 @@ TEST_F(FixtureTest, CircleDontCollide)
     sas::Kinematics k2;
     k2.velocity = {-10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollisionOn();
     bh2.SetCollisionOn();
@@ -53,7 +53,7 @@ TEST_F(FixtureTest, CircleDontCollide)
     EXPECT_FALSE(bh2.IsColliding());
 }
 
-TEST_F(FixtureTest, CircleCollideAfterMoving)
+TEST_F(FixtureTest, BoxCollideAfterMoving)
 {
     sas::Transform t1;
     t1.position = {310, 200};
@@ -67,8 +67,8 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollisionOn();
     bh2.SetCollisionOn();
@@ -89,7 +89,7 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
 }
 
 
-TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
+TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
 {
     sas::Transform t1;
     t1.position = {310, 200};
@@ -103,8 +103,8 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollisionOn();
     bh2.SetCollisionOn();
@@ -124,7 +124,7 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
 }
 
 
-TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
+TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
 {
     sas::Transform t1;
     t1.position = {310, 200};
@@ -138,8 +138,8 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
     sas::Kinematics k2;
     k2.velocity = {-10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollisionOff();
     bh2.SetCollisionOff();
@@ -158,7 +158,7 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, DifferentLayersDontCollide)
+TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
 {
     sas::Transform t1;
     t1.position = {510, 200};
@@ -172,8 +172,8 @@ TEST_F(FixtureTest, DifferentLayersDontCollide)
     sas::Kinematics k2;
     k2.velocity = {-10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
     bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
@@ -183,7 +183,7 @@ TEST_F(FixtureTest, DifferentLayersDontCollide)
     EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
 }
 
-TEST_F(FixtureTest, LayerTwoCollides)
+TEST_F(FixtureTest, LayerTwoCollidesBoxes)
 {
     sas::Transform t1;
     t1.position = {510, 200};
@@ -197,11 +197,11 @@ TEST_F(FixtureTest, LayerTwoCollides)
     sas::Kinematics k2;
     k2.velocity = {-10, 0};
 
-    sas::BodyHandle bh1 = AddCircle(t1, k1);
-    sas::BodyHandle bh2 = AddCircle(t2, k2);
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    // bh1.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
-    // bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
 
     world->Step(0.01f);
 

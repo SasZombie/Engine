@@ -27,6 +27,17 @@ protected:
         return bh;
     }
 
+    sas::BodyHandle AddBox(sas::Transform trans, sas::Kinematics kin)
+    {
+
+        sas::BodyHandle bh = world->CreateBody(sas::Shape::MakeBox(10.f, 10.f), trans);
+        kin.inverseMass = 0.2f;
+
+        bh->kinematics = kin;
+
+        return bh;
+    }
+
     std::unique_ptr<sas::PhysicsWorld> world;
 
     const float WIDTH = 800;
