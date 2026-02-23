@@ -53,7 +53,7 @@ int main()
     {
         float width = b.maxX - b.minX;
         float height = b.maxY - b.minY;
-        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW); 
+        DrawRectangleLines(b.minX, b.minY, width, height, isLeaf ? GREEN : YELLOW);
     };
 
     float dt = 0;
@@ -79,13 +79,14 @@ int main()
             {
                 sas::Transform t1;
                 t1.position = {x, y};
-                t1.scale = sas::math::Vec2{0.5f};
+                t1.rotation = sas::math::Vec2{30.f};
+                t1.scale = sas::math::Vec2{1.f};
 
                 sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
 
                 Entity temp{{}, bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
 
-                if(collision)
+                if (collision)
                 {
                     temp.bodyHandle.SetCollisionOff();
                 }
@@ -103,7 +104,7 @@ int main()
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
             currentBody->bodyHandle->kinematics = kin;
-        
+
             currentBody = nullptr;
         }
 
@@ -117,11 +118,10 @@ int main()
             kin.velocity = {x * 10, y * 10};
             currentBody->bodyHandle->kinematics = kin;
 
-
             currentBody = nullptr;
         }
 
-        if(IsKeyPressed(KEY_S))
+        if (IsKeyPressed(KEY_S))
         {
             shapeType = !shapeType;
         }
@@ -163,7 +163,7 @@ int main()
             drawHitbox = !drawHitbox;
         }
 
-        if(IsKeyPressed(KEY_K))
+        if (IsKeyPressed(KEY_K))
         {
             collision = !collision;
         }
@@ -190,14 +190,23 @@ int main()
         for (auto &entity : entities)
         {
             const auto &handle = entity.bodyHandle.get();
-            if(entity.type == sas::ShapeType::Circle)
+            if (entity.type == sas::ShapeType::Circle)
             {
                 DrawCircle(handle->transform.position.x, handle->transform.position.y, handle->shape.radius * handle->transform.scale.x, entity.c);
-            }else if(entity.type == sas::ShapeType::Box)
+            }
+            else if (entity.type == sas::ShapeType::Box)
             {
-                DrawRectangle(handle->transform.position.x - handle->shape.halfSize.x * handle->transform.scale.x, 
-                    handle->transform.position.y - handle->shape.halfSize.y * handle->transform.scale.y,
-                    handle->shape.halfSize.x * 2 * handle->transform.scale.x, handle->shape.halfSize.y * 2 * handle->transform.scale.y, entity.c);
+                float width = handle->shape.halfSize.x * 2 * handle->transform.scale.x;
+                float height = handle->shape.halfSize.y * 2 * handle->transform.scale.y;
+
+                Rectangle rect = {
+                    handle->transform.position.x,
+                    handle->transform.position.y,
+                    width,
+                    height};
+
+                Vector2 origin = {width / 2, height / 2};
+                DrawRectanglePro(rect, origin, handle->transform.rotation.x * RAD2DEG, entity.c);
             }
         }
 
@@ -208,6 +217,8 @@ int main()
         DrawText(msg1.c_str(), 0, 0, 30, RED);
         DrawText(msg2.c_str(), 0, 30, 30, RED);
         DrawText(msg3.c_str(), 0, 60, 30, RED);
+        DrawText("Shape ", 500, 0, 30, RED);
+        DrawText((shapeType ? "Circle" : "Square"), 620, 0, 30, RED);
 
         EndDrawing();
     }

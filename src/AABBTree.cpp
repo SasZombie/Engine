@@ -4,21 +4,36 @@
 
 sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 {
+    float x = body.transform.position.x;
+    float y = body.transform.position.y;
+    float angle = body.transform.rotation.x;
+
     float minX, minY, maxX, maxY;
 
     if (body.shape.type == ShapeType::Circle)
     {
-        minX = body.transform.position.x - body.shape.radius * body.transform.scale.x;
-        minY = body.transform.position.y - body.shape.radius * body.transform.scale.y;
-        maxX = body.transform.position.x + body.shape.radius * body.transform.scale.x;
-        maxY = body.transform.position.y + body.shape.radius * body.transform.scale.y;
+        // Rotation for circle is trivial
+        minX = x - body.shape.radius * body.transform.scale.x;
+        minY = y - body.shape.radius * body.transform.scale.y;
+        maxX = x + body.shape.radius * body.transform.scale.x;
+        maxY = y + body.shape.radius * body.transform.scale.y;
     }
     else
     {
-        minX = body.transform.position.x - body.shape.halfSize.x * body.transform.scale.x;
-        minY = body.transform.position.y - body.shape.halfSize.y * body.transform.scale.y;
-        maxX = body.transform.position.x + body.shape.halfSize.x * body.transform.scale.x;
-        maxY = body.transform.position.y + body.shape.halfSize.y * body.transform.scale.y;
+        float hx = body.shape.halfSize.x * body.transform.scale.x;
+        float hy = body.shape.halfSize.y * body.transform.scale.y;
+        
+        float c = std::abs(std::cos(angle));
+        float s = std::abs(std::sin(angle));
+
+
+        float newHx = hx * c + hy * s;
+        float newHy = hx * s + hy * c;
+
+        minX = x - newHx;
+        minY = y - newHy;
+        maxX = x + newHx;
+        maxY = y + newHy;
     }
 
     return {minX - margin, minY - margin, maxX + margin, maxY + margin};
@@ -215,7 +230,7 @@ void sas::Node::Draw(const DrawCallback &cb) const
 
 void sas::AABBTree::Draw(const DrawCallback &cb) const
 {
-    if(root != nullptr)
+    if (root != nullptr)
     {
         root->Draw(cb);
     }

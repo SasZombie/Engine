@@ -186,7 +186,7 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
     float dx = obj.transform.position.x - other.transform.position.x;
     float dy = obj.transform.position.y - other.transform.position.y;
     float distanceSq = dx * dx + dy * dy;
-    //For circles scale x = scale y. If not then it is a bug
+    // For circles scale x = scale y. If not then it is a bug
     float combinedRad = obj.shape.radius * obj.transform.scale.x + other.shape.radius * other.transform.scale.x;
 
     if (distanceSq > combinedRad * combinedRad)
@@ -202,33 +202,81 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
     ResolveColision(obj, other, normal, overlap);
 }
 
+struct BoxCorners
+{
+    sas::math::Vec2 v[4];
+};
+
+BoxCorners GetBoxCorners(const sas::Body &b)
+{
+    float hx = b.shape.halfSize.x * b.transform.scale.x;
+    float hy = b.shape.halfSize.y * b.transform.scale.y;
+    float cosA = std::cos(b.transform.rotation.x);
+    float sinA = std::sin(b.transform.rotation.x);
+
+    auto rotate = [&](float px, float py)
+    {
+        return sas::math::Vec2{
+            b.transform.position.x + (px * cosA - py * sinA),
+            b.transform.position.y + (px * sinA + py * cosA)};
+    };
+
+    return {rotate(-hx, -hy), rotate(hx, -hy), rotate(hx, hy), rotate(-hx, hy)};
+}
+
 void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
 {
-    float dx = other.transform.position.x - obj.transform.position.x;
-    float px = (obj.shape.halfSize.x * obj.transform.scale.x + other.shape.halfSize.x * other.transform.scale.x) - std::abs(dx);
-    if (px <= 0)
-        return;
+    math::Vec2 axes[4];
+    float rotA = obj.transform.rotation.x;
+    float rotB = other.transform.rotation.x;
 
-    float dy = other.transform.position.y - obj.transform.position.y;
-    float py = (obj.shape.halfSize.y * obj.transform.scale.y + other.shape.halfSize.y * other.transform.scale.y) - std::abs(dy);
-    if (py <= 0)
-        return;
+    axes[0] = {std::cos(rotA), std::sin(rotA)};
+    axes[1] = {-std::sin(rotA), std::cos(rotA)};
+    axes[2] = {std::cos(rotB), std::sin(rotB)};
+    axes[3] = {-std::sin(rotB), std::cos(rotB)};
 
-    math::Vec2 normal;
-    float overlap;
+    float minOverlap = std::numeric_limits<float>::max();
+    math::Vec2 mtvAxis;
 
-    if (px < py)
+    BoxCorners cornersA = GetBoxCorners(obj);
+    BoxCorners cornersB = GetBoxCorners(other);
+
+    for (int i = 0; i < 4; i++)
     {
-        normal = (dx > 0) ? math::Vec2(-1, 0) : math::Vec2(1, 0);
-        overlap = px;
-    }
-    else
-    {
-        normal = (dy > 0) ? math::Vec2(0, -1) : math::Vec2(0, 1);
-        overlap = py;
+        math::Vec2 axis = axes[i];
+
+        auto project = [&](const BoxCorners &corners)
+        {
+            float min = math::dotProduct(corners.v[0], axis);
+            float max = min;
+            for (int j = 1; j < 4; j++)
+            {
+                float p = math::dotProduct(corners.v[j], axis);
+                min = std::min(min, p);
+                max = std::max(max, p);
+            }
+            return std::pair{min, max};
+        };
+
+        auto [minA, maxA] = project(cornersA);
+        auto [minB, maxB] = project(cornersB);
+
+        float overlap = std::min(maxA, maxB) - std::max(minA, minB);
+        if (overlap <= 0)
+            return;
+
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+            mtvAxis = axis;
+        }
     }
 
-    ResolveColision(obj, other, normal, overlap);
+    math::Vec2 d = obj.transform.position - other.transform.position;
+    if (math::dotProduct(d, mtvAxis) < 0)
+        mtvAxis = mtvAxis * -1.0f;
+
+    ResolveColision(obj, other, mtvAxis, minOverlap);
 }
 
 void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
@@ -247,7 +295,7 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
     bool inside = floatAlmostEqual(dSq, 0.f);
 
     if (!inside && dSq > r * r)
-        return; 
+        return;
 
     math::Vec2 normal;
     float overlap;
@@ -270,7 +318,7 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
     else
     {
         float dist = std::sqrt(dSq);
-        normal = normalVec / dist; 
+        normal = normalVec / dist;
         overlap = r - dist;
     }
 
