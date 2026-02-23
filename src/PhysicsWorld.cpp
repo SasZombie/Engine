@@ -278,51 +278,65 @@ void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
 
     ResolveColision(obj, other, mtvAxis, minOverlap);
 }
-
-void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
+void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcept
 {
-    math::Vec2 d = obj.transform.position - other.transform.position;
+    float r = circle.shape.radius * std::max(circle.transform.scale.x, circle.transform.scale.y);
+    float hx = box.shape.halfSize.x * box.transform.scale.x;
+    float hy = box.shape.halfSize.y * box.transform.scale.y;
 
-    math::Vec2 closest = d;
+    math::Vec2 d = circle.transform.position - box.transform.position;
 
-    closest.x = std::clamp(closest.x, -other.shape.halfSize.x * other.transform.scale.x, other.shape.halfSize.x * other.transform.scale.x);
-    closest.y = std::clamp(closest.y, -other.shape.halfSize.y * other.transform.scale.y, other.shape.halfSize.y * other.transform.scale.y);
+    float cosA = std::cos(-box.transform.rotation.x);
+    float sinA = std::sin(-box.transform.rotation.x);
 
-    math::Vec2 normalVec = d - closest;
-    float dSq = normalVec.x * normalVec.x + normalVec.y * normalVec.y;
-    float r = obj.shape.radius * obj.transform.scale.x;
+    math::Vec2 localPos = {
+        d.x * cosA - d.y * sinA,
+        d.x * sinA + d.y * cosA};
 
-    bool inside = floatAlmostEqual(dSq, 0.f);
+    math::Vec2 closest = localPos;
+    closest.x = std::clamp(closest.x, -hx, hx);
+    closest.y = std::clamp(closest.y, -hy, hy);
 
-    if (!inside && dSq > r * r)
+    math::Vec2 localNormalVec = localPos - closest;
+    float distSq = localNormalVec.lengthSq();
+
+    if (distSq > r * r)
         return;
 
-    math::Vec2 normal;
+    float dist = std::sqrt(distSq);
+    math::Vec2 localNormal;
     float overlap;
 
-    if (inside)
+    if (dist > 0.0001f)
     {
-        float px = other.shape.halfSize.x * other.transform.scale.x - std::abs(d.x);
-        float py = other.shape.halfSize.y * other.transform.scale.y - std::abs(d.y);
+        localNormal = localNormalVec / dist;
+        overlap = r - dist;
+    }
+    else
+    {
+        float px = hx - std::abs(localPos.x);
+        float py = hy - std::abs(localPos.y);
+
         if (px < py)
         {
-            normal = (d.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
+            localNormal = (localPos.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
             overlap = r + px;
         }
         else
         {
-            normal = (d.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
+            localNormal = (localPos.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
             overlap = r + py;
         }
     }
-    else
-    {
-        float dist = std::sqrt(dSq);
-        normal = normalVec / dist;
-        overlap = r - dist;
-    }
 
-    ResolveColision(obj, other, normal, overlap);
+    float cosW = std::cos(box.transform.rotation.x);
+    float sinW = std::sin(box.transform.rotation.x);
+
+    math::Vec2 worldNormal = {
+        localNormal.x * cosW - localNormal.y * sinW,
+        localNormal.x * sinW + localNormal.y * cosW};
+
+    ResolveColision(circle, box, worldNormal, overlap);
 }
 
 void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap) noexcept

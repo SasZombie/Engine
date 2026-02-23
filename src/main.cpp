@@ -79,7 +79,7 @@ int main()
             {
                 sas::Transform t1;
                 t1.position = {x, y};
-                t1.rotation = sas::math::Vec2{30.f};
+                t1.rotation = sas::math::Vec2{0.f};
                 t1.scale = sas::math::Vec2{1.f};
 
                 sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
