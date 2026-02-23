@@ -8,17 +8,17 @@ sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 
     if (body.shape.type == ShapeType::Circle)
     {
-        minX = body.transform.position.x - body.shape.radius;
-        minY = body.transform.position.y - body.shape.radius;
-        maxX = body.transform.position.x + body.shape.radius;
-        maxY = body.transform.position.y + body.shape.radius;
+        minX = body.transform.position.x - body.shape.radius * body.transform.scale.x;
+        minY = body.transform.position.y - body.shape.radius * body.transform.scale.y;
+        maxX = body.transform.position.x + body.shape.radius * body.transform.scale.x;
+        maxY = body.transform.position.y + body.shape.radius * body.transform.scale.y;
     }
     else
     {
-        minX = body.transform.position.x - body.shape.halfSize.x;
-        minY = body.transform.position.y - body.shape.halfSize.y;
-        maxX = body.transform.position.x + body.shape.halfSize.x;
-        maxY = body.transform.position.y + body.shape.halfSize.y;
+        minX = body.transform.position.x - body.shape.halfSize.x * body.transform.scale.x;
+        minY = body.transform.position.y - body.shape.halfSize.y * body.transform.scale.y;
+        maxX = body.transform.position.x + body.shape.halfSize.x * body.transform.scale.x;
+        maxY = body.transform.position.y + body.shape.halfSize.y * body.transform.scale.y;
     }
 
     return {minX - margin, minY - margin, maxX + margin, maxY + margin};

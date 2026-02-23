@@ -8,7 +8,7 @@ namespace sas
     {
         math::Vec2 position;
         math::Vec2 rotation;
-        math::Vec2 scale;
+        math::Vec2 scale{1.f, 1.f};
     };
     
 }

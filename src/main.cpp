@@ -33,7 +33,7 @@ int main()
 
     sas::Transform t;
     t.position = {400, 225};
-    t.scale = {1, 1};
+    t.scale = {2, 2};
 
     sas::Kinematics k;
     k.inverseMass = 0.f;
@@ -79,7 +79,7 @@ int main()
             {
                 sas::Transform t1;
                 t1.position = {x, y};
-                t1.scale = sas::math::Vec2{1};
+                t1.scale = sas::math::Vec2{0.5f};
 
                 sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
 
@@ -192,11 +192,12 @@ int main()
             const auto &handle = entity.bodyHandle.get();
             if(entity.type == sas::ShapeType::Circle)
             {
-                DrawCircle(handle->transform.position.x, handle->transform.position.y, handle->shape.radius, entity.c);
+                DrawCircle(handle->transform.position.x, handle->transform.position.y, handle->shape.radius * handle->transform.scale.x, entity.c);
             }else if(entity.type == sas::ShapeType::Box)
             {
-                DrawRectangle(handle->transform.position.x - handle->shape.halfSize.x , handle->transform.position.y - handle->shape.halfSize.y , 
-                    handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, entity.c);
+                DrawRectangle(handle->transform.position.x - handle->shape.halfSize.x * handle->transform.scale.x, 
+                    handle->transform.position.y - handle->shape.halfSize.y * handle->transform.scale.y,
+                    handle->shape.halfSize.x * 2 * handle->transform.scale.x, handle->shape.halfSize.y * 2 * handle->transform.scale.y, entity.c);
             }
         }
 

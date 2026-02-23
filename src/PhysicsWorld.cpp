@@ -186,7 +186,8 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
     float dx = obj.transform.position.x - other.transform.position.x;
     float dy = obj.transform.position.y - other.transform.position.y;
     float distanceSq = dx * dx + dy * dy;
-    float combinedRad = obj.shape.radius + other.shape.radius;
+    //For circles scale x = scale y. If not then it is a bug
+    float combinedRad = obj.shape.radius * obj.transform.scale.x + other.shape.radius * other.transform.scale.x;
 
     if (distanceSq > combinedRad * combinedRad)
         return;
@@ -204,12 +205,12 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
 void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
 {
     float dx = other.transform.position.x - obj.transform.position.x;
-    float px = (obj.shape.halfSize.x + other.shape.halfSize.x) - std::abs(dx);
+    float px = (obj.shape.halfSize.x * obj.transform.scale.x + other.shape.halfSize.x * other.transform.scale.x) - std::abs(dx);
     if (px <= 0)
         return;
 
     float dy = other.transform.position.y - obj.transform.position.y;
-    float py = (obj.shape.halfSize.y + other.shape.halfSize.y) - std::abs(dy);
+    float py = (obj.shape.halfSize.y * obj.transform.scale.y + other.shape.halfSize.y * other.transform.scale.y) - std::abs(dy);
     if (py <= 0)
         return;
 
@@ -225,6 +226,52 @@ void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
     {
         normal = (dy > 0) ? math::Vec2(0, -1) : math::Vec2(0, 1);
         overlap = py;
+    }
+
+    ResolveColision(obj, other, normal, overlap);
+}
+
+void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
+{
+    math::Vec2 d = obj.transform.position - other.transform.position;
+
+    math::Vec2 closest = d;
+
+    closest.x = std::clamp(closest.x, -other.shape.halfSize.x * other.transform.scale.x, other.shape.halfSize.x * other.transform.scale.x);
+    closest.y = std::clamp(closest.y, -other.shape.halfSize.y * other.transform.scale.y, other.shape.halfSize.y * other.transform.scale.y);
+
+    math::Vec2 normalVec = d - closest;
+    float dSq = normalVec.x * normalVec.x + normalVec.y * normalVec.y;
+    float r = obj.shape.radius * obj.transform.scale.x;
+
+    bool inside = floatAlmostEqual(dSq, 0.f);
+
+    if (!inside && dSq > r * r)
+        return; 
+
+    math::Vec2 normal;
+    float overlap;
+
+    if (inside)
+    {
+        float px = other.shape.halfSize.x * other.transform.scale.x - std::abs(d.x);
+        float py = other.shape.halfSize.y * other.transform.scale.y - std::abs(d.y);
+        if (px < py)
+        {
+            normal = (d.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
+            overlap = r + px;
+        }
+        else
+        {
+            normal = (d.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
+            overlap = r + py;
+        }
+    }
+    else
+    {
+        float dist = std::sqrt(dSq);
+        normal = normalVec / dist; 
+        overlap = r - dist;
     }
 
     ResolveColision(obj, other, normal, overlap);
@@ -257,53 +304,6 @@ void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 norma
     contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
 }
 
-void sas::PhysicsWorld::CheckCollisionCircleBox(Body &obj, Body &other) noexcept
-{
-    math::Vec2 d = obj.transform.position - other.transform.position;
-
-    math::Vec2 closest = d;
-
-    closest.x = std::clamp(closest.x, -other.shape.halfSize.x, other.shape.halfSize.x);
-    closest.y = std::clamp(closest.y, -other.shape.halfSize.y, other.shape.halfSize.y);
-
-    math::Vec2 normalVec = d - closest;
-    float dSq = normalVec.x * normalVec.x + normalVec.y * normalVec.y;
-    float r = obj.shape.radius;
-
-    bool inside = floatAlmostEqual(dSq, 0.f);
-
-    if (!inside && dSq > r * r)
-        return; 
-
-    math::Vec2 normal;
-    float overlap;
-
-    if (inside)
-    {
-        float px = other.shape.halfSize.x - std::abs(d.x);
-        float py = other.shape.halfSize.y - std::abs(d.y);
-
-        if (px < py)
-        {
-            normal = (d.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
-            overlap = r + px;
-        }
-        else
-        {
-            normal = (d.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
-            overlap = r + py;
-        }
-    }
-    else
-    {
-        float dist = std::sqrt(dSq);
-        normal = normalVec / dist; 
-        overlap = r - dist;
-    }
-
-    //Asta!!
-    ResolveColision(obj, other, normal, overlap);
-}
 void sas::PhysicsWorld::CheckCollisionBoxCircle(Body &obj, Body &other) noexcept
 {
     CheckCollisionCircleBox(other, obj);
@@ -337,14 +337,14 @@ void sas::PhysicsWorld::Integrate(Body &obj, float dt) const noexcept
 
 void sas::PhysicsWorld::ResolveConstraints(Body &obj, float dt) const noexcept
 {
-    float groundLevel = boundaries.Height - obj.shape.radius;
+    float groundLevel = boundaries.Height - obj.shape.radius * obj.transform.scale.x;
 
     ResolveBroadGround(obj, groundLevel);
-    ResolveBroadCeil(obj, boundaries.y + obj.shape.radius);
+    ResolveBroadCeil(obj, boundaries.y + obj.shape.radius * obj.transform.scale.x);
 
-    float wall = boundaries.Width - obj.shape.radius;
+    float wall = boundaries.Width - obj.shape.radius * obj.transform.scale.x;
     ResolveBroadHigher(obj, wall);
-    ResolveBroadLower(obj, boundaries.x + obj.shape.radius);
+    ResolveBroadLower(obj, boundaries.x + obj.shape.radius * obj.transform.scale.x);
 }
 
 void sas::PhysicsWorld::ResolveBroadGround(Body &obj, float wall) const noexcept
