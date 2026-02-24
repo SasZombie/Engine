@@ -32,21 +32,30 @@ int main()
     std::vector<Entity> entities;
 
     sas::Transform t;
-    t.position = {400, 225};
-    t.scale = {2, 2};
+    t.position = {470, 230};
+    t.scale = {1, 1};
+    float rot = 30.f * DEG2RAD;
+    t.rotation = {rot, rot};
 
     sas::Kinematics k;
     k.inverseMass = 0.f;
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(25, 25), t, sas::Flags::Active | sas::Flags::Static);
+    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
 
-    // firstBH->shape.halfSize = {25, 25};
+    t.position = {300, 180};
+    t.rotation = {0, 0};
+
+
+    sas::BodyHandle seccondBh = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
+
 
     Entity firstEntity{{}, firstBH, MAROON, sas::ShapeType::Box};
+    Entity seccondEntity{{}, seccondBh, MAROON, sas::ShapeType::Box};
 
     entities.push_back(firstEntity);
+    entities.push_back(seccondEntity);
     entities[0].bodyHandle->kinematics = k;
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
@@ -106,6 +115,28 @@ int main()
             currentBody->bodyHandle->kinematics = kin;
 
             currentBody = nullptr;
+        }
+
+        if (IsKeyPressed(KEY_N))
+        {
+            const auto &[x, y] = GetMousePosition();
+
+            size_t ind = 0;
+            for (size_t i = 0; i < entities.size(); ++i)
+            {
+                auto &entity = entities[i];
+                if (CheckCollisionPointCircle({x, y}, {entity.bodyHandle->transform.position.x, entity.bodyHandle->transform.position.y}, entity.bodyHandle->shape.radius))
+                {
+
+                    ind = i;
+                    break;
+                }
+            }
+
+            world.RemoveBody(entities[ind].bodyHandle->bodyID);
+            
+            entities[ind] = entities.back();
+            entities.pop_back();
         }
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
