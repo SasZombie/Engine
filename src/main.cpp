@@ -35,7 +35,7 @@ int main()
     t.position = {470, 230};
     t.scale = {1, 1};
     float rot = 30.f * DEG2RAD;
-    t.rotation = {rot, rot};
+    t.rotation = rot;
 
     sas::Kinematics k;
     k.inverseMass = 0.f;
@@ -45,8 +45,7 @@ int main()
     sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
 
     t.position = {300, 180};
-    t.rotation = {0, 0};
-
+    t.rotation = 0;
 
     sas::BodyHandle seccondBh = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
 
@@ -88,7 +87,7 @@ int main()
             {
                 sas::Transform t1;
                 t1.position = {x, y};
-                t1.rotation = sas::math::Vec2{0.f};
+                t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};
 
                 sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
@@ -237,7 +236,7 @@ int main()
                     height};
 
                 Vector2 origin = {width / 2, height / 2};
-                DrawRectanglePro(rect, origin, handle->transform.rotation.x * RAD2DEG, entity.c);
+                DrawRectanglePro(rect, origin, handle->transform.rotation * RAD2DEG, entity.c);
             }
         }
 

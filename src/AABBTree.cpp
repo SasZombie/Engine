@@ -6,7 +6,7 @@ sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
 {
     float x = body.transform.position.x;
     float y = body.transform.position.y;
-    float angle = body.transform.rotation.x;
+    float angle = body.transform.rotation;
 
     float minX, minY, maxX, maxY;
 

@@ -12,5 +12,8 @@ namespace sas
         float restituition;
         math::Vec2 velocity;
         math::Vec2 acceleration;
+        float angularVelocity;
+        float inertia;
+        float inverseInertia;
     };
 } // namespace sas

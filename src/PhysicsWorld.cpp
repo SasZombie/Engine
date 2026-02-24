@@ -48,6 +48,13 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
         AddToCollisionPool(newBody);
     }
 
+    if (shape.type == ShapeType::Box)
+    {
+        float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
+        newBody.kinematics.inertia = (1.0f / 12.0f) * mass * (2 * shape.halfSize.x * shape.halfSize.x + 2 * shape.halfSize.y * shape.halfSize.y);
+        newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
+    }
+
     bodies.push_back(newBody);
 
     return {newID, this};
@@ -199,7 +206,7 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
 
     float overlap = combinedRad - distance;
 
-    ResolveColision(obj, other, normal, overlap);
+    ResolveColision(obj, other, normal, overlap, {{0, 0}, {0, 0}});
 }
 
 struct BoxCorners
@@ -207,12 +214,12 @@ struct BoxCorners
     sas::math::Vec2 v[4];
 };
 
-BoxCorners GetBoxCorners(const sas::Body &b)
+static BoxCorners GetBoxCorners(const sas::Body &b)
 {
     float hx = b.shape.halfSize.x * b.transform.scale.x;
     float hy = b.shape.halfSize.y * b.transform.scale.y;
-    float cosA = std::cos(b.transform.rotation.x);
-    float sinA = std::sin(b.transform.rotation.x);
+    float cosA = std::cos(b.transform.rotation);
+    float sinA = std::sin(b.transform.rotation);
 
     auto rotate = [&](float px, float py)
     {
@@ -227,8 +234,8 @@ BoxCorners GetBoxCorners(const sas::Body &b)
 void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
 {
     math::Vec2 axes[4];
-    float rotA = obj.transform.rotation.x;
-    float rotB = other.transform.rotation.x;
+    float rotA = obj.transform.rotation;
+    float rotB = other.transform.rotation;
 
     axes[0] = {std::cos(rotA), std::sin(rotA)};
     axes[1] = {-std::sin(rotA), std::cos(rotA)};
@@ -274,9 +281,34 @@ void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
 
     math::Vec2 d = obj.transform.position - other.transform.position;
     if (math::dotProduct(d, mtvAxis) < 0)
+    {
         mtvAxis = mtvAxis * -1.0f;
+    }
 
-    ResolveColision(obj, other, mtvAxis, minOverlap);
+    math::Vec2 contactPoint;
+
+    auto GetDeepestPoint = [&](const BoxCorners &corners, const math::Vec2 &normal)
+    {
+        float minDot = std::numeric_limits<float>::max();
+        math::Vec2 deepest;
+        for (int i = 0; i < 4; i++)
+        {
+            float dot = math::dotProduct(corners.v[i], normal);
+            if (dot < minDot)
+            {
+                minDot = dot;
+                deepest = corners.v[i];
+            }
+        }
+        return deepest;
+    };
+
+    contactPoint = GetDeepestPoint(cornersA, mtvAxis);
+
+    math::Vec2 rA = contactPoint - obj.transform.position;
+    math::Vec2 rB = contactPoint - other.transform.position;
+
+    ResolveColision(obj, other, mtvAxis, minOverlap, {rA, rB});
 }
 void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcept
 {
@@ -286,8 +318,8 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcep
 
     math::Vec2 d = circle.transform.position - box.transform.position;
 
-    float cosA = std::cos(-box.transform.rotation.x);
-    float sinA = std::sin(-box.transform.rotation.x);
+    float cosA = std::cos(-box.transform.rotation);
+    float sinA = std::sin(-box.transform.rotation);
 
     math::Vec2 localPos = {
         d.x * cosA - d.y * sinA,
@@ -329,17 +361,17 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcep
         }
     }
 
-    float cosW = std::cos(box.transform.rotation.x);
-    float sinW = std::sin(box.transform.rotation.x);
+    float cosW = std::cos(box.transform.rotation);
+    float sinW = std::sin(box.transform.rotation);
 
     math::Vec2 worldNormal = {
         localNormal.x * cosW - localNormal.y * sinW,
         localNormal.x * sinW + localNormal.y * cosW};
 
-    ResolveColision(circle, box, worldNormal, overlap);
+    ResolveColision(circle, box, worldNormal, overlap, {{0, 0}, {0, 0}});
 }
 
-void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap) noexcept
+void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2>& rotComp) noexcept
 {
     math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
     float velAlongNormal = math::dotProduct(relVel, normal);
@@ -361,6 +393,12 @@ void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 norma
         math::Vec2 impulse = normal * j;
         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
+
+        math::Vec2 r = {1, 2};
+
+        float crossN = r * normal;
+
+        obj.kinematics.angularVelocity += crossN * (j * obj.kinematics.inverseMass);
     }
 
     contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
@@ -395,6 +433,7 @@ void sas::PhysicsWorld::Integrate(Body &obj, float dt) const noexcept
 {
     obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * dt;
     obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
+    obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * dt;
 }
 
 void sas::PhysicsWorld::ResolveConstraints(Body &obj, float dt) const noexcept

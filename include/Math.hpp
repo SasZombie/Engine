@@ -37,6 +37,12 @@ namespace sas
                 return {x * scalar, y * scalar};
             }
 
+            // CrossProduct
+            constexpr float operator*(const Vec2 &other) const
+            {
+                return {data[0] * other.data[1] - data[1] * other.data[0]};
+            }
+
             constexpr Vec2 operator/(float scalar) const
             {
                 return {x / scalar, y / scalar};
@@ -68,7 +74,7 @@ namespace sas
                 return v * scalar;
             }
 
-            friend constexpr Vec2 operator/(float scalar, const Vec2& v) 
+            friend constexpr Vec2 operator/(float scalar, const Vec2 &v)
             {
                 return v / scalar;
             }
@@ -157,12 +163,21 @@ namespace sas
                 return *this * invLen;
             }
 
+            // Cross
+            constexpr Vec3 operator*(const Vec3 &other) const
+            {
+                return {
+                    data[1] * other.data[2] - data[2] * other.data[1],
+                    data[2] * other.data[0] - data[0] * other.data[2],
+                    data[0] * other.data[1] - data[1] * other.data[0]};
+            }
+
             friend constexpr Vec3 operator*(float scalar, const Vec3 &v)
             {
                 return v * scalar;
             }
 
-            friend constexpr Vec3 operator/(float scalar, const Vec3& v) 
+            friend constexpr Vec3 operator/(float scalar, const Vec3 &v)
             {
                 return v / scalar;
             }
@@ -224,6 +239,14 @@ namespace sas
                 return res;
             }
 
+            constexpr Vec3 operator*(Vec3 other) const
+            {
+
+                Vec3 temp{data[0], data[1], data[2]};
+
+                return temp * other;
+            }
+
             constexpr Vec4 operator/(float scalar) const
             {
                 Vec4 res;
@@ -261,21 +284,13 @@ namespace sas
                 return v * scalar;
             }
 
-            friend constexpr Vec4 operator/(float scalar, const Vec4& v) 
+            friend constexpr Vec4 operator/(float scalar, const Vec4 &v)
             {
                 return v / scalar;
             }
         };
 
         static_assert(sizeof(Vec4) == 16);
-
-        // Vec3 crossProduct(const Vec3 &v1, const Vec3 &v2) noexcept
-        // {
-        //     return Vec3(
-        //         v1.y * v2.z - v1.z * v2.y,
-        //         v1.z * v2.x - v1.x * v2.z,
-        //         v1.x * v2.y - v1.y * v2.x);
-        // }
 
         // Limits to my custom vectors
         template <typename T>
