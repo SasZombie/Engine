@@ -17,7 +17,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &tran
 
 sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
-    return CreateBodyFull(shape, trans, {}, options);
+    return CreateBodyFull(shape, trans, kin, options);
 }
 
 // Default

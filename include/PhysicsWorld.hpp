@@ -58,6 +58,7 @@ namespace sas
         BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
         BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
 
+
         void AddToCollisionPool(Body &body) noexcept;
         void RemoveFromCollisionPool(Body &body) noexcept;
         void Step(float dt) noexcept;
@@ -74,7 +75,7 @@ namespace sas
 
         PhysicsWorld(Rectangle dims) noexcept;
         ~PhysicsWorld() noexcept = default;
-
+        
     private:
         void ApplyForces(Body &obj) const noexcept;
 
