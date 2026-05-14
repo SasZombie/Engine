@@ -5,21 +5,21 @@
 #include <utility>
 #include <algorithm>
 
-sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
-    return CreateBodyFull(shape, trans, {}, options);
+    return createBodyFull(shape, trans, {}, options);
 }
 
-sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
-    return CreateBodyFull(shape, trans, kin, options);
+    return createBodyFull(shape, trans, kin, options);
 }
 
 // Default
 // Flags::Active | Flags::RigidBody
-sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
-    uint32_t newID = GetNextId();
+    uint32_t newID = getNextId();
     uint32_t internalIndex = static_cast<uint32_t>(bodies.size());
 
     if (newID >= sparse.size())
@@ -40,7 +40,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
         newBody.collisionMask = Flags::Layer1 | Flags::Mask1;
 
         activeIDs.push_back(newID);
-        AddToCollisionPool(newBody);
+        addToCollisionPool(newBody);
     }
 
     if (!(options & Flags::BodyFlags::RigidBodyStatic))
@@ -72,7 +72,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
     return {newID, this};
 }
 
-void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
+void sas::PhysicsWorld::removeBody(uint32_t bodyID) noexcept
 {
     if (bodies.empty())
         return;
@@ -89,7 +89,7 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
         sparse[lastID] = indToRemove;
         dense[indToRemove] = lastID;
 
-        root.UpdateObject(bodies[indToRemove], 0.f);
+        root.updateObject(bodies[indToRemove], 0.f);
     }
 
     auto it = std::find(activeIDs.begin(), activeIDs.end(), bodyID);
@@ -109,7 +109,7 @@ void sas::PhysicsWorld::RemoveBody(uint32_t bodyID) noexcept
     root.remove(bodyID);
 }
 
-uint32_t sas::PhysicsWorld::GetNextId() noexcept
+uint32_t sas::PhysicsWorld::getNextId() noexcept
 {
     if (!freeIDs.empty())
     {
@@ -121,7 +121,7 @@ uint32_t sas::PhysicsWorld::GetNextId() noexcept
     return idCounter++;
 }
 
-void sas::PhysicsWorld::Step(float dt) noexcept
+void sas::PhysicsWorld::step(float dt) noexcept
 {
     contacts.clear();
     for (uint32_t id : activeIDs)
@@ -132,9 +132,9 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
         if (isRigid && (obj.kinematics.inverseMass > 0.f))
         {
-            ApplyForces(obj);
-            Integrate(obj, dt);
-            Reset(obj);
+            applyForces(obj);
+            integrate(obj, dt);
+            reset(obj);
         }
 
         const float velocityLength = obj.kinematics.velocity.length();
@@ -143,7 +143,7 @@ void sas::PhysicsWorld::Step(float dt) noexcept
 
         if (obj.flags & Flags::InCollisionPool)
         {
-            root.UpdateObject(obj, predictiveMargin);
+            root.updateObject(obj, predictiveMargin);
         }
     }
 
@@ -151,15 +151,15 @@ void sas::PhysicsWorld::Step(float dt) noexcept
     {
         Body &obj = bodies[sparse[id]];
 
-        CheckCollisionDispatcher(obj);
+        checkCollisionDispatcher(obj);
     }
 
-    UpdateCollisionFlags();
+    updateCollisionFlags();
 }
 // TODO:This sounds interesting
 // matrix[shapeA.type][shapeB.type](shapeA, shapeB)
 
-void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
+void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
 {
     // Forcing static objects to to have 0 vel
     // And 0 inverse mass otherwise
@@ -172,7 +172,7 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
 
     std::vector<uint32_t> potentialCollisions;
 
-    root.Query(ComputeTightAABB(obj), potentialCollisions);
+    root.query(computeTightAABB(obj), potentialCollisions);
 
     for (uint32_t otherID : potentialCollisions)
     {
@@ -199,7 +199,7 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
     }
 }
 
-void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexcept
+void sas::PhysicsWorld::checkCollisionCircleCircle(Body &obj, Body &other) noexcept
 {
     float dx = obj.transform.position.x - other.transform.position.x;
     float dy = obj.transform.position.y - other.transform.position.y;
@@ -217,7 +217,7 @@ void sas::PhysicsWorld::CheckCollisionCircleCircle(Body &obj, Body &other) noexc
 
     float overlap = combinedRad - distance;
 
-    ResolveColision(obj, other, normal, overlap, {{0, 0}, {0, 0}});
+    resolveColision(obj, other, normal, overlap, {{0, 0}, {0, 0}});
 }
 
 struct BoxCorners
@@ -242,7 +242,7 @@ static BoxCorners GetBoxCorners(const sas::Body &b)
     return {rotate(-hx, -hy), rotate(hx, -hy), rotate(hx, hy), rotate(-hx, hy)};
 }
 
-void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
+void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
 {
     math::Vec2 axes[4];
     float rotA = obj.transform.rotation;
@@ -319,9 +319,9 @@ void sas::PhysicsWorld::CheckCollisionBoxBox(Body &obj, Body &other) noexcept
     math::Vec2 rA = contactPoint - obj.transform.position;
     math::Vec2 rB = contactPoint - other.transform.position;
 
-    ResolveColision(obj, other, mtvAxis, minOverlap, {rA, rB});
+    resolveColision(obj, other, mtvAxis, minOverlap, {rA, rB});
 }
-void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcept
+void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcept
 {
     float r = circle.shape.radius * std::max(circle.transform.scale.x, circle.transform.scale.y);
     float hx = box.shape.halfSize.x * box.transform.scale.x;
@@ -379,10 +379,10 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcep
         localNormal.x * cosW - localNormal.y * sinW,
         localNormal.x * sinW + localNormal.y * cosW};
 
-    ResolveColision(circle, box, worldNormal, overlap, {{0, 0}, {0, 0}});
+    resolveColision(circle, box, worldNormal, overlap, {{0, 0}, {0, 0}});
 }
 
-void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2> &rotComp) noexcept
+void sas::PhysicsWorld::resolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2> &rotComp) noexcept
 {
     math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
     float velAlongNormal = math::dotProduct(relVel, normal);
@@ -415,12 +415,12 @@ void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 norma
     contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
 }
 
-void sas::PhysicsWorld::CheckCollisionBoxCircle(Body &obj, Body &other) noexcept
+void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
 {
-    CheckCollisionCircleBox(other, obj);
+    checkCollisionCircleBox(other, obj);
 }
 
-void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
+void sas::PhysicsWorld::updateCollisionFlags() noexcept
 {
     std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
 
@@ -431,7 +431,7 @@ void sas::PhysicsWorld::UpdateCollisionFlags() noexcept
     }
 }
 
-void sas::PhysicsWorld::ApplyForces(Body &obj) const noexcept
+void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
 {
     float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
     obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
@@ -440,24 +440,24 @@ void sas::PhysicsWorld::ApplyForces(Body &obj) const noexcept
     obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
 }
 
-void sas::PhysicsWorld::Integrate(Body &obj, float dt) const noexcept
+void sas::PhysicsWorld::integrate(Body &obj, float dt) const noexcept
 {
     obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * dt;
     obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
     obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * dt;
 }
 
-void sas::PhysicsWorld::AddToCollisionPool(Body &body) noexcept
+void sas::PhysicsWorld::addToCollisionPool(Body &body) noexcept
 {
     if (!(body.flags & Flags::InCollisionPool))
     {
         body.flags |= Flags::InCollisionPool;
 
-        root.insert(body.bodyID, ComputeFatAABB(body));
+        root.insert(body.bodyID, computeFatAABB(body));
     }
 }
 
-void sas::PhysicsWorld::RemoveFromCollisionPool(Body &body) noexcept
+void sas::PhysicsWorld::removeFromCollisionPool(Body &body) noexcept
 {
     if (body.flags & Flags::InCollisionPool)
     {
@@ -467,30 +467,30 @@ void sas::PhysicsWorld::RemoveFromCollisionPool(Body &body) noexcept
     }
 }
 
-void sas::PhysicsWorld::Reset(Body &obj) const noexcept
+void sas::PhysicsWorld::reset(Body &obj) const noexcept
 {
     obj.kinematics.acceleration = {0, 0};
 }
 
 // TODO
-bool sas::PhysicsWorld::BodyExists(uint32_t id) const noexcept
+bool sas::PhysicsWorld::bodyExists(uint32_t id) const noexcept
 {
     return false;
 }
 
-bool sas::PhysicsWorld::IsBodyInCollision(uint32_t id) const noexcept
+bool sas::PhysicsWorld::isBodyInCollision(uint32_t id) const noexcept
 {
     return collisionFlags[id] != 0;
 }
 
-sas::Body &sas::PhysicsWorld::GetBody(uint32_t id) noexcept
+sas::Body &sas::PhysicsWorld::getBody(uint32_t id) noexcept
 {
     return bodies[sparse[id]];
 }
 
-std::vector<sas::CollisionInfo> sas::PhysicsWorld::GetAllCollisions(uint32_t id) noexcept
+std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id) noexcept
 {
-    if (!IsBodyInCollision(id))
+    if (!isBodyInCollision(id))
         return {};
 
     std::vector<sas::CollisionInfo> collisions;
@@ -512,19 +512,19 @@ std::vector<sas::CollisionInfo> sas::PhysicsWorld::GetAllCollisions(uint32_t id)
     return collisions;
 }
 
-void sas::PhysicsWorld::RemoveBody(const BodyHandle &handle) noexcept
+void sas::PhysicsWorld::removeBody(const BodyHandle &handle) noexcept
 {
-    RemoveBody(handle.get()->bodyID);
+    removeBody(handle.get()->bodyID);
 }
 
-void sas::PhysicsWorld::DrawDebug(const DrawCallback &cb) const noexcept
+void sas::PhysicsWorld::drawDebug(const DrawCallback &cb) const noexcept
 {
-    root.Draw(cb);
+    root.draw(cb);
 }
 
-void sas::PhysicsWorld::Clear() noexcept
+void sas::PhysicsWorld::clear() noexcept
 {
-    root.Clear();
+    root.clear();
     bodies.clear();
     bodies.clear();
     sparse.clear();

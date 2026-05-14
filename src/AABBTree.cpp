@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
+sas::AABB sas::computeFatAABB(const Body &body, float margin) noexcept
 {
     float x = body.transform.position.x;
     float y = body.transform.position.y;
@@ -39,9 +39,9 @@ sas::AABB sas::ComputeFatAABB(const Body &body, float margin) noexcept
     return {minX - margin, minY - margin, maxX + margin, maxY + margin};
 }
 
-sas::AABB sas::ComputeTightAABB(const Body &body) noexcept
+sas::AABB sas::computeTightAABB(const Body &body) noexcept
 {
-    return ComputeFatAABB(body, 0.0f);
+    return computeFatAABB(body, 0.0f);
 }
 
 bool sas::AABBOverlap(const AABB &a, const AABB &b) noexcept
@@ -57,7 +57,7 @@ sas::AABB sas::AABBUnion(const AABB &a, const AABB &b) noexcept
         std::max(a.maxX, b.maxX), std::max(a.maxY, b.maxY)};
 }
 
-float sas::GetAreaAABB(const AABB &a) noexcept
+float sas::getAreaAABB(const AABB &a) noexcept
 {
     float width = a.maxX - a.minX;
     float height = a.maxY - a.minY;
@@ -83,8 +83,8 @@ void sas::AABBTree::insert(uint32_t bodyID, const AABB &aabb) noexcept
     Node *sibling = root;
     while (!sibling->isLeaf())
     {
-        float area0 = GetAreaAABB(AABBUnion(sibling->children[0]->aabb, leaf->aabb));
-        float area1 = GetAreaAABB(AABBUnion(sibling->children[1]->aabb, leaf->aabb));
+        float area0 = getAreaAABB(AABBUnion(sibling->children[0]->aabb, leaf->aabb));
+        float area1 = getAreaAABB(AABBUnion(sibling->children[1]->aabb, leaf->aabb));
 
         if (area0 < area1)
             sibling = sibling->children[0];
@@ -121,7 +121,7 @@ void sas::AABBTree::insert(uint32_t bodyID, const AABB &aabb) noexcept
     }
 }
 
-void sas::AABBTree::Query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
+void sas::AABBTree::query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
 {
     if (!node || !AABBOverlap(node->aabb, targetAABB))
     {
@@ -134,14 +134,14 @@ void sas::AABBTree::Query(Node *node, const AABB &targetAABB, std::vector<uint32
     }
     else
     {
-        Query(node->children[0], targetAABB, results);
-        Query(node->children[1], targetAABB, results);
+        query(node->children[0], targetAABB, results);
+        query(node->children[1], targetAABB, results);
     }
 }
 
-void sas::AABBTree::Query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
+void sas::AABBTree::query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
 {
-    Query(root, targetAABB, results);
+    query(root, targetAABB, results);
 }
 
 void sas::AABBTree::remove(Node *leaf) noexcept
@@ -192,10 +192,10 @@ void sas::AABBTree::remove(uint32_t id) noexcept
     delete leaf;
 }
 
-void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
+void sas::AABBTree::updateObject(const Body &body, float margin) noexcept
 {
 
-    AABB actual = ComputeTightAABB(body);
+    AABB actual = computeTightAABB(body);
 
     Node *curNode = leafMap[body.bodyID];
     if (actual.minX < curNode->aabb.minX || actual.maxX > curNode->aabb.maxX ||
@@ -203,17 +203,17 @@ void sas::AABBTree::UpdateObject(const Body &body, float margin) noexcept
     {
 
         remove(body.bodyID);
-        insert(body.bodyID, ComputeFatAABB(body, margin));
+        insert(body.bodyID, computeFatAABB(body, margin));
     }
 }
 
-void sas::AABBTree::Clear(Node *node) noexcept
+void sas::AABBTree::clear(Node *node) noexcept
 {
     if (!node)
         return;
 
-    Clear(node->children[0]);
-    Clear(node->children[1]);
+    clear(node->children[0]);
+    clear(node->children[1]);
 
     delete node;
 }
@@ -228,7 +228,7 @@ void sas::Node::Draw(const DrawCallback &cb) const
         children[1]->Draw(cb);
 }
 
-void sas::AABBTree::Draw(const DrawCallback &cb) const
+void sas::AABBTree::draw(const DrawCallback &cb) const
 {
     if (root != nullptr)
     {
@@ -236,9 +236,9 @@ void sas::AABBTree::Draw(const DrawCallback &cb) const
     }
 }
 
-void sas::AABBTree::Clear() noexcept
+void sas::AABBTree::clear() noexcept
 {
-    Clear(root);
+    clear(root);
     root = nullptr;
     leafMap.clear();
 }

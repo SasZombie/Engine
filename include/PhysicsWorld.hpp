@@ -52,53 +52,53 @@ namespace sas
 
         // Visualizing hitboxes
         // Not Optimized
-        void DrawDebug(const DrawCallback &cb) const noexcept;
+        void drawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
-        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
 
-        void AddToCollisionPool(Body &body) noexcept;
-        void RemoveFromCollisionPool(Body &body) noexcept;
-        void Step(float dt) noexcept;
+        void addToCollisionPool(Body &body) noexcept;
+        void removeFromCollisionPool(Body &body) noexcept;
+        void step(float dt) noexcept;
 
-        [[nodiscard]] bool BodyExists(uint32_t id) const noexcept;
-        [[nodiscard]] bool IsBodyInCollision(uint32_t id) const noexcept;
-        [[nodiscard]] Body &GetBody(uint32_t id) noexcept;
-        [[nodiscard]] std::vector<CollisionInfo> GetAllCollisions(uint32_t id) noexcept;
+        [[nodiscard]] bool bodyExists(uint32_t id) const noexcept;
+        [[nodiscard]] bool isBodyInCollision(uint32_t id) const noexcept;
+        [[nodiscard]] Body &getBody(uint32_t id) noexcept;
+        [[nodiscard]] std::vector<CollisionInfo> getAllCollisions(uint32_t id) noexcept;
 
-        void RemoveBody(const BodyHandle &handle) noexcept;
-        void RemoveBody(uint32_t bodyID) noexcept;
+        void removeBody(const BodyHandle &handle) noexcept;
+        void removeBody(uint32_t bodyID) noexcept;
 
-        void Clear() noexcept;
+        void clear() noexcept;
 
         PhysicsWorld() noexcept = default;
         ~PhysicsWorld() noexcept = default;
         
     private:
-        void ApplyForces(Body &obj) const noexcept;
+        void applyForces(Body &obj) const noexcept;
 
-        void Integrate(Body &obj, float dt) const noexcept;
+        void integrate(Body &obj, float dt) const noexcept;
 
-        void CheckCollisionCircleCircle(Body &obj, Body &other) noexcept;
-        void CheckCollisionDispatcher(Body &obj) noexcept;
-        void CheckCollisionBoxBox(Body &obj, Body &other) noexcept;
-        void CheckCollisionCircleBox(Body &obj, Body &other) noexcept;
-        void CheckCollisionBoxCircle(Body &obj, Body &other) noexcept;
+        void checkCollisionCircleCircle(Body &obj, Body &other) noexcept;
+        void checkCollisionDispatcher(Body &obj) noexcept;
+        void checkCollisionBoxBox(Body &obj, Body &other) noexcept;
+        void checkCollisionCircleBox(Body &obj, Body &other) noexcept;
+        void checkCollisionBoxCircle(Body &obj, Body &other) noexcept;
 
-        void ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2>& rotComp) noexcept;
-        void UpdateCollisionFlags() noexcept;
+        void resolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2>& rotComp) noexcept;
+        void updateCollisionFlags() noexcept;
 
-        void Reset(Body &obj) const noexcept;
+        void reset(Body &obj) const noexcept;
 
-        [[nodiscard]] uint32_t GetNextId() noexcept;
+        [[nodiscard]] uint32_t getNextId() noexcept;
 
-        BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
+        BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 
         using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
         static inline const CollisionFunc DispatchTable[2][2] = {
-            {&sas::PhysicsWorld::CheckCollisionCircleCircle, &sas::PhysicsWorld::CheckCollisionCircleBox},
-            {&sas::PhysicsWorld::CheckCollisionBoxCircle,    &sas::PhysicsWorld::CheckCollisionBoxBox}
+            {&sas::PhysicsWorld::checkCollisionCircleCircle, &sas::PhysicsWorld::checkCollisionCircleBox},
+            {&sas::PhysicsWorld::checkCollisionBoxCircle,    &sas::PhysicsWorld::checkCollisionBoxBox}
         };
     };
 
@@ -116,55 +116,55 @@ namespace sas
 
         Body *operator->()
         {
-            return &world->GetBody(id);
+            return &world->getBody(id);
         }
 
         bool isValid() const noexcept
         {
-            return world->BodyExists(id);
+            return world->bodyExists(id);
         }
 
         Body *get() const
         {
-            return &world->GetBody(id);
+            return &world->getBody(id);
         }
 
-        [[nodiscard]] bool IsColliding() const noexcept
+        [[nodiscard]] bool isColliding() const noexcept
         {
-            return world->IsBodyInCollision(id);
+            return world->isBodyInCollision(id);
         }
 
-        [[nodiscard]] std::vector<CollisionInfo> GetCollisions() const noexcept
+        [[nodiscard]] std::vector<CollisionInfo> getCollisions() const noexcept
         {
-            return world->GetAllCollisions(id);
+            return world->getAllCollisions(id);
         }
 
-        void SetActive() noexcept
+        void setActive() noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
 
             if (!(b.flags & Flags::Active))
             {
                 b.flags |= Flags::Active;
 
-                SetCollisionOn();
+                setCollisionOn();
             }
         }
 
-        void SetInactive() noexcept
+        void setInactive() noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
 
             if (b.flags & Flags::Active)
             {
                 b.flags &= ~Flags::Active;
-                SetCollisionOff();
+                setCollisionOff();
             }
         }
 
-        void SetRigidBodyOn() noexcept
+        void setRigidBodyOn() noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
 
             if (!(b.flags & Flags::RigidBodyDynamic))
             {
@@ -172,9 +172,9 @@ namespace sas
             }
         }
 
-        void SetRigidBodyOff() noexcept
+        void setRigidBodyOff() noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
 
             if (!(b.flags & Flags::RigidBodyDynamic))
             {
@@ -182,36 +182,36 @@ namespace sas
             }
         }
 
-        void SetCollisionOff() noexcept
+        void setCollisionOff() noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
             b.collisionMask = 0;
-            world->RemoveFromCollisionPool(b);
+            world->removeFromCollisionPool(b);
         }
 
-        void SetCollisionOn() noexcept
+        void setCollisionOn() noexcept
         {
-            auto &b = world->GetBody(id);
-            world->AddToCollisionPool(b);
+            auto &b = world->getBody(id);
+            world->addToCollisionPool(b);
         }
 
-        void SetMask(uint32_t mask) noexcept
+        void setMask(uint32_t mask) noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
 
             b.collisionMask = (b.collisionMask & 0x0000FFFF) | (mask & 0xFFFF0000);
         }
 
-        void SetLayer(uint32_t layerBits) noexcept
+        void setLayer(uint32_t layerBits) noexcept
         {
-            auto &b = world->GetBody(id);
+            auto &b = world->getBody(id);
             b.collisionMask = (b.collisionMask & 0xFFFF0000) | (layerBits & 0x0000FFFF);
         }
 
-        void SetCollision(uint32_t layer, uint32_t mask) noexcept
+        void setCollision(uint32_t layer, uint32_t mask) noexcept
         {
-            SetMask(mask);
-            SetLayer(layer);
+            setMask(mask);
+            setLayer(layer);
         }
 
         ~BodyHandle() = default;

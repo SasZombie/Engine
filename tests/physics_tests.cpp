@@ -24,9 +24,9 @@ TEST_F(FixtureTest, CircleIsBounded)
 
     AddCircle(t4, {});
 
-    float dt = 0.1f;
+    float dt = 1.f / 60.f;
 
-    world->Step(dt);
+    world->step(dt);
 
     EXPECT_LE(world->bodies[0].transform.position.y, HEIGHT);
     EXPECT_LE(world->bodies[1].transform.position.x, WIDTH);
@@ -42,15 +42,20 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
     sas::Kinematics k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 100};
-    k.restituition = 0.5f;
+    k.restituition = 0.f;
 
-    AddCircle(t, k);
+    const auto& handle = AddCircle(t, k);
 
-    float dt = 0.1f;
-    world->Step(dt);
-
-    EXPECT_LT(world->bodies[0].kinematics.velocity.y, 0);
-    EXPECT_EQ(world->bodies[0].transform.position.y, HEIGHT - world->bodies[0].shape.radius);
+    float dt = 1.0f / 60.0f;
+    
+    for (int i = 0; i < 30; ++i) 
+    {
+        world->step(dt);
+    }
+    float expectedY = HEIGHT - handle.get()->shape.radius; 
+    
+    EXPECT_NEAR(handle.get()->transform.position.y, expectedY, 1.f);
+    EXPECT_NEAR(world->bodies[0].kinematics.velocity.y, 0.0f, 1.0f);
 }
 
 TEST_F(FixtureTest, CircleBouncesOnFloor)
@@ -64,16 +69,16 @@ TEST_F(FixtureTest, CircleBouncesOnFloor)
     k.velocity = {0, 100};
     k.restituition = 0.5f;
 
-    AddCircle(t, k);
+    const auto& body = AddCircle(t, k);
 
-    float dt = 0.1f;
-    world->Step(dt);
+    float dt = 1.f / 60.f;
+    world->step(dt);
 
-    EXPECT_LT(world->bodies[0].kinematics.velocity.y, 0);
+    EXPECT_LT(body.get()->kinematics.velocity.y, 0);
 
-    world->Step(dt);
+    world->step(dt);
 
-    EXPECT_LE(world->bodies[0].transform.position.y, HEIGHT - world->bodies[0].shape.radius);
+    EXPECT_LE(body.get()->transform.position.y, HEIGHT - body.get()->shape.radius);
 }
 
 TEST_F(FixtureTest, EnergyLossOnHighDrop)
@@ -86,17 +91,17 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
     k.velocity = {0, 0};
     k.restituition = 0.5f;
 
-    AddCircle(t, k);
+    const auto& body = AddCircle(t, k);
 
-    float dt = 0.01f;
+    float dt = 1.f / 60.f;
     bool hasBounced = false;
     float peakHeightAfterBounce = 450.0f;
 
     for (int i = 0; i < 200; ++i)
     {
-        float lastVelY = world->bodies[0].kinematics.velocity.y;
-        world->Step(dt);
-        float currentVelY = world->bodies[0].kinematics.velocity.y;
+        float lastVelY = body.get()->kinematics.velocity.y;
+        world->step(dt);
+        float currentVelY = body.get()->kinematics.velocity.y;
 
         if (lastVelY > 0 && currentVelY < 0)
         {
@@ -105,7 +110,7 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
 
         if (hasBounced && currentVelY <= 0)
         {
-            peakHeightAfterBounce = std::min(peakHeightAfterBounce, world->bodies[0].transform.position.y);
+            peakHeightAfterBounce = std::min(peakHeightAfterBounce, body.get()->transform.position.y);
         }
     }
 
@@ -125,11 +130,11 @@ TEST_F(FixtureTest, CircleBouncesOnWall)
 
     AddCircle(t, k);
 
-    float dt = 0.01f;
+    float dt = 1.f / 60.f;
     float currentVelX;
     for (int i = 0; i < 200; ++i)
     {
-        world->Step(dt);
+        world->step(dt);
         currentVelX = world->bodies[0].kinematics.velocity.x;
     }
 
@@ -148,10 +153,10 @@ TEST_F(FixtureTest, CircleIsInnelastic)
 
     AddCircle(t, k);
 
-    float dt = 0.01f;
+    float dt = 1.f / 60.f;
     for (int i = 0; i < 20; ++i)
     {
-        world->Step(dt);
+        world->step(dt);
     }
 
     EXPECT_EQ(world->bodies[0].kinematics.velocity.x, 0);
@@ -172,15 +177,15 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
     k.velocity = {400.f, 0};
     k.restituition = 1.0f;
 
-    AddCircle(t, k);
+    const auto& body = AddCircle(t, k);
 
-    float dt = 0.01f;
+    float dt = 1.f / 60.f;
     for (int i = 0; i < 10; ++i)
     {
-        world->Step(dt);
+        world->step(dt);
     }
 
-    EXPECT_NEAR(std::abs(world->bodies[0].kinematics.velocity.x), 400, 50);
+    EXPECT_NEAR(std::abs(body.get()->kinematics.velocity.x), 400, 50);
 
 }
 
@@ -201,9 +206,9 @@ TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
     AddCircle(t, k);
     AddCircle(t, k);
 
-    world->Step(0.1f);
+    world->step(0.1f);
 
-    world->Clear();
+    world->clear();
 
     AddCircle(t, k);
     AddCircle(t, k);
@@ -212,7 +217,7 @@ TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
     AddCircle(t, k);
     AddCircle(t, k);
 
-    world->Step(0.1f);
+    world->step(0.1f);
 
     EXPECT_NO_FATAL_FAILURE();
 

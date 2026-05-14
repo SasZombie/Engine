@@ -18,14 +18,14 @@ TEST_F(FixtureTest, CircleCollide)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
     ASSERT_EQ(world->contacts.size(), 1);
-    EXPECT_TRUE(bh1.IsColliding());
-    EXPECT_TRUE(bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding());
+    EXPECT_TRUE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, CircleDontCollide)
@@ -45,12 +45,12 @@ TEST_F(FixtureTest, CircleDontCollide)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
-    world->Step(0.01f);
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding());
-    EXPECT_FALSE(bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding());
+    EXPECT_FALSE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, CircleCollideAfterMoving)
@@ -67,17 +67,20 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
 
+    k1.inverseMass = 0.2f;
+    k2.inverseMass = 0.2f;
+
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.016f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
             break;
@@ -105,15 +108,15 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(1.f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -139,15 +142,15 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollisionOff();
-    bh2.SetCollisionOff();
+    bh1.setCollisionOff();
+    bh2.setCollisionOff();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.1f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -173,12 +176,12 @@ TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
 TEST_F(FixtureTest, CircleLayerTwoCollides)
@@ -198,12 +201,12 @@ TEST_F(FixtureTest, CircleLayerTwoCollides)
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_TRUE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledCircleCollide)
@@ -226,14 +229,14 @@ TEST_F(FixtureTest, ScaledCircleCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
     ASSERT_EQ(world->contacts.size(), 1);
-    EXPECT_TRUE(bh1.IsColliding());
-    EXPECT_TRUE(bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding());
+    EXPECT_TRUE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledCircleDontCollide)
@@ -256,12 +259,12 @@ TEST_F(FixtureTest, ScaledCircleDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
-    world->Step(0.01f);
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding());
-    EXPECT_FALSE(bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding());
+    EXPECT_FALSE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
@@ -278,20 +281,23 @@ TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
 
+    k1.inverseMass = 0.2f;
+    k2.inverseMass = 0.2f;
+
     sas::BodyHandle bh1 = AddCircle(t1, k1);
     sas::BodyHandle bh2 = AddCircle(t2, k2);
 
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.016f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
             break;
@@ -322,15 +328,15 @@ TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(1.f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -359,15 +365,15 @@ TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOff();
-    bh2.SetCollisionOff();
+    bh1.setCollisionOff();
+    bh2.setCollisionOff();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.1f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -396,12 +402,12 @@ TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledCircleLayerTwoCollides)
@@ -424,10 +430,10 @@ TEST_F(FixtureTest, ScaledCircleLayerTwoCollides)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_TRUE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
 }

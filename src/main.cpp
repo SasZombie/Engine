@@ -8,8 +8,6 @@ extern "C" const char *__lsan_default_suppressions();
 
 struct Entity
 {
-    sas::Transform bodyTransform;
-
     sas::BodyHandle bodyHandle;
 
     Color c;
@@ -38,20 +36,20 @@ int main()
     t.rotation = rot;
 
     sas::Kinematics k;
-    k.inverseMass = 0.f;
+    k.inverseMass = 0.2f;
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(200, 16), t, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle firstBH = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     t.position = {300, 180};
     t.rotation = 0;
 
-    sas::BodyHandle seccondBh = world.CreateBody(sas::Shape::MakeBox(200, 16), t, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle seccondBh = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
 
-    Entity firstEntity{{}, firstBH, MAROON, sas::ShapeType::Box};
-    Entity seccondEntity{{}, seccondBh, MAROON, sas::ShapeType::Box};
+    Entity firstEntity{firstBH, MAROON, sas::ShapeType::Box};
+    Entity seccondEntity{seccondBh, MAROON, sas::ShapeType::Box};
 
     entities.push_back(firstEntity);
     entities.push_back(seccondEntity);
@@ -74,15 +72,15 @@ int main()
     sas::Kinematics bouncyKinematics;
     bouncyKinematics.restituition = 1.f;
 
-    sas::BodyHandle topWall     = world.CreateBody(sas::Shape::MakeBox(SCREEN_WIDTH, 3), sas::Transform{{SCREEN_WIDTH/2, 0}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle bottomWall  = world.CreateBody(sas::Shape::MakeBox(SCREEN_WIDTH, 3), sas::Transform{{SCREEN_WIDTH/2, SCREEN_HEIGHT}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle leftWall    = world.CreateBody(sas::Shape::MakeBox(3, SCREEN_HEIGHT), sas::Transform{{0, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle rightWall   = world.CreateBody(sas::Shape::MakeBox(3, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle topWall     = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH/2, 0}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle bottomWall  = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH/2, SCREEN_HEIGHT - 1}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle leftWall    = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{1, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle rightWall   = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
     
-    entities.push_back({{}, topWall,    WHITE, sas::ShapeType::Box});
-    entities.push_back({{}, bottomWall, WHITE, sas::ShapeType::Box});
-    entities.push_back({{}, rightWall,  WHITE, sas::ShapeType::Box});
-    entities.push_back({{}, leftWall,   WHITE, sas::ShapeType::Box});
+    entities.push_back({ topWall,    WHITE, sas::ShapeType::Box});
+    entities.push_back({ bottomWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({ rightWall,  WHITE, sas::ShapeType::Box});
+    entities.push_back({ leftWall,   WHITE, sas::ShapeType::Box});
 
     while (!WindowShouldClose())
     {
@@ -103,13 +101,13 @@ int main()
                 t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};
 
-                sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1);
+                sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1);
 
-                Entity temp{{}, bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
+                Entity temp{ bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
 
                 if (collision)
                 {
-                    temp.bodyHandle.SetCollisionOff();
+                    temp.bodyHandle.setCollisionOff();
                 }
                 entities.push_back(temp);
                 currentBody = &entities.back();
@@ -145,7 +143,7 @@ int main()
                 }
             }
 
-            world.RemoveBody(entities[ind].bodyHandle->bodyID);
+            world.removeBody(entities[ind].bodyHandle->bodyID);
             
             entities[ind] = entities.back();
             entities.pop_back();
@@ -170,7 +168,7 @@ int main()
         }
         if (IsKeyPressed(KEY_R))
         {
-            world.Clear();
+            world.clear();
             entities.clear();
         }
 
@@ -213,21 +211,21 @@ int main()
 
         if (IsKeyPressed(KEY_DELETE))
         {
-            if (!entities.empty())
+            if (entities.size() > 6)
             {
-                world.RemoveBody(entities.back().bodyHandle);
+                world.removeBody(entities.back().bodyHandle);
                 entities.pop_back();
             }
         }
 
-        world.Step(dt);
+        world.step(dt);
 
         BeginDrawing();
         ClearBackground(BLACK);
 
         if (drawHitbox)
         {
-            world.DrawDebug(lambda);
+            world.drawDebug(lambda);
         }
 
         for (auto &entity : entities)

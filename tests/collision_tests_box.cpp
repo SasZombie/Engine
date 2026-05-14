@@ -18,14 +18,14 @@ TEST_F(FixtureTest, BoxCollide)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
     
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
+    EXPECT_TRUE(bh1.isColliding());
+    EXPECT_TRUE(bh2.isColliding());
     ASSERT_EQ(world->contacts.size(), 1);
-    EXPECT_TRUE(bh1.IsColliding());
-    EXPECT_TRUE(bh2.IsColliding());
 }
 
 TEST_F(FixtureTest, BoxDontCollide)
@@ -45,12 +45,12 @@ TEST_F(FixtureTest, BoxDontCollide)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
-    world->Step(0.01f);
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding());
-    EXPECT_FALSE(bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding());
+    EXPECT_FALSE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, BoxCollideAfterMoving)
@@ -63,21 +63,24 @@ TEST_F(FixtureTest, BoxCollideAfterMoving)
 
     sas::Kinematics k1;
     k1.velocity = {100, 0};
+    k1.inverseMass = 0.2f;
 
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
+    k2.inverseMass = 0.2f;
+
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
     for(int i = 0; i < 1500; ++i)
     {
-        world->Step(0.016f);
-        if(bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if(bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
             break;
@@ -106,15 +109,15 @@ TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
 
     for(int i = 0; i < 1500; ++i)
     {
-        world->Step(1.f);
-        if(bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if(bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -141,15 +144,15 @@ TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollisionOff();
-    bh2.SetCollisionOff();
+    bh1.setCollisionOff();
+    bh2.setCollisionOff();
 
     bool bothColide = false;
 
     for(int i = 0; i < 1500; ++i)
     {
-        world->Step(0.1f);
-        if(bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if(bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -175,12 +178,12 @@ TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
 TEST_F(FixtureTest, LayerTwoCollidesBoxes)
@@ -200,12 +203,12 @@ TEST_F(FixtureTest, LayerTwoCollidesBoxes)
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_TRUE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
 }
 
 
@@ -229,14 +232,14 @@ TEST_F(FixtureTest, ScaledBoxCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
     ASSERT_EQ(world->contacts.size(), 1);
-    EXPECT_TRUE(bh1.IsColliding());
-    EXPECT_TRUE(bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding());
+    EXPECT_TRUE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledBoxDontCollide)
@@ -259,12 +262,12 @@ TEST_F(FixtureTest, ScaledBoxDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
-    world->Step(0.01f);
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding());
-    EXPECT_FALSE(bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding());
+    EXPECT_FALSE(bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
@@ -277,9 +280,11 @@ TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
 
     sas::Kinematics k1;
     k1.velocity = {100, 0};
+    k1.inverseMass = 0.2f;
 
     sas::Kinematics k2;
     k2.velocity = {-100, 0};
+    k2.inverseMass = 0.2f;
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
@@ -287,14 +292,14 @@ TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.016f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
             break;
@@ -325,15 +330,15 @@ TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOn();
-    bh2.SetCollisionOn();
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(1.f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -362,15 +367,15 @@ TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollisionOff();
-    bh2.SetCollisionOff();
+    bh1.setCollisionOff();
+    bh2.setCollisionOff();
 
     bool bothColide = false;
 
     for (int i = 0; i < 1500; ++i)
     {
-        world->Step(0.1f);
-        if (bh1.IsColliding() && bh2.IsColliding())
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
         {
             bothColide = true;
         }
@@ -399,12 +404,12 @@ TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_FALSE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
 TEST_F(FixtureTest, ScaledBoxLayerTwoCollides)
@@ -427,10 +432,10 @@ TEST_F(FixtureTest, ScaledBoxLayerTwoCollides)
     bh1->transform.scale = {2, 2};
     bh2->transform.scale = {2, 2};
 
-    bh1.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.SetCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
 
-    world->Step(0.01f);
+    world->step(1.f / 60.f);
 
-    EXPECT_TRUE(bh1.IsColliding() && bh2.IsColliding());
+    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
 }
