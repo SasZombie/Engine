@@ -5,11 +5,6 @@
 #include <utility>
 #include <algorithm>
 
-sas::PhysicsWorld::PhysicsWorld(Rectangle dims) noexcept
-    : boundaries(dims)
-{
-}
-
 sas::BodyHandle sas::PhysicsWorld::CreateBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
     return CreateBodyFull(shape, trans, {}, options);
@@ -38,7 +33,7 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
 
-    uint32_t mask = Flags::RigidBody | Flags::Static;
+    uint32_t mask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic;
 
     if ((options & Flags::Active) && (options & mask))
     {
@@ -48,11 +43,28 @@ sas::BodyHandle sas::PhysicsWorld::CreateBodyFull(Shape shape, const Transform &
         AddToCollisionPool(newBody);
     }
 
-    if (shape.type == ShapeType::Box)
+    if (!(options & Flags::BodyFlags::RigidBodyStatic))
     {
-        float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
-        newBody.kinematics.inertia = (1.0f / 12.0f) * mass * (2 * shape.halfSize.x * shape.halfSize.x + 2 * shape.halfSize.y * shape.halfSize.y);
-        newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
+        if (shape.type == ShapeType::Box)
+        {
+            float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
+
+            float hx = shape.halfSize.x * trans.scale.x;
+            float hy = shape.halfSize.y * trans.scale.y;
+
+            newBody.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
+
+            newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
+        }
+        else if (shape.type == ShapeType::Circle)
+        {
+            float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
+
+            float r = shape.radius * trans.scale.x;
+            newBody.kinematics.inertia = 0.5f * mass * (r * r);
+
+            newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
+        }
     }
 
     bodies.push_back(newBody);
@@ -116,13 +128,12 @@ void sas::PhysicsWorld::Step(float dt) noexcept
     {
         Body &obj = bodies[sparse[id]];
 
-        bool isRigid = obj.flags & Flags::RigidBody;
+        bool isRigid = obj.flags & Flags::RigidBodyDynamic;
 
         if (isRigid && (obj.kinematics.inverseMass > 0.f))
         {
             ApplyForces(obj);
             Integrate(obj, dt);
-            ResolveConstraints(obj, dt);
             Reset(obj);
         }
 
@@ -152,7 +163,7 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
 {
     // Forcing static objects to to have 0 vel
     // And 0 inverse mass otherwise
-    if (obj.flags & Flags::Static)
+    if (obj.flags & Flags::RigidBodyStatic)
     {
         obj.kinematics.velocity = {0, 0};
         obj.kinematics.inverseMass = 0;
@@ -167,7 +178,7 @@ void sas::PhysicsWorld::CheckCollisionDispatcher(Body &obj) noexcept
     {
         auto &other = bodies[sparse[otherID]];
 
-        bool otherIsStatic = (other.flags & Flags::Static);
+        bool otherIsStatic = (other.flags & Flags::RigidBodyStatic);
 
         if (!otherIsStatic && obj.bodyID >= otherID)
             continue;
@@ -371,7 +382,7 @@ void sas::PhysicsWorld::CheckCollisionCircleBox(Body &circle, Body &box) noexcep
     ResolveColision(circle, box, worldNormal, overlap, {{0, 0}, {0, 0}});
 }
 
-void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2>& rotComp) noexcept
+void sas::PhysicsWorld::ResolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2> &rotComp) noexcept
 {
     math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
     float velAlongNormal = math::dotProduct(relVel, normal);
@@ -434,116 +445,6 @@ void sas::PhysicsWorld::Integrate(Body &obj, float dt) const noexcept
     obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * dt;
     obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
     obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * dt;
-}
-
-void sas::PhysicsWorld::ResolveConstraints(Body &obj, float dt) const noexcept
-{
-    float groundLevel = boundaries.Height - obj.shape.radius * obj.transform.scale.x;
-
-    ResolveBroadGround(obj, groundLevel);
-    ResolveBroadCeil(obj, boundaries.y + obj.shape.radius * obj.transform.scale.x);
-
-    float wall = boundaries.Width - obj.shape.radius * obj.transform.scale.x;
-    ResolveBroadHigher(obj, wall);
-    ResolveBroadLower(obj, boundaries.x + obj.shape.radius * obj.transform.scale.x);
-}
-
-void sas::PhysicsWorld::ResolveBroadGround(Body &obj, float wall) const noexcept
-{
-    if (obj.transform.position.y >= wall)
-    {
-        obj.transform.position.y = wall;
-        if (obj.kinematics.velocity.y > 0)
-        {
-            obj.kinematics.velocity.y *= -obj.kinematics.restituition;
-        }
-
-        if (std::abs(obj.kinematics.velocity.x) > 0)
-        {
-            obj.kinematics.velocity.x *= settings.groundFriction;
-            if (std::abs(obj.kinematics.velocity.x) < 2.f)
-            {
-                obj.kinematics.velocity.x = 0;
-            }
-        }
-
-        // jittering
-        if (std::abs(obj.kinematics.velocity.y) < 0.1f)
-        {
-            obj.kinematics.velocity.y = 0;
-        }
-    }
-}
-
-void sas::PhysicsWorld::ResolveBroadCeil(Body &obj, float wall) const noexcept
-{
-    if (obj.transform.position.y <= wall)
-    {
-        obj.transform.position.y = wall;
-        if (obj.kinematics.velocity.y < 0)
-        {
-            obj.kinematics.velocity.y *= -obj.kinematics.restituition;
-        }
-
-        if (std::abs(obj.kinematics.velocity.x) > 0)
-        {
-            obj.kinematics.velocity.x *= settings.groundFriction;
-            if (std::abs(obj.kinematics.velocity.x) < 2.f)
-            {
-                obj.kinematics.velocity.x = 0;
-            }
-        }
-
-        // jittering
-        if (std::abs(obj.kinematics.velocity.y) < 0.1f)
-        {
-            obj.kinematics.velocity.y = 0;
-        }
-    }
-}
-
-void sas::PhysicsWorld::ResolveBroadLower(Body &obj, float wall) const noexcept
-{
-    if (obj.transform.position.x <= wall)
-    {
-        obj.transform.position.x = wall;
-        if (obj.kinematics.velocity.x < 0)
-        {
-            obj.kinematics.velocity.x *= -obj.kinematics.restituition;
-        }
-
-        if (std::abs(obj.kinematics.velocity.y) > 0.1f)
-        {
-            obj.kinematics.velocity.y *= settings.wallFriction;
-        }
-        // jittering
-        if (std::abs(obj.kinematics.velocity.x) < 0.1f)
-        {
-            obj.kinematics.velocity.x = 0;
-        }
-    }
-}
-
-void sas::PhysicsWorld::ResolveBroadHigher(Body &obj, float wall) const noexcept
-{
-    if (obj.transform.position.x >= wall)
-    {
-        obj.transform.position.x = wall;
-
-        if (obj.kinematics.velocity.x > 0)
-        {
-            obj.kinematics.velocity.x *= -obj.kinematics.restituition;
-        }
-        if (std::abs(obj.kinematics.velocity.y) > 0.1f)
-        {
-            obj.kinematics.velocity.y *= settings.wallFriction;
-        }
-        // jittering
-        if (std::abs(obj.kinematics.velocity.x) < 0.1f)
-        {
-            obj.kinematics.velocity.x = 0;
-        }
-    }
 }
 
 void sas::PhysicsWorld::AddToCollisionPool(Body &body) noexcept

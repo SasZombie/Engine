@@ -14,8 +14,8 @@ namespace sas
         {
             None = 0,
             Active = 1 << 0,
-            Static = 1 << 1,
-            RigidBody = 1 << 2,
+            RigidBodyStatic = 1 << 1,
+            RigidBodyDynamic = 1 << 2,
             InCollisionPool = 1 << 3,
             // Trigger     = 1 << 3
         };
@@ -61,7 +61,7 @@ namespace sas
 
         static Shape MakeBox(float x, float y)
         {
-            return {.type = ShapeType::Box, .halfSize = {x, y}};
+            return {.type = ShapeType::Box, .halfSize = {x / 2, y / 2}};
         }
     };
 

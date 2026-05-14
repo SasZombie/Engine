@@ -7,7 +7,7 @@ protected:
     void SetUp() override
     {
         // Pointer so it resets each test
-        world = std::make_unique<sas::PhysicsWorld>(sas::Rectangle{0, 0, 800, 450});
+        world = std::make_unique<sas::PhysicsWorld>();
         world->settings.gravity = 500.0f;
     }
 

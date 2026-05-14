@@ -34,7 +34,6 @@ namespace sas
         uint32_t idCounter = 0;
 
     private:
-        Rectangle boundaries;
         AABBTree root;
 
     public:
@@ -55,8 +54,8 @@ namespace sas
         // Not Optimized
         void DrawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
-        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBody) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle CreateBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
 
         void AddToCollisionPool(Body &body) noexcept;
@@ -73,7 +72,7 @@ namespace sas
 
         void Clear() noexcept;
 
-        PhysicsWorld(Rectangle dims) noexcept;
+        PhysicsWorld() noexcept = default;
         ~PhysicsWorld() noexcept = default;
         
     private:
@@ -81,7 +80,6 @@ namespace sas
 
         void Integrate(Body &obj, float dt) const noexcept;
 
-        void ResolveConstraints(Body &obj, float dt) const noexcept;
         void CheckCollisionCircleCircle(Body &obj, Body &other) noexcept;
         void CheckCollisionDispatcher(Body &obj) noexcept;
         void CheckCollisionBoxBox(Body &obj, Body &other) noexcept;
@@ -96,12 +94,6 @@ namespace sas
         [[nodiscard]] uint32_t GetNextId() noexcept;
 
         BodyHandle CreateBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
-
-        void ResolveBroadLower(Body &obj, float wall) const noexcept;
-        void ResolveBroadHigher(Body &obj, float wall) const noexcept;
-
-        void ResolveBroadCeil(Body &obj, float wall) const noexcept;
-        void ResolveBroadGround(Body &obj, float wall) const noexcept;
 
         using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
         static inline const CollisionFunc DispatchTable[2][2] = {
@@ -174,9 +166,9 @@ namespace sas
         {
             auto &b = world->GetBody(id);
 
-            if (!(b.flags & Flags::RigidBody))
+            if (!(b.flags & Flags::RigidBodyDynamic))
             {
-                b.flags |= Flags::RigidBody;
+                b.flags |= Flags::RigidBodyDynamic;
             }
         }
 
@@ -184,9 +176,9 @@ namespace sas
         {
             auto &b = world->GetBody(id);
 
-            if (!(b.flags & Flags::RigidBody))
+            if (!(b.flags & Flags::RigidBodyDynamic))
             {
-                b.flags |= Flags::RigidBody;
+                b.flags |= Flags::RigidBodyDynamic;
             }
         }
 

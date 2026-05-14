@@ -25,7 +25,7 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
 
-    sas::PhysicsWorld world({0, 0, SCREEN_WIDTH, SCREEN_HEIGHT});
+    sas::PhysicsWorld world;
     sas::PhysicsSettings &settings = world.settings;
     Entity *currentBody = nullptr;
 
@@ -42,12 +42,12 @@ int main()
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
+    sas::BodyHandle firstBH = world.CreateBody(sas::Shape::MakeBox(200, 16), t, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     t.position = {300, 180};
     t.rotation = 0;
 
-    sas::BodyHandle seccondBh = world.CreateBody(sas::Shape::MakeBox(100, 8), t, sas::Flags::Active | sas::Flags::Static);
+    sas::BodyHandle seccondBh = world.CreateBody(sas::Shape::MakeBox(200, 16), t, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
 
     Entity firstEntity{{}, firstBH, MAROON, sas::ShapeType::Box};
@@ -71,6 +71,19 @@ int main()
 
     sas::ShapeType st;
 
+    sas::Kinematics bouncyKinematics;
+    bouncyKinematics.restituition = 1.f;
+
+    sas::BodyHandle topWall     = world.CreateBody(sas::Shape::MakeBox(SCREEN_WIDTH, 3), sas::Transform{{SCREEN_WIDTH/2, 0}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle bottomWall  = world.CreateBody(sas::Shape::MakeBox(SCREEN_WIDTH, 3), sas::Transform{{SCREEN_WIDTH/2, SCREEN_HEIGHT}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle leftWall    = world.CreateBody(sas::Shape::MakeBox(3, SCREEN_HEIGHT), sas::Transform{{0, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle rightWall   = world.CreateBody(sas::Shape::MakeBox(3, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    
+    entities.push_back({{}, topWall,    WHITE, sas::ShapeType::Box});
+    entities.push_back({{}, bottomWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({{}, rightWall,  WHITE, sas::ShapeType::Box});
+    entities.push_back({{}, leftWall,   WHITE, sas::ShapeType::Box});
+
     while (!WindowShouldClose())
     {
         dt = GetFrameTime();
@@ -90,7 +103,7 @@ int main()
                 t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};
 
-                sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(25, 25), t1);
+                sas::BodyHandle bh = world.CreateBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1);
 
                 Entity temp{{}, bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
 
