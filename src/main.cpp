@@ -47,7 +47,6 @@ int main()
 
     sas::BodyHandle seccondBh = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
-
     Entity firstEntity{firstBH, MAROON, sas::ShapeType::Box};
     Entity seccondEntity{seccondBh, MAROON, sas::ShapeType::Box};
 
@@ -65,7 +64,7 @@ int main()
     float dt = 0;
     bool drawHitbox = false;
     bool collision = false;
-    bool shapeType = true;
+    bool shapeType = false;
 
     sas::ShapeType st;
 

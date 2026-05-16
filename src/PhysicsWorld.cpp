@@ -121,8 +121,10 @@ uint32_t sas::PhysicsWorld::getNextId() noexcept
     return idCounter++;
 }
 
+// MARK: Step
 void sas::PhysicsWorld::step(float dt) noexcept
 {
+    deltaTime = dt;
     contacts.clear();
     for (uint32_t id : activeIDs)
     {
@@ -130,15 +132,23 @@ void sas::PhysicsWorld::step(float dt) noexcept
 
         bool isRigid = obj.flags & Flags::RigidBodyDynamic;
 
-        if (isRigid && (obj.kinematics.inverseMass > 0.f))
+        if (isRigid && (obj.kinematics.inverseMass > 0))
         {
             applyForces(obj);
-            integrate(obj, dt);
-            reset(obj);
         }
+    }
+
+    for (uint32_t id : activeIDs)
+    {
+        integrateVelocity(bodies[sparse[id]]);
+    }
+
+    for (uint32_t id : activeIDs)
+    {
+        Body &obj = bodies[sparse[id]];
 
         const float velocityLength = obj.kinematics.velocity.length();
-
+        // 3 frames prediction
         const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
 
         if (obj.flags & Flags::InCollisionPool)
@@ -154,10 +164,36 @@ void sas::PhysicsWorld::step(float dt) noexcept
         checkCollisionDispatcher(obj);
     }
 
+    constexpr size_t solverIterations = 10;
+    for (size_t i = 0; i < solverIterations; ++i)
+    {
+        for (auto &contact : contacts)
+        {
+            resolveCollision(contact);
+        }
+    }
+
+    for (uint32_t id : activeIDs)
+    {
+        integratePosition(bodies[sparse[id]]);
+    }
+
+    constexpr size_t positionIterations = 3;
+    for(size_t i = 0; i < positionIterations; ++i)
+    {
+        for (auto &c : contacts)
+        {
+            correctPosition(c);
+        }
+    }
+
+    for (uint32_t id : activeIDs)
+    {
+        reset(bodies[sparse[id]]);
+    }
+
     updateCollisionFlags();
 }
-// TODO:This sounds interesting
-// matrix[shapeA.type][shapeB.type](shapeA, shapeB)
 
 void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
 {
@@ -165,8 +201,7 @@ void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
     // And 0 inverse mass otherwise
     if (obj.flags & Flags::RigidBodyStatic)
     {
-        obj.kinematics.velocity = {0, 0};
-        obj.kinematics.inverseMass = 0;
+        obj.kinematics.reset();
         return;
     }
 
@@ -194,7 +229,6 @@ void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
 
         // This will crash if obj.shape.type is greater than the types
         // So if the user somehow updates the shape type with some random value
-        // GG
         (this->*DispatchTable[static_cast<int>(obj.shape.type)][static_cast<int>(other.shape.type)])(obj, other);
     }
 }
@@ -217,7 +251,7 @@ void sas::PhysicsWorld::checkCollisionCircleCircle(Body &obj, Body &other) noexc
 
     float overlap = combinedRad - distance;
 
-    resolveColision(obj, other, normal, overlap, {{0, 0}, {0, 0}});
+    contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
 }
 
 struct BoxCorners
@@ -319,7 +353,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     math::Vec2 rA = contactPoint - obj.transform.position;
     math::Vec2 rB = contactPoint - other.transform.position;
 
-    resolveColision(obj, other, mtvAxis, minOverlap, {rA, rB});
+    contacts.emplace_back(obj.bodyID, other.bodyID, mtvAxis, minOverlap);
 }
 void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcept
 {
@@ -379,21 +413,17 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
         localNormal.x * cosW - localNormal.y * sinW,
         localNormal.x * sinW + localNormal.y * cosW};
 
-    resolveColision(circle, box, worldNormal, overlap, {{0, 0}, {0, 0}});
+    contacts.emplace_back(circle.bodyID, box.bodyID, worldNormal, overlap);
 }
 
-void sas::PhysicsWorld::resolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2> &rotComp) noexcept
+void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
 {
-    math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
-    float velAlongNormal = math::dotProduct(relVel, normal);
-    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+    Body &obj = bodies[sparse[contact.bodyA]];
+    Body &other = bodies[sparse[contact.bodyB]];
 
-    if (totalInvMass > 0.0f)
-    {
-        math::Vec2 correction = normal * (overlap / totalInvMass) * 0.5f;
-        obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
-        other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
-    }
+    math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
+    float velAlongNormal = math::dotProduct(relVel, contact.normal);
+    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
 
     if (velAlongNormal < 0)
     {
@@ -401,18 +431,37 @@ void sas::PhysicsWorld::resolveColision(Body &obj, Body &other, math::Vec2 norma
         float j = -(1.0f + e) * velAlongNormal;
         j /= totalInvMass;
 
-        math::Vec2 impulse = normal * j;
+        math::Vec2 impulse = contact.normal * j;
         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
 
-        math::Vec2 r = {1, 2};
+        // math::Vec2 r = {1, 2};
 
-        float crossN = r * normal;
+        // float crossN = r * normal;
 
-        obj.kinematics.angularVelocity += crossN * (j * obj.kinematics.inverseMass);
+        // obj.kinematics.angularVelocity += crossN * (j * obj.kinematics.inverseMass);
     }
+}
 
-    contacts.emplace_back(obj.bodyID, other.bodyID, normal, overlap);
+void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
+{
+    Body &obj = bodies[sparse[contact.bodyA]];
+    Body &other = bodies[sparse[contact.bodyB]];
+
+    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+
+    if (totalInvMass <= 0.0f) return;
+
+
+    const float percent = 0.8f;
+    const float slop = 0.01f;  
+
+    float penetration = std::max(contact.overlap - slop, 0.0f);
+    
+    math::Vec2 correction = contact.normal * (penetration / totalInvMass) * percent;
+
+    obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
+    other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
 }
 
 void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
@@ -440,12 +489,17 @@ void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
     obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
 }
 
-void sas::PhysicsWorld::integrate(Body &obj, float dt) const noexcept
+void sas::PhysicsWorld::integrateVelocity(Body &obj) const noexcept
 {
-    obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * dt;
-    obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
-    obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * dt;
+    obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * deltaTime;
 }
+
+void sas::PhysicsWorld::integratePosition(Body &obj) const noexcept
+{
+    obj.transform.position = obj.transform.position + obj.kinematics.velocity * deltaTime;
+    obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * deltaTime;
+}
+
 
 void sas::PhysicsWorld::addToCollisionPool(Body &body) noexcept
 {
@@ -501,11 +555,11 @@ std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id)
     {
         if (contact.bodyA == id)
         {
-            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.depth);
+            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.overlap);
         }
         else if (contact.bodyB == id)
         {
-            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.depth);
+            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.overlap);
         }
     }
 

@@ -15,14 +15,21 @@ namespace sas
         float wallFriction = 0.98f;
     };
 
+    struct ContactPoint
+    {
+        math::Vec2 position;
+        float depth;
+    };
+
     struct Contact
     {
         uint32_t bodyA;
         uint32_t bodyB;
 
         math::Vec2 normal;
-
-        float depth;
+        ContactPoint points[2];
+        uint32_t pointCount = 0;
+        float overlap;
     };
 
     struct BodyHandle;
@@ -34,6 +41,7 @@ namespace sas
         uint32_t idCounter = 0;
 
     private:
+        float deltaTime;
         AABBTree root;
 
     public:
@@ -78,7 +86,8 @@ namespace sas
     private:
         void applyForces(Body &obj) const noexcept;
 
-        void integrate(Body &obj, float dt) const noexcept;
+        void integrateVelocity(Body &obj) const noexcept;
+        void integratePosition(Body &obj) const noexcept;
 
         void checkCollisionCircleCircle(Body &obj, Body &other) noexcept;
         void checkCollisionDispatcher(Body &obj) noexcept;
@@ -86,7 +95,8 @@ namespace sas
         void checkCollisionCircleBox(Body &obj, Body &other) noexcept;
         void checkCollisionBoxCircle(Body &obj, Body &other) noexcept;
 
-        void resolveColision(Body &obj, Body &other, math::Vec2 normal, float overlap, const std::pair<math::Vec2, math::Vec2>& rotComp) noexcept;
+        void resolveCollision(Contact& contact) noexcept;
+        void correctPosition(Contact& contact) noexcept;
         void updateCollisionFlags() noexcept;
 
         void reset(Body &obj) const noexcept;
