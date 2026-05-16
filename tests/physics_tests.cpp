@@ -47,6 +47,11 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
     const auto& handle = AddCircle(t, k);
 
     float dt = 1.0f / 60.0f;
+
+    walls[0]->kinematics.restituition = 0;
+    walls[1]->kinematics.restituition = 0;
+    walls[2]->kinematics.restituition = 0;
+    walls[3]->kinematics.restituition = 0;
     
     for (int i = 0; i < 30; ++i) 
     {

@@ -25,7 +25,7 @@ int main()
 
     sas::PhysicsWorld world;
     sas::PhysicsSettings &settings = world.settings;
-    settings.dragCoeff = 0.97f;
+    settings.dragCoeff = 0.47f;
     Entity *currentBody = nullptr;
 
     std::vector<Entity> entities;
@@ -102,8 +102,8 @@ int main()
                 t1.scale = sas::math::Vec2{1.f};
 
                 sas::Kinematics kin;
-                kin.inverseMass = 0.9f;
-                kin.restituition = 1;
+                kin.inverseMass = 1.f;
+                kin.restituition = 0;
 
                 sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1, kin);
 

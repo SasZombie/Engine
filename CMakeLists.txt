@@ -54,6 +54,7 @@ add_executable(Tests
     tests/collision_tests_circle.cpp
     tests/collision_tests_box.cpp
     tests/collision_tests_mixed.cpp
+    tests/angular_tests_box.cpp
 )
 target_link_libraries(Tests PRIVATE
     sas_physics
