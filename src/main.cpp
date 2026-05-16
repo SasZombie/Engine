@@ -71,15 +71,15 @@ int main()
     sas::Kinematics bouncyKinematics;
     bouncyKinematics.restituition = 1.f;
 
-    sas::BodyHandle topWall     = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH/2, 0}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle bottomWall  = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH/2, SCREEN_HEIGHT - 1}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle leftWall    = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{1, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle rightWall   = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT/2}}, bouncyKinematics , sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    
-    entities.push_back({ topWall,    WHITE, sas::ShapeType::Box});
-    entities.push_back({ bottomWall, WHITE, sas::ShapeType::Box});
-    entities.push_back({ rightWall,  WHITE, sas::ShapeType::Box});
-    entities.push_back({ leftWall,   WHITE, sas::ShapeType::Box});
+    sas::BodyHandle topWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle bottomWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle leftWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{1, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle rightWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+
+    entities.push_back({topWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({bottomWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({rightWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({leftWall, WHITE, sas::ShapeType::Box});
 
     while (!WindowShouldClose())
     {
@@ -100,9 +100,13 @@ int main()
                 t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};
 
-                sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1);
+                sas::Kinematics kin;
+                kin.inverseMass = 0.2f;
+                kin.restituition = e;
 
-                Entity temp{ bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
+                sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1, kin);
+
+                Entity temp{bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
 
                 if (collision)
                 {
@@ -115,9 +119,18 @@ int main()
 
         if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         {
+
+            const auto &[x, y] = GetMouseDelta();
+            currentBody->bodyHandle->kinematics.velocity = {x * 10, y * 10};
+
+            currentBody = nullptr;
+        }
+
+        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+        {
             sas::Kinematics kin;
-            kin.inverseMass = 0.2f;
-            kin.restituition = e;
+            kin.inverseMass = 0.5f;
+            kin.restituition = 1.f;
 
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
@@ -143,22 +156,9 @@ int main()
             }
 
             world.removeBody(entities[ind].bodyHandle->bodyID);
-            
+
             entities[ind] = entities.back();
             entities.pop_back();
-        }
-
-        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
-        {
-            sas::Kinematics kin;
-            kin.inverseMass = 0.5f;
-            kin.restituition = 1.f;
-
-            const auto &[x, y] = GetMouseDelta();
-            kin.velocity = {x * 10, y * 10};
-            currentBody->bodyHandle->kinematics = kin;
-
-            currentBody = nullptr;
         }
 
         if (IsKeyPressed(KEY_S))
