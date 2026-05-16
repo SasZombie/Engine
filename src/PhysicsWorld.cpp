@@ -234,30 +234,38 @@ void sas::PhysicsWorld::checkCollisionCircleCircle(Body &obj, Body &other) noexc
     float dx = obj.transform.position.x - other.transform.position.x;
     float dy = obj.transform.position.y - other.transform.position.y;
     float distanceSq = dx * dx + dy * dy;
-    // For circles scale x = scale y. If not then it is a bug
-    float combinedRad = obj.shape.radius * obj.transform.scale.x + other.shape.radius * other.transform.scale.x;
+
+    float radiusA = obj.shape.radius * obj.transform.scale.x;
+    float radiusB = other.shape.radius * other.transform.scale.x;
+    float combinedRad = radiusA + radiusB;
 
     if (distanceSq > combinedRad * combinedRad)
         return;
 
     float distance = std::sqrt(distanceSq);
+
     math::Vec2 normal = (distance > 0.0001f)
                             ? math::Vec2(dx / distance, dy / distance)
-                            : math::Vec2(0, 1);
+                            : math::Vec2(0.0f, 1.0f);
 
     float overlap = combinedRad - distance;
+
+    math::Vec2 contactPoint = {
+        other.transform.position.x + normal.x * radiusB,
+        other.transform.position.y + normal.y * radiusB};
 
     Contact cont;
 
     cont.bodyA = obj.bodyID;
     cont.bodyB = other.bodyID;
-
     cont.normal = normal;
     cont.overlap = overlap;
-    cont.pointCount = 0;
+
+    cont.pointCount = 1;
+    cont.points[0].position = contactPoint;
+    cont.points[0].depth = overlap;
 
     contacts.emplace_back(cont);
-
 }
 
 struct BoxCorners
@@ -320,7 +328,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
 
         float overlap = std::min(maxA, maxB) - std::max(minA, minB);
         if (overlap <= 0.0f)
-            return; 
+            return;
 
         if (overlap < minOverlap)
         {
@@ -375,7 +383,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     };
 
     Edge edgeA = GetBestEdge(cornersA, mtvAxis * -1.0f);
-    Edge edgeB = GetBestEdge(cornersB, mtvAxis);        
+    Edge edgeB = GetBestEdge(cornersB, mtvAxis);
 
     math::Vec2 edgeADir = edgeA.v2 - edgeA.v1;
     edgeADir = edgeADir * (1.0f / edgeADir.length());
@@ -451,7 +459,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     contact.bodyA = obj.bodyID;
     contact.bodyB = other.bodyID;
     contact.normal = mtvAxis;
-    contact.overlap = minOverlap; 
+    contact.overlap = minOverlap;
     contact.pointCount = 0;
 
     for (const auto &point : finalPoints)
@@ -471,7 +479,6 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
         contacts.push_back(contact);
     }
 }
-
 void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcept
 {
     float r = circle.shape.radius * std::max(circle.transform.scale.x, circle.transform.scale.y);
@@ -501,6 +508,9 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
     math::Vec2 localNormal;
     float overlap;
 
+
+    math::Vec2 localContactPoint = closest;
+
     if (dist > 0.0001f)
     {
         localNormal = localNormalVec / dist;
@@ -515,11 +525,13 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
         {
             localNormal = (localPos.x > 0) ? math::Vec2(1, 0) : math::Vec2(-1, 0);
             overlap = r + px;
+            localContactPoint.x = (localPos.x > 0) ? hx : -hx;
         }
         else
         {
             localNormal = (localPos.y > 0) ? math::Vec2(0, 1) : math::Vec2(0, -1);
             overlap = r + py;
+            localContactPoint.y = (localPos.y > 0) ? hy : -hy;
         }
     }
 
@@ -530,18 +542,23 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
         localNormal.x * cosW - localNormal.y * sinW,
         localNormal.x * sinW + localNormal.y * cosW};
 
-    Contact cont;
+    math::Vec2 worldContactPoint = {
+        localContactPoint.x * cosW - localContactPoint.y * sinW + box.transform.position.x,
+        localContactPoint.x * sinW + localContactPoint.y * cosW + box.transform.position.y};
 
+    Contact cont;
     cont.bodyA = circle.bodyID;
     cont.bodyB = box.bodyID;
 
     cont.normal = worldNormal;
     cont.overlap = overlap;
-    cont.pointCount = 0;
+
+    cont.pointCount = 1;
+    cont.points[0].position = worldContactPoint;
+    cont.points[0].depth = overlap;
 
     contacts.emplace_back(cont);
 }
-
 
 void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
 {
@@ -549,30 +566,103 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
     Body &other = bodies[sparse[contact.bodyB]];
 
     float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
-    
-    // Early exit if both objects are static/have infinite mass
-    if (totalInvMass <= 0.0f) return;
+    if (totalInvMass <= 0.0f)
+        return;
+
+    auto crossV = [](const math::Vec2 &a, const math::Vec2 &b)
+    { return a.x * b.y - a.y * b.x; };
+    auto crossZ = [](float w, const math::Vec2 &r)
+    { return math::Vec2{-w * r.y, w * r.x}; };
+
+    float maxVelAlongNormal = 0.0f;
+    for (uint32_t i = 0; i < contact.pointCount; i++)
+    {
+        math::Vec2 rA = contact.points[i].position - obj.transform.position;
+        math::Vec2 rB = contact.points[i].position - other.transform.position;
+
+        math::Vec2 velA = obj.kinematics.velocity + crossZ(obj.kinematics.angularVelocity, rA);
+        math::Vec2 velB = other.kinematics.velocity + crossZ(other.kinematics.angularVelocity, rB);
+
+        float vel = math::dotProduct(velA - velB, contact.normal);
+        if (vel < maxVelAlongNormal)
+            maxVelAlongNormal = vel;
+    }
+
+    if (maxVelAlongNormal < -10.0f)
+    {
+        math::Vec2 averagePoint = {0.0f, 0.0f};
+        for (uint32_t i = 0; i < contact.pointCount; i++)
+        {
+            averagePoint = averagePoint + contact.points[i].position;
+        }
+        averagePoint = averagePoint * (1.0f / contact.pointCount);
+
+        math::Vec2 rA = averagePoint - obj.transform.position;
+        math::Vec2 rB = averagePoint - other.transform.position;
+
+        math::Vec2 velA = obj.kinematics.velocity + crossZ(obj.kinematics.angularVelocity, rA);
+        math::Vec2 velB = other.kinematics.velocity + crossZ(other.kinematics.angularVelocity, rB);
+        float velAlongNormal = math::dotProduct(velA - velB, contact.normal);
+
+        if (velAlongNormal >= 0.0f)
+            return;
+
+        float raCrossN = crossV(rA, contact.normal);
+        float rbCrossN = crossV(rB, contact.normal);
+
+        float invMassSum = obj.kinematics.inverseMass + other.kinematics.inverseMass +
+                           (raCrossN * raCrossN) * obj.kinematics.inverseInertia +
+                           (rbCrossN * rbCrossN) * other.kinematics.inverseInertia;
+
+        float e = std::max(obj.kinematics.restituition, other.kinematics.restituition);
+        if (obj.kinematics.inverseMass > 0.0f && other.kinematics.inverseMass > 0.0f)
+        {
+            e = std::min(e * 1.2f, 1.0f);
+        }
+
+        float j = -(1.0f + e) * velAlongNormal / invMassSum;
+        math::Vec2 impulse = contact.normal * j;
+
+        obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
+        obj.kinematics.angularVelocity += raCrossN * j * obj.kinematics.inverseInertia;
+        other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
+        other.kinematics.angularVelocity -= rbCrossN * j * other.kinematics.inverseInertia;
+
+        return;
+    }
 
     for (uint32_t i = 0; i < contact.pointCount; i++)
     {
-        math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
-        float velAlongNormal = math::dotProduct(relVel, contact.normal);
+        math::Vec2 rA = contact.points[i].position - obj.transform.position;
+        math::Vec2 rB = contact.points[i].position - other.transform.position;
 
-        if (velAlongNormal >= 0.0f) continue; 
+        math::Vec2 velA = obj.kinematics.velocity + crossZ(obj.kinematics.angularVelocity, rA);
+        math::Vec2 velB = other.kinematics.velocity + crossZ(other.kinematics.angularVelocity, rB);
 
-        float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
-        
-        if (std::abs(velAlongNormal) < 10.0f) 
-        {
-            e = 0.0f; 
-        }
+        float velAlongNormal = math::dotProduct(velA - velB, contact.normal);
 
-        float j = -(1.0f + e) * velAlongNormal;
-        j /= totalInvMass;
+        if (velAlongNormal >= 0.0f)
+            continue;
+
+        float raCrossN = crossV(rA, contact.normal);
+        float rbCrossN = crossV(rB, contact.normal);
+
+        float invMassSum = obj.kinematics.inverseMass + other.kinematics.inverseMass +
+                           (raCrossN * raCrossN) * obj.kinematics.inverseInertia +
+                           (rbCrossN * rbCrossN) * other.kinematics.inverseInertia;
+
+        if (invMassSum <= 0.0f)
+            continue;
+
+        float j = -1.0f * velAlongNormal / invMassSum;
+
         math::Vec2 impulse = contact.normal * j;
-        
+
         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
+        obj.kinematics.angularVelocity += raCrossN * j * obj.kinematics.inverseInertia;
+
         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
+        other.kinematics.angularVelocity -= rbCrossN * j * other.kinematics.inverseInertia;
     }
 }
 
@@ -581,30 +671,42 @@ void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
     Body &obj = bodies[sparse[contact.bodyA]];
     Body &other = bodies[sparse[contact.bodyB]];
 
-    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
-    
-    if (totalInvMass <= 0.0f) return;
-
-    const float percent = 0.2f; 
-    
-    const float slop = 0.5f;   
+    const float percent = 0.2f;
+    const float slop = 0.5f; // 0.5 pixels of slop
 
     for (uint32_t i = 0; i < contact.pointCount; i++)
     {
-        float penetration = contact.points[i].depth - slop;
-        
-        
-        if (penetration <= 0.0f) continue; 
+        math::Vec2 rA = contact.points[i].position - obj.transform.position;
+        math::Vec2 rB = contact.points[i].position - other.transform.position;
 
-        
-        float p = (penetration / totalInvMass) * percent;
-        
-        p *= contact.pointCount; 
+        auto crossV = [](const math::Vec2 &a, const math::Vec2 &b)
+        { return a.x * b.y - a.y * b.x; };
+
+        float raCrossN = crossV(rA, contact.normal);
+        float rbCrossN = crossV(rB, contact.normal);
+
+        float invMassSum = obj.kinematics.inverseMass + other.kinematics.inverseMass +
+                           (raCrossN * raCrossN) * obj.kinematics.inverseInertia +
+                           (rbCrossN * rbCrossN) * other.kinematics.inverseInertia;
+
+        if (invMassSum <= 0.0f)
+            continue;
+
+        float penetration = contact.points[i].depth - slop;
+        if (penetration <= 0.0f)
+            continue;
+
+        float p = (penetration / invMassSum) * percent;
+
+        p /= contact.pointCount;
 
         math::Vec2 correction = contact.normal * p;
 
         obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
+        obj.transform.rotation += raCrossN * p * obj.kinematics.inverseInertia;
+
         other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
+        other.transform.rotation -= rbCrossN * p * other.kinematics.inverseInertia;
     }
 }
 
@@ -636,6 +738,13 @@ void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
 void sas::PhysicsWorld::integrateVelocity(Body &obj) const noexcept
 {
     obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * deltaTime;
+
+    const float angularDamping = 0.98f;
+
+    // We raise it to the power of (deltaTime * 60) so it is framerate independent
+    float dampingThisFrame = std::pow(angularDamping, deltaTime * 60.0f);
+
+    obj.kinematics.angularVelocity *= dampingThisFrame;
 }
 
 void sas::PhysicsWorld::integratePosition(Body &obj) const noexcept

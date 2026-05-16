@@ -18,13 +18,14 @@ struct Entity
 int main()
 {
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
-    constexpr float circleRad = 25.f, e = 0.5f;
+    constexpr float circleRad = 25.f, e = 1.f;
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
 
     sas::PhysicsWorld world;
     sas::PhysicsSettings &settings = world.settings;
+    settings.dragCoeff = 0.97f;
     Entity *currentBody = nullptr;
 
     std::vector<Entity> entities;
@@ -101,8 +102,8 @@ int main()
                 t1.scale = sas::math::Vec2{1.f};
 
                 sas::Kinematics kin;
-                kin.inverseMass = 0.2f;
-                kin.restituition = e;
+                kin.inverseMass = 0.9f;
+                kin.restituition = 1;
 
                 sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1, kin);
 
