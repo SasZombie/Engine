@@ -298,7 +298,6 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     BoxCorners cornersA = GetBoxCorners(obj);
     BoxCorners cornersB = GetBoxCorners(other);
 
-    // --- 1. SEPARATING AXIS THEOREM (SAT) ---
     for (int i = 0; i < 4; i++)
     {
         math::Vec2 axis = axes[i];
@@ -321,7 +320,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
 
         float overlap = std::min(maxA, maxB) - std::max(minA, minB);
         if (overlap <= 0.0f)
-            return; // Separating axis found, early exit
+            return; 
 
         if (overlap < minOverlap)
         {
@@ -330,20 +329,17 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
         }
     }
 
-    // Ensure mtvAxis always points from 'other' (B) to 'obj' (A)
     math::Vec2 d = obj.transform.position - other.transform.position;
     if (math::dotProduct(d, mtvAxis) < 0)
     {
         mtvAxis = mtvAxis * -1.0f;
     }
 
-    // --- 2. MANIFOLD GENERATION (Sutherland-Hodgman) ---
     struct Edge
     {
         math::Vec2 v1, v2, maxVertex;
     };
 
-    // Helper: Finds the edge most perpendicular to a given normal
     auto GetBestEdge = [](const BoxCorners &corners, const math::Vec2 &normal) -> Edge
     {
         float maxDot = -std::numeric_limits<float>::max();
@@ -378,9 +374,8 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
         }
     };
 
-    // Find incident and reference edges based on MTV
-    Edge edgeA = GetBestEdge(cornersA, mtvAxis * -1.0f); // A opposes MTV
-    Edge edgeB = GetBestEdge(cornersB, mtvAxis);         // B aligns with MTV
+    Edge edgeA = GetBestEdge(cornersA, mtvAxis * -1.0f);
+    Edge edgeB = GetBestEdge(cornersB, mtvAxis);        
 
     math::Vec2 edgeADir = edgeA.v2 - edgeA.v1;
     edgeADir = edgeADir * (1.0f / edgeADir.length());
@@ -391,27 +386,24 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     Edge refEdge, incEdge;
     bool flip = false;
 
-    // The reference face is the one most perpendicular to the MTV
     if (std::abs(math::dotProduct(edgeADir, mtvAxis)) <= std::abs(math::dotProduct(edgeBDir, mtvAxis)))
     {
         refEdge = edgeA;
         incEdge = edgeB;
-        flip = false; // A is reference
+        flip = false;
     }
     else
     {
         refEdge = edgeB;
         incEdge = edgeA;
-        flip = true; // B is reference
+        flip = true;
     }
 
-    // Reference planes for clipping
     math::Vec2 refDir = refEdge.v2 - refEdge.v1;
     refDir = refDir * (1.0f / refDir.length());
     float offset1 = math::dotProduct(refDir, refEdge.v1);
     float offset2 = math::dotProduct(refDir * -1.0f, refEdge.v2);
 
-    // Helper: Clips a line segment against a plane
     auto ClipSegmentToLine = [](std::vector<math::Vec2> &vOut, const std::vector<math::Vec2> &vIn,
                                 const math::Vec2 &normal, float offset)
     {
@@ -437,14 +429,11 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     std::vector<math::Vec2> incPoints = {incEdge.v1, incEdge.v2};
     std::vector<math::Vec2> clipped1, finalPoints;
 
-    // Clip incident edge against the adjacent side planes of the reference edge
     ClipSegmentToLine(clipped1, incPoints, refDir * -1.0f, -offset1);
     ClipSegmentToLine(finalPoints, clipped1, refDir, -offset2);
 
-    // Find the actual normal of the reference face
     math::Vec2 refNormal = {-refDir.y, refDir.x};
 
-    // Ensure refNormal points in the right direction
     if (flip)
     {
         if (math::dotProduct(refNormal, mtvAxis) < 0)
@@ -458,20 +447,17 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
 
     float refOffset = math::dotProduct(refNormal, refEdge.maxVertex);
 
-    // --- 3. STORE CONTACT MANIFOLD ---
     Contact contact;
     contact.bodyA = obj.bodyID;
     contact.bodyB = other.bodyID;
     contact.normal = mtvAxis;
-    contact.overlap = minOverlap; // Legacy overlap, kept for safety
+    contact.overlap = minOverlap; 
     contact.pointCount = 0;
 
     for (const auto &point : finalPoints)
     {
-        // Subtract point projection FROM the offset to get a positive depth 
         float depth = refOffset - math::dotProduct(refNormal, point);
 
-        // If depth is positive, it's penetrating
         if (depth >= 0.0f && contact.pointCount < 2)
         {
             contact.points[contact.pointCount].position = point;
@@ -486,94 +472,6 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     }
 }
 
-// void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
-// {
-//     math::Vec2 axes[4];
-//     float rotA = obj.transform.rotation;
-//     float rotB = other.transform.rotation;
-
-//     axes[0] = {std::cos(rotA), std::sin(rotA)};
-//     axes[1] = {-std::sin(rotA), std::cos(rotA)};
-//     axes[2] = {std::cos(rotB), std::sin(rotB)};
-//     axes[3] = {-std::sin(rotB), std::cos(rotB)};
-
-//     float minOverlap = std::numeric_limits<float>::max();
-//     math::Vec2 mtvAxis;
-
-//     BoxCorners cornersA = GetBoxCorners(obj);
-//     BoxCorners cornersB = GetBoxCorners(other);
-
-//     for (int i = 0; i < 4; i++)
-//     {
-//         math::Vec2 axis = axes[i];
-
-//         auto project = [&](const BoxCorners &corners)
-//         {
-//             float min = math::dotProduct(corners.v[0], axis);
-//             float max = min;
-//             for (int j = 1; j < 4; j++)
-//             {
-//                 float p = math::dotProduct(corners.v[j], axis);
-//                 min = std::min(min, p);
-//                 max = std::max(max, p);
-//             }
-//             return std::pair{min, max};
-//         };
-
-//         auto [minA, maxA] = project(cornersA);
-//         auto [minB, maxB] = project(cornersB);
-
-//         float overlap = std::min(maxA, maxB) - std::max(minA, minB);
-//         if (overlap <= 0)
-//             return;
-
-//         if (overlap < minOverlap)
-//         {
-//             minOverlap = overlap;
-//             mtvAxis = axis;
-//         }
-//     }
-
-//     math::Vec2 d = obj.transform.position - other.transform.position;
-//     if (math::dotProduct(d, mtvAxis) < 0)
-//     {
-//         mtvAxis = mtvAxis * -1.0f;
-//     }
-
-//     math::Vec2 contactPoint;
-
-//     auto GetDeepestPoint = [&](const BoxCorners &corners, const math::Vec2 &normal)
-//     {
-//         float minDot = std::numeric_limits<float>::max();
-//         math::Vec2 deepest;
-//         for (int i = 0; i < 4; i++)
-//         {
-//             float dot = math::dotProduct(corners.v[i], normal);
-//             if (dot < minDot)
-//             {
-//                 minDot = dot;
-//                 deepest = corners.v[i];
-//             }
-//         }
-//         return deepest;
-//     };
-
-//     contactPoint = GetDeepestPoint(cornersA, mtvAxis);
-
-//     math::Vec2 rA = contactPoint - obj.transform.position;
-//     math::Vec2 rB = contactPoint - other.transform.position;
-
-//     Contact cont;
-
-//     cont.bodyA = obj.bodyID;
-//     cont.bodyB = other.bodyID;
-
-//     cont.normal = mtvAxis;
-//     cont.overlap = minOverlap;
-//     cont.pointCount = 0;
-
-//     contacts.emplace_back(cont);
-// }
 void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcept
 {
     float r = circle.shape.radius * std::max(circle.transform.scale.x, circle.transform.scale.y);
@@ -644,32 +542,6 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
     contacts.emplace_back(cont);
 }
 
-// void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
-// {
-//     Body &obj = bodies[sparse[contact.bodyA]];
-//     Body &other = bodies[sparse[contact.bodyB]];
-
-//     math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
-//     float velAlongNormal = math::dotProduct(relVel, contact.normal);
-//     float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
-
-//     if (velAlongNormal < 0)
-//     {
-//         float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
-//         float j = -(1.0f + e) * velAlongNormal;
-//         j /= totalInvMass;
-
-//         math::Vec2 impulse = contact.normal * j;
-//         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
-//         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
-
-//         // math::Vec2 r = {1, 2};
-
-//         // float crossN = r * normal;
-
-//         // obj.kinematics.angularVelocity += crossN * (j * obj.kinematics.inverseMass);
-//     }
-// }
 
 void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
 {
@@ -683,14 +555,11 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
 
     for (uint32_t i = 0; i < contact.pointCount; i++)
     {
-        // 1. Calculate relative velocity (Linear only)
         math::Vec2 relVel = obj.kinematics.velocity - other.kinematics.velocity;
         float velAlongNormal = math::dotProduct(relVel, contact.normal);
 
-        // 2. If objects are already moving apart, skip this contact point
         if (velAlongNormal >= 0.0f) continue; 
 
-        // 3. Calculate Restitution (Bounce)
         float e = std::min(obj.kinematics.restituition, other.kinematics.restituition);
         
         if (std::abs(velAlongNormal) < 10.0f) 
@@ -698,43 +567,15 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
             e = 0.0f; 
         }
 
-        // 4. Calculate Impulse Scalar (j)
         float j = -(1.0f + e) * velAlongNormal;
         j /= totalInvMass;
-
-        // DO NOT divide j by contact.pointCount here! 
-        // In a sequential impulse solver, velocities update immediately, 
-        // so the math naturally handles the distribution across points.
-
-        // 5. Apply Linear Impulse
         math::Vec2 impulse = contact.normal * j;
         
         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
     }
 }
-#if 0
-void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
-{
-    Body &obj = bodies[sparse[contact.bodyA]];
-    Body &other = bodies[sparse[contact.bodyB]];
 
-    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
-
-    if (totalInvMass <= 0.0f)
-        return;
-
-    const float percent = 0.8f;
-    const float slop = 0.01f;
-
-    float penetration = std::max(contact.overlap - slop, 0.0f);
-
-    math::Vec2 correction = contact.normal * (penetration / totalInvMass) * percent;
-
-    obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
-    other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
-}
-#else
 void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
 {
     Body &obj = bodies[sparse[contact.bodyA]];
@@ -766,7 +607,6 @@ void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
         other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
     }
 }
-#endif
 
 void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
 {
