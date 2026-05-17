@@ -33,7 +33,7 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
 
-    uint32_t mask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic;
+    uint32_t mask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic | Flags::RigidBodyKinematic;
 
     if ((options & Flags::Active) && (options & mask))
     {
@@ -43,7 +43,7 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
         addToCollisionPool(newBody);
     }
 
-    if (!(options & Flags::BodyFlags::RigidBodyStatic))
+    if (options & Flags::BodyFlags::RigidBodyDynamic)
     {
         if (shape.type == ShapeType::Box)
         {
@@ -65,6 +65,13 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
 
             newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
         }
+    }
+    else if ((options & Flags::BodyFlags::RigidBodyStatic) || (options & Flags::BodyFlags::RigidBodyKinematic))
+    {
+        newBody.kinematics.inverseMass = 0.f;
+        newBody.kinematics.inverseInertia = 0.f;
+        newBody.kinematics.inertia = 0.f;
+        newBody.kinematics.pushForce = 0.f;
     }
 
     bodies.push_back(newBody);
@@ -121,39 +128,62 @@ uint32_t sas::PhysicsWorld::getNextId() noexcept
     return idCounter++;
 }
 
-// MARK: Step
-void sas::PhysicsWorld::step(float dt) noexcept
+static constexpr float physicsDt = 1.0f / 120.0f;
+
+void sas::PhysicsWorld::step(float realDeltaTime) noexcept
 {
-    deltaTime = dt;
+    if (realDeltaTime > 0.25f)
+        realDeltaTime = 0.25f;
+
+    timeAccumulator += realDeltaTime;
+
+    deltaTime = physicsDt;
+
+    while (timeAccumulator >= physicsDt)
+    {
+        step();
+        timeAccumulator -= physicsDt;
+    }
+}
+
+// MARK: Step
+void sas::PhysicsWorld::step() noexcept
+{
     contacts.clear();
+
     for (uint32_t id : activeIDs)
     {
         Body &obj = bodies[sparse[id]];
 
-        bool isRigid = obj.flags & Flags::RigidBodyDynamic;
-
-        if (isRigid && (obj.kinematics.inverseMass > 0))
+        if (!(obj.flags & (Flags::RigidBodyStatic | Flags::RigidBodyKinematic)))
         {
-            applyForces(obj);
+            if (obj.kinematics.inverseMass > 0)
+            {
+                applyForces(obj);
+                integrateVelocity(obj);
+            }
         }
     }
 
     for (uint32_t id : activeIDs)
     {
-        integrateVelocity(bodies[sparse[id]]);
-        integratePosition(bodies[sparse[id]]);
+        Body &obj = bodies[sparse[id]];
+
+        if (!(obj.flags & Flags::RigidBodyStatic))
+        {
+
+            integratePosition(obj);
+        }
     }
 
     for (uint32_t id : activeIDs)
     {
         Body &obj = bodies[sparse[id]];
 
-        const float velocityLength = obj.kinematics.velocity.length();
-        // 3 frames prediction
-        const float predictiveMargin = std::max(2.0f, velocityLength * dt * 3.0f);
-
         if (obj.flags & Flags::InCollisionPool)
         {
+            const float velocityLength = obj.kinematics.velocity.length();
+            const float predictiveMargin = std::max(2.0f, velocityLength * deltaTime * 3.0f);
             root.updateObject(obj, predictiveMargin);
         }
     }
@@ -161,7 +191,6 @@ void sas::PhysicsWorld::step(float dt) noexcept
     for (uint32_t id : activeIDs)
     {
         Body &obj = bodies[sparse[id]];
-
         checkCollisionDispatcher(obj);
     }
 
@@ -174,18 +203,15 @@ void sas::PhysicsWorld::step(float dt) noexcept
         }
     }
 
-    constexpr size_t positionIterations = 1;
-    for (size_t i = 0; i < positionIterations; ++i)
+    for (auto &c : contacts)
     {
-        for (auto &c : contacts)
-        {
-            correctPosition(c);
-        }
+        correctPosition(c);
     }
 
     for (uint32_t id : activeIDs)
     {
-        reset(bodies[sparse[id]]);
+        Body &obj = bodies[sparse[id]];
+        reset(obj);
     }
 
     updateCollisionFlags();
@@ -508,7 +534,6 @@ void sas::PhysicsWorld::checkCollisionCircleBox(Body &circle, Body &box) noexcep
     math::Vec2 localNormal;
     float overlap;
 
-
     math::Vec2 localContactPoint = closest;
 
     if (dist > 0.0001f)
@@ -621,6 +646,23 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
         }
 
         float j = -(1.0f + e) * velAlongNormal / invMassSum;
+        bool aIsKinematic = (obj.flags & Flags::RigidBodyKinematic);
+        bool bIsKinematic = (other.flags & Flags::RigidBodyKinematic);
+
+        if (aIsKinematic || bIsKinematic)
+        {
+            const Body &pusher = aIsKinematic ? obj : other;
+            const Body &pushed = aIsKinematic ? obj : other;
+
+            float dynamicMass = (pushed.kinematics.inverseMass > 0.0f)
+                                    ? 1.0f / pushed.kinematics.inverseMass
+                                    : 1.0f;
+
+            float forceScale = pusher.kinematics.pushForce / (pusher.kinematics.pushForce + dynamicMass);
+
+            j *= forceScale;
+        }
+
         math::Vec2 impulse = contact.normal * j;
 
         obj.kinematics.velocity = obj.kinematics.velocity + impulse * obj.kinematics.inverseMass;
@@ -671,8 +713,14 @@ void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
     Body &obj = bodies[sparse[contact.bodyA]];
     Body &other = bodies[sparse[contact.bodyB]];
 
-    const float percent = 0.2f;
-    const float slop = 0.5f; // 0.5 pixels of slop
+    const float percent = 0.4f;
+    const float slop = 0.5f;
+
+    float invMassA = (obj.flags & Flags::RigidBodyKinematic) ? 1.0f : obj.kinematics.inverseMass;
+    float invInertiaA = (obj.flags & Flags::RigidBodyKinematic) ? 0.0f : obj.kinematics.inverseInertia;
+
+    float invMassB = (other.flags & Flags::RigidBodyKinematic) ? 1.0f : other.kinematics.inverseMass;
+    float invInertiaB = (other.flags & Flags::RigidBodyKinematic) ? 0.0f : other.kinematics.inverseInertia;
 
     for (uint32_t i = 0; i < contact.pointCount; i++)
     {
@@ -685,9 +733,9 @@ void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
         float raCrossN = crossV(rA, contact.normal);
         float rbCrossN = crossV(rB, contact.normal);
 
-        float invMassSum = obj.kinematics.inverseMass + other.kinematics.inverseMass +
-                           (raCrossN * raCrossN) * obj.kinematics.inverseInertia +
-                           (rbCrossN * rbCrossN) * other.kinematics.inverseInertia;
+        float invMassSum = invMassA + invMassB +
+                           (raCrossN * raCrossN) * invInertiaA +
+                           (rbCrossN * rbCrossN) * invInertiaB;
 
         if (invMassSum <= 0.0f)
             continue;
@@ -697,16 +745,15 @@ void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
             continue;
 
         float p = (penetration / invMassSum) * percent;
-
         p /= contact.pointCount;
 
         math::Vec2 correction = contact.normal * p;
 
-        obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
-        obj.transform.rotation += raCrossN * p * obj.kinematics.inverseInertia;
+        obj.transform.position = obj.transform.position + correction * invMassA;
+        obj.transform.rotation += raCrossN * p * invInertiaA;
 
-        other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
-        other.transform.rotation -= rbCrossN * p * other.kinematics.inverseInertia;
+        other.transform.position = other.transform.position - correction * invMassB;
+        other.transform.rotation -= rbCrossN * p * invInertiaB;
     }
 }
 

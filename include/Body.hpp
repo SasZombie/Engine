@@ -16,7 +16,8 @@ namespace sas
             Active = 1 << 0,
             RigidBodyStatic = 1 << 1,
             RigidBodyDynamic = 1 << 2,
-            InCollisionPool = 1 << 3,
+            RigidBodyKinematic = 1 << 3,
+            InCollisionPool = 1 << 4,
             // Trigger     = 1 << 3
         };
 

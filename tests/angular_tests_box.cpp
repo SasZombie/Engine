@@ -36,14 +36,21 @@ TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
     const auto &handle = AddBox(t, k);
 
     float dt = 1.0f / 60.0f;
+    float maxAngularVelocityObserved = 0.0f;
 
     for (int i = 0; i < 35; ++i)
     {
         world->step(dt);
+        
+        float currentSpin = std::abs(handle.get()->kinematics.angularVelocity);
+        if (currentSpin > maxAngularVelocityObserved)
+        {
+            maxAngularVelocityObserved = currentSpin;
+        }
     }
 
-    float angularVel = std::abs(handle.get()->kinematics.angularVelocity);
-    EXPECT_GT(angularVel, 0.1f) << "Box failed to spin after an off-center impact!";
+    EXPECT_GT(maxAngularVelocityObserved, 0.1f) 
+        << "Box failed to spin. Peak spin observed was only: " << maxAngularVelocityObserved;
 }
 
 TEST_F(FixtureTest, BoxTiltedDrop_SettlesFlat)

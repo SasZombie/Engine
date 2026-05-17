@@ -42,6 +42,7 @@ namespace sas
 
     private:
         float deltaTime;
+        float timeAccumulator = 0;
         AABBTree root;
 
     public:
@@ -68,6 +69,7 @@ namespace sas
 
         void addToCollisionPool(Body &body) noexcept;
         void removeFromCollisionPool(Body &body) noexcept;
+
         void step(float dt) noexcept;
 
         [[nodiscard]] bool bodyExists(uint32_t id) const noexcept;
@@ -84,6 +86,8 @@ namespace sas
         ~PhysicsWorld() noexcept = default;
         
     private:
+        void step() noexcept;;
+
         void applyForces(Body &obj) const noexcept;
 
         void integrateVelocity(Body &obj) const noexcept;

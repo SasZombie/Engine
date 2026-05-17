@@ -15,6 +15,7 @@ namespace sas
         float angularVelocity = 0;
         float inertia = 0;
         float inverseInertia = 0;
+        float pushForce = 0;
 
         void reset() noexcept
         {
@@ -24,6 +25,7 @@ namespace sas
             angularVelocity = 0;
             inertia = 0;
             inverseInertia = 0;
+            pushForce = 0;
         }
     };
 } // namespace sas

@@ -48,11 +48,18 @@ int main()
 
     sas::BodyHandle seccondBh = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
+    t.position = {500, 180};
+    t.rotation = 0;
+
+    sas::BodyHandle thirdBh = world.createBody(sas::Shape::MakeBox(16, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+
     Entity firstEntity{firstBH, MAROON, sas::ShapeType::Box};
     Entity seccondEntity{seccondBh, MAROON, sas::ShapeType::Box};
+    Entity thirdEntity{thirdBh, MAROON, sas::ShapeType::Box};
 
     entities.push_back(firstEntity);
     entities.push_back(seccondEntity);
+    entities.push_back(thirdEntity);
     entities[0].bodyHandle->kinematics = k;
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
@@ -70,7 +77,7 @@ int main()
     sas::ShapeType st;
 
     sas::Kinematics bouncyKinematics;
-    bouncyKinematics.restituition = 1.f;
+    bouncyKinematics.restituition = 0.2f;
 
     sas::BodyHandle topWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
     sas::BodyHandle bottomWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
@@ -102,7 +109,7 @@ int main()
                 t1.scale = sas::math::Vec2{1.f};
 
                 sas::Kinematics kin;
-                kin.inverseMass = 1.f;
+                kin.inverseMass = 0.01f;
                 kin.restituition = 0;
 
                 sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1, kin);
@@ -217,6 +224,29 @@ int main()
                 entities.pop_back();
             }
         }
+
+        float playerSpeed = 300.0f;
+        sas::math::Vec2 newVelocity = {0.0f, 0.f};
+
+        if (IsKeyDown(KEY_LEFT))
+        {
+            newVelocity.x = -playerSpeed;
+        }
+        if (IsKeyDown(KEY_RIGHT))
+        {
+            newVelocity.x = playerSpeed;
+        }
+        if (IsKeyDown(KEY_UP))
+        {
+            newVelocity.y = -playerSpeed;
+        }
+        if (IsKeyDown(KEY_DOWN))
+        {
+            newVelocity.y = playerSpeed;
+        }
+
+        // Set the velocity directly!
+        thirdBh->kinematics.velocity = newVelocity;
 
         world.step(dt);
 
