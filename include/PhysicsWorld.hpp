@@ -109,6 +109,8 @@ namespace sas
 
         BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 
+        void initializeBodyPhysics(Body& body, const Shape& shape, const Transform& trans, uint32_t options) noexcept;
+        void setupCollision(Body& body, uint32_t options) noexcept;
         using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
         static inline const CollisionFunc DispatchTable[2][2] = {
             {&sas::PhysicsWorld::checkCollisionCircleCircle, &sas::PhysicsWorld::checkCollisionCircleBox},

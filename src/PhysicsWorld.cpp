@@ -30,53 +30,75 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
 
     Body newBody{trans, kin, shape, newID, options, 0};
 
+    initializeBodyPhysics(newBody, shape, trans, options);
+
+    setupCollision(newBody, options);
+
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
-
-    uint32_t mask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic | Flags::RigidBodyKinematic;
-
-    if ((options & Flags::Active) && (options & mask))
-    {
-        newBody.collisionMask = Flags::Layer1 | Flags::Mask1;
-
-        activeIDs.push_back(newID);
-        addToCollisionPool(newBody);
-    }
-
-    if (options & Flags::BodyFlags::RigidBodyDynamic)
-    {
-        if (shape.type == ShapeType::Box)
-        {
-            float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
-
-            float hx = shape.halfSize.x * trans.scale.x;
-            float hy = shape.halfSize.y * trans.scale.y;
-
-            newBody.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
-
-            newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
-        }
-        else if (shape.type == ShapeType::Circle)
-        {
-            float mass = (kin.inverseMass > 0) ? 1.0f / kin.inverseMass : 0.0f;
-
-            float r = shape.radius * trans.scale.x;
-            newBody.kinematics.inertia = 0.5f * mass * (r * r);
-
-            newBody.kinematics.inverseInertia = (newBody.kinematics.inertia > 0) ? 1.0f / newBody.kinematics.inertia : 0.0f;
-        }
-    }
-    else if ((options & Flags::BodyFlags::RigidBodyStatic) || (options & Flags::BodyFlags::RigidBodyKinematic))
-    {
-        newBody.kinematics.inverseMass = 0.f;
-        newBody.kinematics.inverseInertia = 0.f;
-        newBody.kinematics.inertia = 0.f;
-        newBody.kinematics.pushForce = 0.f;
-    }
-
     bodies.push_back(newBody);
 
     return {newID, this};
+}
+
+void sas::PhysicsWorld::initializeBodyPhysics(Body &body, const Shape &shape, const Transform &trans, uint32_t options) noexcept
+{
+    if ((options & Flags::BodyFlags::RigidBodyStatic) || (options & Flags::BodyFlags::RigidBodyKinematic))
+    {
+        body.kinematics.inverseMass = 0.0f;
+        body.kinematics.inertia = 0.0f;
+        body.kinematics.inverseInertia = 0.0f;
+
+        body.kinematics.pushForce = body.kinematics.pushForce > 0.0f ? body.kinematics.pushForce : 70.0f;
+
+        if (options & Flags::BodyFlags::RigidBodyStatic)
+        {
+            body.kinematics.velocity = {0.0f, 0.0f};
+            body.kinematics.angularVelocity = 0.0f;
+            body.kinematics.pushForce = 0.0f; 
+        }
+
+        return;
+    }
+
+    if (options & Flags::RigidBodyDynamic)
+    {
+        const float mass = (body.kinematics.inverseMass > 0) ? 1.0f / body.kinematics.inverseMass : 0.0f;
+
+        switch (shape.type)
+        {
+        case ShapeType::Box:
+        {
+            float hx = shape.halfSize.x * trans.scale.x;
+            float hy = shape.halfSize.y * trans.scale.y;
+            body.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
+            break;
+        }
+        case ShapeType::Circle:
+        {
+            float r = shape.radius * trans.scale.x;
+            body.kinematics.inertia = 0.5f * mass * (r * r);
+            break;
+        }
+        default:
+            body.kinematics.inertia = 0.f;
+            break;
+        }
+
+        body.kinematics.inverseInertia = (body.kinematics.inertia > 0) ? 1.0f / body.kinematics.inertia : 0.0f;
+    }
+}
+
+void sas::PhysicsWorld::setupCollision(Body &body, uint32_t options) noexcept
+{
+    constexpr uint32_t typeMask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic | Flags::RigidBodyKinematic;
+
+    if ((options & Flags::Active) && (options & typeMask))
+    {
+        body.collisionMask = Flags::Layer1 | Flags::Mask1;
+        activeIDs.push_back(body.bodyID);
+        addToCollisionPool(body);
+    }
 }
 
 void sas::PhysicsWorld::removeBody(uint32_t bodyID) noexcept
