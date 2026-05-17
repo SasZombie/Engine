@@ -1,6 +1,5 @@
 #include "AABBTree.hpp"
 
-#include <iostream>
 
 sas::AABB sas::computeFatAABB(const Body &body, float margin) noexcept
 {
