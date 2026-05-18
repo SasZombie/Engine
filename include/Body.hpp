@@ -76,6 +76,9 @@ namespace sas
         uint32_t bodyID;
         uint32_t flags;
         uint32_t collisionMask;
+
+        uint32_t dataType = 0;
+        void *userData = nullptr;
     };
 
 } // namespace sas
