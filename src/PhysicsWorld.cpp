@@ -161,6 +161,8 @@ void sas::PhysicsWorld::step(float realDeltaTime) noexcept
 
     deltaTime = physicsDt;
 
+    std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
+
     while (timeAccumulator >= physicsDt)
     {
         step();
@@ -786,8 +788,6 @@ void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
 
 void sas::PhysicsWorld::updateCollisionFlags() noexcept
 {
-    std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
-
     for (const auto &contact : contacts)
     {
         collisionFlags[contact.bodyA] = 1;
