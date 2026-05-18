@@ -828,7 +828,7 @@ void sas::PhysicsWorld::addToCollisionPool(Body &body) noexcept
     {
         body.flags |= Flags::InCollisionPool;
 
-        root.insert(body.bodyID, computeFatAABB(body));
+        root.insert(body.bodyID, computeTightAABB(body));
     }
 }
 
