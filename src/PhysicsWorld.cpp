@@ -161,6 +161,9 @@ void sas::PhysicsWorld::step(float realDeltaTime) noexcept
 
     deltaTime = physicsDt;
 
+    frameContacts.clear();
+    frameContacts.reserve(contacts.capacity());
+
     std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
 
     while (timeAccumulator >= physicsDt)
@@ -792,6 +795,8 @@ void sas::PhysicsWorld::updateCollisionFlags() noexcept
     {
         collisionFlags[contact.bodyA] = 1;
         collisionFlags[contact.bodyB] = 1;
+        
+        frameContacts.emplace_back(contact);
     }
 }
 
@@ -872,7 +877,7 @@ std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id)
 
     collisions.reserve(8);
 
-    for (const auto &contact : contacts)
+    for (const auto &contact : frameContacts)
     {
         if (contact.bodyA == id)
         {

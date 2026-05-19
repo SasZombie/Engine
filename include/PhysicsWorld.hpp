@@ -58,6 +58,7 @@ namespace sas
         std::vector<uint32_t> activeIDs;
 
         std::vector<Contact> contacts;
+        std::vector<Contact> frameContacts;
 
         // Visualizing hitboxes
         // Not Optimized
