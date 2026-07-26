@@ -4,6 +4,9 @@ project(PhysicsEngine)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_DEMO "Build the GUI demo app" ${PROJECT_IS_TOP_LEVEL})
+option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
+
 add_library(project_warnings INTERFACE)
 add_library(project_sanitizers INTERFACE)
 
@@ -24,41 +27,12 @@ else()
     target_compile_options(project_warnings INTERFACE -O3)
 endif()
 
-add_library(sas_physics
-    src/PhysicsWorld.cpp
-    src/AABBTree.cpp
-)
-target_include_directories(sas_physics PUBLIC include)
+add_subdirectory(lib)
 
-target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers)
+if(BUILD_DEMO AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/demo")
+    add_subdirectory(demo)
+endif()
 
-add_executable(main src/main.cpp)
-
-target_link_libraries(main PRIVATE
-    sas_physics
-    project_warnings
-    project_sanitizers
-    raylib GL m pthread dl rt X11
-)
-
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/refs/heads/main.zip
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-add_executable(Tests
-    tests/physics_tests.cpp
-    tests/collision_tests_circle.cpp
-    tests/collision_tests_box.cpp
-    tests/collision_tests_mixed.cpp
-    tests/angular_tests_box.cpp
-)
-target_link_libraries(Tests PRIVATE
-    sas_physics
-    project_warnings
-    project_sanitizers
-    GTest::gtest_main
-)
+if(BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    add_subdirectory(tests)
+endif()
