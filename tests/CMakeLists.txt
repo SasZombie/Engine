@@ -19,6 +19,7 @@ add_executable(Tests
     collision_tests_box.cpp
     collision_tests_mixed.cpp
     angular_tests_box.cpp
+    performance_tests.cpp
 )
 target_link_libraries(Tests PRIVATE
     sas_physics

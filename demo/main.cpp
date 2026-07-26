@@ -290,6 +290,7 @@ int main()
         DrawText(msg3.c_str(), 0, 60, 30, RED);
         DrawText("Shape ", 500, 0, 30, RED);
         DrawText((shapeType ? "Circle" : "Square"), 620, 0, 30, RED);
+        DrawText(std::to_string(dt).c_str(), 650, 40, 30, RED);
 
         EndDrawing();
     }
