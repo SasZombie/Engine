@@ -53,13 +53,19 @@ int main()
 
     sas::BodyHandle thirdBh = world.createBody(sas::Shape::MakeBox(16, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
 
+    t.position = {500, 100};
+    sas::BodyHandle gravityBh = world.createBody(sas::Shape::MakeBox(100, 100), t, k, sas::Flags::Active | sas::Flags::Trigger);
+
     Entity firstEntity{firstBH, MAROON, sas::ShapeType::Box};
     Entity seccondEntity{seccondBh, MAROON, sas::ShapeType::Box};
     Entity thirdEntity{thirdBh, MAROON, sas::ShapeType::Box};
 
+    Entity forthEntity{gravityBh, GREEN, sas::ShapeType::Box};
+
     entities.push_back(firstEntity);
     entities.push_back(seccondEntity);
     entities.push_back(thirdEntity);
+    entities.push_back(forthEntity);
     entities[0].bodyHandle->kinematics = k;
 
     auto lambda = [](const sas::AABB &b, bool isLeaf)
@@ -92,6 +98,11 @@ int main()
     while (!WindowShouldClose())
     {
         dt = GetFrameTime();
+
+        if (forthEntity.bodyHandle.isColliding())
+        {
+            std::cout << "Collision\n";
+        }
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
         {

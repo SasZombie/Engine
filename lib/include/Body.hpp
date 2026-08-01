@@ -18,7 +18,7 @@ namespace sas
             RigidBodyDynamic = 1 << 2,
             RigidBodyKinematic = 1 << 3,
             InCollisionPool = 1 << 4,
-            // Trigger     = 1 << 3
+            Trigger = 1 << 5
         };
 
         enum CollisionFlags : uint32_t
@@ -66,6 +66,22 @@ namespace sas
         }
     };
 
+    enum struct GravityEmitionType
+    {
+        NONE,
+        OVERRIDE,
+        ADDITIVE,
+        RADIAL
+    };
+
+    struct Gravity
+    {
+        math::Vec2 gravityForce;
+        float scale = 1.f;
+        size_t priority = 0.f;
+        GravityEmitionType gravityType = GravityEmitionType::NONE;
+    };
+
     struct Body
     {
         Transform transform;
@@ -77,8 +93,16 @@ namespace sas
         uint32_t flags;
         uint32_t collisionMask;
 
+        Gravity gravity;
+
         uint32_t dataType = 0;
         void *userData = nullptr;
+
+
+        [[nodiscard]] constexpr bool hasFlag(uint32_t flag) const noexcept
+        {
+            return (flags & flag) != 0;
+        }
     };
 
 } // namespace sas

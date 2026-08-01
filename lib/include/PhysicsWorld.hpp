@@ -50,9 +50,9 @@ namespace sas
         // World keeps body
         std::vector<Body> bodies;
 
+        std::vector<int> collisionFlags;
         // Found this funny ahh pattern
         std::vector<int> sparse;
-        std::vector<int> collisionFlags;
         std::vector<uint32_t> dense;
         std::vector<uint32_t> freeIDs;
         std::vector<uint32_t> activeIDs;
@@ -87,7 +87,8 @@ namespace sas
         ~PhysicsWorld() noexcept = default;
         
     private:
-        void step() noexcept;;
+        void step() noexcept;
+        void applyGravity(Body &obj) const noexcept;
 
         void applyForces(Body &obj) const noexcept;
 
@@ -106,12 +107,15 @@ namespace sas
 
         void reset(Body &obj) const noexcept;
 
+        const Body& getBodyFromSparse(uint32_t id) const noexcept;
+        Body& getBodyFromSparse(uint32_t id) noexcept;
+
         [[nodiscard]] uint32_t getNextId() noexcept;
 
         BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 
-        void initializeBodyPhysics(Body& body, const Shape& shape, const Transform& trans, uint32_t options) noexcept;
-        void setupCollision(Body& body, uint32_t options) noexcept;
+        void initializeBodyPhysics(Body& body) noexcept;
+        void setupCollision(Body& body) noexcept;
         using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
         static inline const CollisionFunc DispatchTable[2][2] = {
             {&sas::PhysicsWorld::checkCollisionCircleCircle, &sas::PhysicsWorld::checkCollisionCircleBox},

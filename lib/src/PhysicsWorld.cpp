@@ -30,9 +30,9 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
 
     Body newBody{trans, kin, shape, newID, options, 0};
 
-    initializeBodyPhysics(newBody, shape, trans, options);
+    initializeBodyPhysics(newBody);
 
-    setupCollision(newBody, options);
+    setupCollision(newBody);
 
     sparse[newID] = internalIndex;
     dense.emplace_back(newID);
@@ -41,42 +41,24 @@ sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &
     return {newID, this};
 }
 
-void sas::PhysicsWorld::initializeBodyPhysics(Body &body, const Shape &shape, const Transform &trans, uint32_t options) noexcept
+void sas::PhysicsWorld::initializeBodyPhysics(Body &body) noexcept
 {
-    if ((options & Flags::BodyFlags::RigidBodyStatic) || (options & Flags::BodyFlags::RigidBodyKinematic))
-    {
-        body.kinematics.inverseMass = 0.0f;
-        body.kinematics.inertia = 0.0f;
-        body.kinematics.inverseInertia = 0.0f;
-
-        body.kinematics.pushForce = body.kinematics.pushForce > 0.0f ? body.kinematics.pushForce : 70.0f;
-
-        if (options & Flags::BodyFlags::RigidBodyStatic)
-        {
-            body.kinematics.velocity = {0.0f, 0.0f};
-            body.kinematics.angularVelocity = 0.0f;
-            body.kinematics.pushForce = 0.0f; 
-        }
-
-        return;
-    }
-
-    if (options & Flags::RigidBodyDynamic)
+    if (body.hasFlag(Flags::RigidBodyDynamic))
     {
         const float mass = (body.kinematics.inverseMass > 0) ? 1.0f / body.kinematics.inverseMass : 0.0f;
 
-        switch (shape.type)
+        switch (body.shape.type)
         {
         case ShapeType::Box:
         {
-            float hx = shape.halfSize.x * trans.scale.x;
-            float hy = shape.halfSize.y * trans.scale.y;
+            float hx = body.shape.halfSize.x * body.transform.scale.x;
+            float hy = body.shape.halfSize.y * body.transform.scale.y;
             body.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
             break;
         }
         case ShapeType::Circle:
         {
-            float r = shape.radius * trans.scale.x;
+            float r = body.shape.radius * body.transform.scale.x;
             body.kinematics.inertia = 0.5f * mass * (r * r);
             break;
         }
@@ -86,14 +68,36 @@ void sas::PhysicsWorld::initializeBodyPhysics(Body &body, const Shape &shape, co
         }
 
         body.kinematics.inverseInertia = (body.kinematics.inertia > 0) ? 1.0f / body.kinematics.inertia : 0.0f;
+
+        return;
+    }
+
+    body.kinematics.inverseMass = 0.0f;
+    body.kinematics.inertia = 0.0f;
+    body.kinematics.inverseInertia = 0.0f;
+
+    if (body.hasFlag(Flags::BodyFlags::Trigger))
+    {
+        body.kinematics.pushForce = 0.f;
+    }
+    else
+    {
+        body.kinematics.pushForce = body.kinematics.pushForce > 0.0f ? body.kinematics.pushForce : 70.0f;
+    }
+
+    if (body.hasFlag(Flags::BodyFlags::RigidBodyStatic))
+    {
+        body.kinematics.velocity = {0.0f, 0.0f};
+        body.kinematics.angularVelocity = 0.0f;
+        body.kinematics.pushForce = 0.0f;
     }
 }
 
-void sas::PhysicsWorld::setupCollision(Body &body, uint32_t options) noexcept
+void sas::PhysicsWorld::setupCollision(Body &body) noexcept
 {
-    constexpr uint32_t typeMask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic | Flags::RigidBodyKinematic;
+    constexpr uint32_t typeMask = Flags::RigidBodyDynamic | Flags::RigidBodyStatic | Flags::RigidBodyKinematic | Flags::Trigger;
 
-    if ((options & Flags::Active) && (options & typeMask))
+    if (body.hasFlag(Flags::Active) && (body.hasFlag(typeMask)))
     {
         body.collisionMask = Flags::Layer1 | Flags::Mask1;
         activeIDs.push_back(body.bodyID);
@@ -198,7 +202,6 @@ void sas::PhysicsWorld::step() noexcept
 
         if (!(obj.flags & Flags::RigidBodyStatic))
         {
-
             integratePosition(obj);
         }
     }
@@ -221,18 +224,34 @@ void sas::PhysicsWorld::step() noexcept
         checkCollisionDispatcher(obj);
     }
 
+    const auto &shouldResolveCollision = [&](const Contact &contact)
+    {
+        if (getBodyFromSparse(contact.bodyA).hasFlag(Flags::Trigger) || getBodyFromSparse(contact.bodyB).hasFlag(Flags::Trigger))
+        {
+            return false;
+        }
+
+        return true;
+    };
+
     constexpr size_t solverIterations = 10;
     for (size_t i = 0; i < solverIterations; ++i)
     {
         for (auto &contact : contacts)
         {
-            resolveCollision(contact);
+            if (shouldResolveCollision(contact))
+            {
+                resolveCollision(contact);
+            }
         }
     }
 
     for (auto &c : contacts)
     {
-        correctPosition(c);
+        if (shouldResolveCollision(c))
+        {
+            correctPosition(c);
+        }
     }
 
     for (uint32_t id : activeIDs)
@@ -248,7 +267,7 @@ void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
 {
     // Forcing static objects to to have 0 vel
     // And 0 inverse mass otherwise
-    if (obj.flags & Flags::RigidBodyStatic)
+    if (obj.hasFlag(Flags::RigidBodyStatic) || obj.hasFlag(Flags::Trigger))
     {
         obj.kinematics.reset();
         return;
@@ -262,9 +281,9 @@ void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
     {
         auto &other = bodies[sparse[otherID]];
 
-        bool otherIsStatic = (other.flags & Flags::RigidBodyStatic);
+        bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) || other.hasFlag(Flags::Trigger);
 
-        if (!otherIsStatic && obj.bodyID >= otherID)
+        if (!otherIsSkipped && obj.bodyID >= otherID)
             continue;
 
         uint32_t objLayer = obj.collisionMask & 0x0000FFFF;
@@ -280,6 +299,202 @@ void sas::PhysicsWorld::checkCollisionDispatcher(Body &obj) noexcept
         // So if the user somehow updates the shape type with some random value
         (this->*DispatchTable[static_cast<int>(obj.shape.type)][static_cast<int>(other.shape.type)])(obj, other);
     }
+}
+
+void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
+{
+    Body &obj = bodies[sparse[contact.bodyA]];
+    Body &other = bodies[sparse[contact.bodyB]];
+
+    const float percent = 0.4f;
+    const float slop = 0.5f;
+
+    float invMassA = (obj.flags & Flags::RigidBodyKinematic) ? 1.0f : obj.kinematics.inverseMass;
+    float invInertiaA = (obj.flags & Flags::RigidBodyKinematic) ? 0.0f : obj.kinematics.inverseInertia;
+
+    float invMassB = (other.flags & Flags::RigidBodyKinematic) ? 1.0f : other.kinematics.inverseMass;
+    float invInertiaB = (other.flags & Flags::RigidBodyKinematic) ? 0.0f : other.kinematics.inverseInertia;
+
+    for (uint32_t i = 0; i < contact.pointCount; i++)
+    {
+        math::Vec2 rA = contact.points[i].position - obj.transform.position;
+        math::Vec2 rB = contact.points[i].position - other.transform.position;
+
+        auto crossV = [](const math::Vec2 &a, const math::Vec2 &b)
+        { return a.x * b.y - a.y * b.x; };
+
+        float raCrossN = crossV(rA, contact.normal);
+        float rbCrossN = crossV(rB, contact.normal);
+
+        float invMassSum = invMassA + invMassB +
+                           (raCrossN * raCrossN) * invInertiaA +
+                           (rbCrossN * rbCrossN) * invInertiaB;
+
+        if (invMassSum <= 0.0f)
+            continue;
+
+        float penetration = contact.points[i].depth - slop;
+        if (penetration <= 0.0f)
+            continue;
+
+        float p = (penetration / invMassSum) * percent;
+        p /= contact.pointCount;
+
+        math::Vec2 correction = contact.normal * p;
+
+        obj.transform.position = obj.transform.position + correction * invMassA;
+        obj.transform.rotation += raCrossN * p * invInertiaA;
+
+        other.transform.position = other.transform.position - correction * invMassB;
+        other.transform.rotation -= rbCrossN * p * invInertiaB;
+    }
+}
+
+void sas::PhysicsWorld::updateCollisionFlags() noexcept
+{
+    for (const auto &contact : contacts)
+    {
+        collisionFlags[contact.bodyA] = 1;
+        collisionFlags[contact.bodyB] = 1;
+
+        frameContacts.emplace_back(contact);
+    }
+}
+
+void sas::PhysicsWorld::applyGravity(Body &obj) const noexcept
+{
+    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
+    obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
+
+    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
+    obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
+}
+
+void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
+{
+    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
+    obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
+
+    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
+    obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
+}
+
+void sas::PhysicsWorld::integrateVelocity(Body &obj) const noexcept
+{
+    obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * deltaTime;
+
+    const float angularDamping = 0.98f;
+
+    // We raise it to the power of (deltaTime * 60) so it is framerate independent
+    float dampingThisFrame = std::pow(angularDamping, deltaTime * 60.0f);
+
+    obj.kinematics.angularVelocity *= dampingThisFrame;
+}
+
+void sas::PhysicsWorld::integratePosition(Body &obj) const noexcept
+{
+    obj.transform.position = obj.transform.position + obj.kinematics.velocity * deltaTime;
+    obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * deltaTime;
+}
+
+void sas::PhysicsWorld::addToCollisionPool(Body &body) noexcept
+{
+    if (!(body.flags & Flags::InCollisionPool))
+    {
+        body.flags |= Flags::InCollisionPool;
+
+        root.insert(body.bodyID, computeTightAABB(body));
+    }
+}
+
+void sas::PhysicsWorld::removeFromCollisionPool(Body &body) noexcept
+{
+    if (body.flags & Flags::InCollisionPool)
+    {
+        body.flags &= ~Flags::InCollisionPool;
+
+        root.remove(body.bodyID);
+    }
+}
+
+void sas::PhysicsWorld::reset(Body &obj) const noexcept
+{
+    obj.kinematics.acceleration = {0, 0};
+}
+
+const sas::Body &sas::PhysicsWorld::getBodyFromSparse(uint32_t id) const noexcept
+{
+    return bodies[sparse[id]];
+}
+
+sas::Body &sas::PhysicsWorld::getBodyFromSparse(uint32_t id) noexcept
+{
+    return bodies[sparse[id]];
+}
+
+// TODO
+bool sas::PhysicsWorld::bodyExists(uint32_t id) const noexcept
+{
+    return false;
+}
+
+bool sas::PhysicsWorld::isBodyInCollision(uint32_t id) const noexcept
+{
+    return collisionFlags[id] != 0;
+}
+
+sas::Body &sas::PhysicsWorld::getBody(uint32_t id) noexcept
+{
+    return bodies[sparse[id]];
+}
+
+std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id) noexcept
+{
+    if (!isBodyInCollision(id))
+        return {};
+
+    std::vector<sas::CollisionInfo> collisions;
+
+    collisions.reserve(8);
+
+    for (const auto &contact : frameContacts)
+    {
+        if (contact.bodyA == id)
+        {
+            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.overlap);
+        }
+        else if (contact.bodyB == id)
+        {
+            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.overlap);
+        }
+    }
+
+    return collisions;
+}
+
+void sas::PhysicsWorld::removeBody(const BodyHandle &handle) noexcept
+{
+    removeBody(handle.get()->bodyID);
+}
+
+void sas::PhysicsWorld::drawDebug(const DrawCallback &cb) const noexcept
+{
+    root.draw(cb);
+}
+
+void sas::PhysicsWorld::clear() noexcept
+{
+    root.clear();
+    bodies.clear();
+    bodies.clear();
+    sparse.clear();
+    collisionFlags.clear();
+    dense.clear();
+    freeIDs.clear();
+    activeIDs.clear();
+    contacts.clear();
+
+    idCounter = 0;
 }
 
 void sas::PhysicsWorld::checkCollisionCircleCircle(Body &obj, Body &other) noexcept
@@ -342,6 +557,12 @@ static BoxCorners GetBoxCorners(const sas::Body &b)
 
     return {rotate(-hx, -hy), rotate(hx, -hy), rotate(hx, hy), rotate(-hx, hy)};
 }
+
+void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
+{
+    checkCollisionCircleBox(other, obj);
+}
+
 void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
 {
     math::Vec2 axes[4];
@@ -401,7 +622,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
         math::Vec2 v1, v2, maxVertex;
     };
 
-    auto GetBestEdge = [](const BoxCorners &corners, const math::Vec2 &normal) -> Edge
+    auto getBestEdge = [](const BoxCorners &corners, const math::Vec2 &normal) -> Edge
     {
         float maxDot = -std::numeric_limits<float>::max();
         int index = 0;
@@ -435,8 +656,8 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
         }
     };
 
-    Edge edgeA = GetBestEdge(cornersA, mtvAxis * -1.0f);
-    Edge edgeB = GetBestEdge(cornersB, mtvAxis);
+    Edge edgeA = getBestEdge(cornersA, mtvAxis * -1.0f);
+    Edge edgeB = getBestEdge(cornersB, mtvAxis);
 
     math::Vec2 edgeADir = edgeA.v2 - edgeA.v1;
     edgeADir = edgeADir * (1.0f / edgeADir.length());
@@ -465,7 +686,7 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     float offset1 = math::dotProduct(refDir, refEdge.v1);
     float offset2 = math::dotProduct(refDir * -1.0f, refEdge.v2);
 
-    auto ClipSegmentToLine = [](std::vector<math::Vec2> &vOut, const std::vector<math::Vec2> &vIn,
+    auto clipSegmentToLine = [](std::vector<math::Vec2> &vOut, const std::vector<math::Vec2> &vIn,
                                 const math::Vec2 &normal, float offset)
     {
         vOut.clear();
@@ -490,8 +711,8 @@ void sas::PhysicsWorld::checkCollisionBoxBox(Body &obj, Body &other) noexcept
     std::vector<math::Vec2> incPoints = {incEdge.v1, incEdge.v2};
     std::vector<math::Vec2> clipped1, finalPoints;
 
-    ClipSegmentToLine(clipped1, incPoints, refDir * -1.0f, -offset1);
-    ClipSegmentToLine(finalPoints, clipped1, refDir, -offset2);
+    clipSegmentToLine(clipped1, incPoints, refDir * -1.0f, -offset1);
+    clipSegmentToLine(finalPoints, clipped1, refDir, -offset2);
 
     math::Vec2 refNormal = {-refDir.y, refDir.x};
 
@@ -617,6 +838,11 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
     Body &obj = bodies[sparse[contact.bodyA]];
     Body &other = bodies[sparse[contact.bodyB]];
 
+    // if(obj.hasFlag(Flags::Trigger) || other.hasFlag(Flags::Trigger))
+    // {
+    //     return;
+    // }
+
     float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
     if (totalInvMass <= 0.0f)
         return;
@@ -733,186 +959,4 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
         other.kinematics.velocity = other.kinematics.velocity - impulse * other.kinematics.inverseMass;
         other.kinematics.angularVelocity -= rbCrossN * j * other.kinematics.inverseInertia;
     }
-}
-
-void sas::PhysicsWorld::correctPosition(Contact &contact) noexcept
-{
-    Body &obj = bodies[sparse[contact.bodyA]];
-    Body &other = bodies[sparse[contact.bodyB]];
-
-    const float percent = 0.4f;
-    const float slop = 0.5f;
-
-    float invMassA = (obj.flags & Flags::RigidBodyKinematic) ? 1.0f : obj.kinematics.inverseMass;
-    float invInertiaA = (obj.flags & Flags::RigidBodyKinematic) ? 0.0f : obj.kinematics.inverseInertia;
-
-    float invMassB = (other.flags & Flags::RigidBodyKinematic) ? 1.0f : other.kinematics.inverseMass;
-    float invInertiaB = (other.flags & Flags::RigidBodyKinematic) ? 0.0f : other.kinematics.inverseInertia;
-
-    for (uint32_t i = 0; i < contact.pointCount; i++)
-    {
-        math::Vec2 rA = contact.points[i].position - obj.transform.position;
-        math::Vec2 rB = contact.points[i].position - other.transform.position;
-
-        auto crossV = [](const math::Vec2 &a, const math::Vec2 &b)
-        { return a.x * b.y - a.y * b.x; };
-
-        float raCrossN = crossV(rA, contact.normal);
-        float rbCrossN = crossV(rB, contact.normal);
-
-        float invMassSum = invMassA + invMassB +
-                           (raCrossN * raCrossN) * invInertiaA +
-                           (rbCrossN * rbCrossN) * invInertiaB;
-
-        if (invMassSum <= 0.0f)
-            continue;
-
-        float penetration = contact.points[i].depth - slop;
-        if (penetration <= 0.0f)
-            continue;
-
-        float p = (penetration / invMassSum) * percent;
-        p /= contact.pointCount;
-
-        math::Vec2 correction = contact.normal * p;
-
-        obj.transform.position = obj.transform.position + correction * invMassA;
-        obj.transform.rotation += raCrossN * p * invInertiaA;
-
-        other.transform.position = other.transform.position - correction * invMassB;
-        other.transform.rotation -= rbCrossN * p * invInertiaB;
-    }
-}
-
-void sas::PhysicsWorld::checkCollisionBoxCircle(Body &obj, Body &other) noexcept
-{
-    checkCollisionCircleBox(other, obj);
-}
-
-void sas::PhysicsWorld::updateCollisionFlags() noexcept
-{
-    for (const auto &contact : contacts)
-    {
-        collisionFlags[contact.bodyA] = 1;
-        collisionFlags[contact.bodyB] = 1;
-        
-        frameContacts.emplace_back(contact);
-    }
-}
-
-void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
-{
-    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
-    obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
-
-    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
-}
-
-void sas::PhysicsWorld::integrateVelocity(Body &obj) const noexcept
-{
-    obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * deltaTime;
-
-    const float angularDamping = 0.98f;
-
-    // We raise it to the power of (deltaTime * 60) so it is framerate independent
-    float dampingThisFrame = std::pow(angularDamping, deltaTime * 60.0f);
-
-    obj.kinematics.angularVelocity *= dampingThisFrame;
-}
-
-void sas::PhysicsWorld::integratePosition(Body &obj) const noexcept
-{
-    obj.transform.position = obj.transform.position + obj.kinematics.velocity * deltaTime;
-    obj.transform.rotation = obj.transform.rotation + obj.kinematics.angularVelocity * deltaTime;
-}
-
-void sas::PhysicsWorld::addToCollisionPool(Body &body) noexcept
-{
-    if (!(body.flags & Flags::InCollisionPool))
-    {
-        body.flags |= Flags::InCollisionPool;
-
-        root.insert(body.bodyID, computeTightAABB(body));
-    }
-}
-
-void sas::PhysicsWorld::removeFromCollisionPool(Body &body) noexcept
-{
-    if (body.flags & Flags::InCollisionPool)
-    {
-        body.flags &= ~Flags::InCollisionPool;
-
-        root.remove(body.bodyID);
-    }
-}
-
-void sas::PhysicsWorld::reset(Body &obj) const noexcept
-{
-    obj.kinematics.acceleration = {0, 0};
-}
-
-// TODO
-bool sas::PhysicsWorld::bodyExists(uint32_t id) const noexcept
-{
-    return false;
-}
-
-bool sas::PhysicsWorld::isBodyInCollision(uint32_t id) const noexcept
-{
-    return collisionFlags[id] != 0;
-}
-
-sas::Body &sas::PhysicsWorld::getBody(uint32_t id) noexcept
-{
-    return bodies[sparse[id]];
-}
-
-std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id) noexcept
-{
-    if (!isBodyInCollision(id))
-        return {};
-
-    std::vector<sas::CollisionInfo> collisions;
-
-    collisions.reserve(8);
-
-    for (const auto &contact : frameContacts)
-    {
-        if (contact.bodyA == id)
-        {
-            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.overlap);
-        }
-        else if (contact.bodyB == id)
-        {
-            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.overlap);
-        }
-    }
-
-    return collisions;
-}
-
-void sas::PhysicsWorld::removeBody(const BodyHandle &handle) noexcept
-{
-    removeBody(handle.get()->bodyID);
-}
-
-void sas::PhysicsWorld::drawDebug(const DrawCallback &cb) const noexcept
-{
-    root.draw(cb);
-}
-
-void sas::PhysicsWorld::clear() noexcept
-{
-    root.clear();
-    bodies.clear();
-    bodies.clear();
-    sparse.clear();
-    collisionFlags.clear();
-    dense.clear();
-    freeIDs.clear();
-    activeIDs.clear();
-    contacts.clear();
-
-    idCounter = 0;
 }
