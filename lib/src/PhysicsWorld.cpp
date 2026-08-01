@@ -186,7 +186,7 @@ void sas::PhysicsWorld::step() noexcept
     {
         Body &obj = bodies[sparse[id]];
 
-        if (!(obj.flags & (Flags::RigidBodyStatic | Flags::RigidBodyKinematic)))
+        if (!(obj.flags & (Flags::RigidBodyStatic | Flags::RigidBodyKinematic | Flags::Trigger)))
         {
             if (obj.kinematics.inverseMass > 0)
             {
