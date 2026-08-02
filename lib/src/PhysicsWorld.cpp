@@ -109,6 +109,9 @@ void sas::PhysicsWorld::removeBody(uint32_t bodyID) noexcept
 {
     if (bodies.empty())
         return;
+    
+    if(!bodyExists(bodyID))
+        return;
     int indToRemove = sparse[bodyID];
     int lastIndex = static_cast<int>(bodies.size()) - 1;
 
@@ -226,7 +229,9 @@ void sas::PhysicsWorld::step() noexcept
 
     const auto &shouldResolveCollision = [&](const Contact &contact)
     {
-        if (getBodyFromSparse(contact.bodyA).hasFlag(Flags::Trigger) || getBodyFromSparse(contact.bodyB).hasFlag(Flags::Trigger))
+        const Body &bodyA = getBodyFromSparse(contact.bodyA);
+        const Body &bodyB = getBodyFromSparse(contact.bodyB);
+        if (bodyA.hasFlag(Flags::Trigger) || bodyB.hasFlag(Flags::Trigger))
         {
             return false;
         }
@@ -361,19 +366,10 @@ void sas::PhysicsWorld::updateCollisionFlags() noexcept
     }
 }
 
-void sas::PhysicsWorld::applyGravity(Body &obj) const noexcept
-{
-    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
-    obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
-
-    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
-}
-
 void sas::PhysicsWorld::applyForces(Body &obj) const noexcept
 {
     float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
-    obj.kinematics.acceleration.y += settings.gravity - (dragForceY * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity) - (dragForceY * obj.kinematics.inverseMass);
 
     float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
     obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
@@ -432,10 +428,19 @@ sas::Body &sas::PhysicsWorld::getBodyFromSparse(uint32_t id) noexcept
     return bodies[sparse[id]];
 }
 
-// TODO
 bool sas::PhysicsWorld::bodyExists(uint32_t id) const noexcept
 {
-    return false;
+    if(id >= sparse.size())
+    {
+        return false;
+    }
+
+    if(sparse[id] == -1)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 bool sas::PhysicsWorld::isBodyInCollision(uint32_t id) const noexcept
@@ -443,9 +448,34 @@ bool sas::PhysicsWorld::isBodyInCollision(uint32_t id) const noexcept
     return collisionFlags[id] != 0;
 }
 
-sas::Body &sas::PhysicsWorld::getBody(uint32_t id) noexcept
+sas::Body &sas::PhysicsWorld::getBodyUnsafe(uint32_t id) noexcept
 {
-    return bodies[sparse[id]];
+    return getBodyFromSparse(id);
+}
+
+const sas::Body &sas::PhysicsWorld::getBodyUnsafe(uint32_t id) const noexcept
+{
+    return getBodyFromSparse(id);
+}
+
+sas::Body *sas::PhysicsWorld::getBody(uint32_t id) noexcept
+{
+    if (bodyExists(id))
+    {
+        return &getBodyFromSparse(id);
+    }
+
+    return nullptr;
+}
+
+const sas::Body *sas::PhysicsWorld::getBody(uint32_t id) const noexcept
+{
+    if (bodyExists(id))
+    {
+        return &getBodyFromSparse(id);
+    }
+
+    return nullptr;
 }
 
 std::vector<sas::CollisionInfo> sas::PhysicsWorld::getAllCollisions(uint32_t id) noexcept
@@ -837,11 +867,6 @@ void sas::PhysicsWorld::resolveCollision(Contact &contact) noexcept
 {
     Body &obj = bodies[sparse[contact.bodyA]];
     Body &other = bodies[sparse[contact.bodyB]];
-
-    // if(obj.hasFlag(Flags::Trigger) || other.hasFlag(Flags::Trigger))
-    // {
-    //     return;
-    // }
 
     float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
     if (totalInvMass <= 0.0f)

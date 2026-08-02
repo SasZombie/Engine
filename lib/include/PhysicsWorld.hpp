@@ -67,7 +67,6 @@ namespace sas
         BodyHandle createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
         BodyHandle createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
-
         void addToCollisionPool(Body &body) noexcept;
         void removeFromCollisionPool(Body &body) noexcept;
 
@@ -75,7 +74,13 @@ namespace sas
 
         [[nodiscard]] bool bodyExists(uint32_t id) const noexcept;
         [[nodiscard]] bool isBodyInCollision(uint32_t id) const noexcept;
-        [[nodiscard]] Body &getBody(uint32_t id) noexcept;
+
+        [[nodiscard]] Body &getBodyUnsafe(uint32_t id) noexcept;
+        [[nodiscard]] const Body &getBodyUnsafe(uint32_t id) const noexcept;
+
+        [[nodiscard]] Body* getBody(uint32_t id) noexcept;
+        [[nodiscard]] const Body* getBody(uint32_t id) const noexcept;
+
         [[nodiscard]] std::vector<CollisionInfo> getAllCollisions(uint32_t id) noexcept;
 
         void removeBody(const BodyHandle &handle) noexcept;
@@ -88,7 +93,6 @@ namespace sas
         
     private:
         void step() noexcept;
-        void applyGravity(Body &obj) const noexcept;
 
         void applyForces(Body &obj) const noexcept;
 
@@ -107,8 +111,10 @@ namespace sas
 
         void reset(Body &obj) const noexcept;
 
-        const Body& getBodyFromSparse(uint32_t id) const noexcept;
-        Body& getBodyFromSparse(uint32_t id) noexcept;
+        //This is unchecked
+        [[nodiscard]] const Body& getBodyFromSparse(uint32_t id) const noexcept;
+        //This is unchecked
+        [[nodiscard]] Body& getBodyFromSparse(uint32_t id) noexcept;
 
         [[nodiscard]] uint32_t getNextId() noexcept;
 
@@ -137,7 +143,7 @@ namespace sas
 
         Body *operator->()
         {
-            return &world->getBody(id);
+            return &world->getBodyUnsafe(id);
         }
 
         bool isValid() const noexcept
@@ -147,7 +153,7 @@ namespace sas
 
         Body *get() const
         {
-            return &world->getBody(id);
+            return &world->getBodyUnsafe(id);
         }
 
         [[nodiscard]] bool isColliding() const noexcept
@@ -162,7 +168,7 @@ namespace sas
 
         void setActive() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
 
             if (!(b.flags & Flags::Active))
             {
@@ -174,7 +180,7 @@ namespace sas
 
         void setInactive() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
 
             if (b.flags & Flags::Active)
             {
@@ -185,7 +191,7 @@ namespace sas
 
         void setRigidBodyOn() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
 
             if (!(b.flags & Flags::RigidBodyDynamic))
             {
@@ -195,7 +201,7 @@ namespace sas
 
         void setRigidBodyOff() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
 
             if (!(b.flags & Flags::RigidBodyDynamic))
             {
@@ -205,27 +211,27 @@ namespace sas
 
         void setCollisionOff() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
             b.collisionMask = 0;
             world->removeFromCollisionPool(b);
         }
 
         void setCollisionOn() noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
             world->addToCollisionPool(b);
         }
 
         void setMask(uint32_t mask) noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
 
             b.collisionMask = (b.collisionMask & 0x0000FFFF) | (mask & 0xFFFF0000);
         }
 
         void setLayer(uint32_t layerBits) noexcept
         {
-            auto &b = world->getBody(id);
+            auto &b = world->getBodyUnsafe(id);
             b.collisionMask = (b.collisionMask & 0xFFFF0000) | (layerBits & 0x0000FFFF);
         }
 

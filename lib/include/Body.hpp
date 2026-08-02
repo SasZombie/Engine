@@ -66,22 +66,6 @@ namespace sas
         }
     };
 
-    enum struct GravityEmitionType
-    {
-        NONE,
-        OVERRIDE,
-        ADDITIVE,
-        RADIAL
-    };
-
-    struct Gravity
-    {
-        math::Vec2 gravityForce;
-        float scale = 1.f;
-        size_t priority = 0.f;
-        GravityEmitionType gravityType = GravityEmitionType::NONE;
-    };
-
     struct Body
     {
         Transform transform;
@@ -93,7 +77,7 @@ namespace sas
         uint32_t flags;
         uint32_t collisionMask;
 
-        Gravity gravity;
+        float gravityScale = 1.f;
 
         uint32_t dataType = 0;
         void *userData = nullptr;

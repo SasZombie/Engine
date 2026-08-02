@@ -99,11 +99,6 @@ int main()
     {
         dt = GetFrameTime();
 
-        if (forthEntity.bodyHandle.isColliding())
-        {
-            std::cout << "Collision\n";
-        }
-
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
         {
             const auto &[x, y] = GetMousePosition();
