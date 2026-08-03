@@ -460,7 +460,7 @@ const sas::Body &sas::PhysicsWorld::getBodyUnsafe(uint32_t id) const noexcept
 
 sas::Body *sas::PhysicsWorld::getBody(uint32_t id) noexcept
 {
-    if (bodyExists(id))
+    if (bodyExists(id)) [[likely]]
     {
         return &getBodyFromSparse(id);
     }
@@ -470,7 +470,7 @@ sas::Body *sas::PhysicsWorld::getBody(uint32_t id) noexcept
 
 const sas::Body *sas::PhysicsWorld::getBody(uint32_t id) const noexcept
 {
-    if (bodyExists(id))
+    if (bodyExists(id)) [[likely]]
     {
         return &getBodyFromSparse(id);
     }
