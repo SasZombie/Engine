@@ -19,46 +19,46 @@ namespace sas
                 float data[2];
             };
 
-            constexpr Vec2() : x(0), y(0) {}
-            constexpr explicit Vec2(float val) : x(val), y(val) {}
-            constexpr Vec2(float nx, float ny) : x(nx), y(ny) {}
+            constexpr Vec2() noexcept : x(0), y(0) {}
+            constexpr explicit Vec2(float val) noexcept : x(val), y(val) {}
+            constexpr Vec2(float nx, float ny) noexcept : x(nx), y(ny) {}
 
-            constexpr Vec2 operator+(const Vec2 &other) const
+            constexpr Vec2 operator+(const Vec2 &other) const noexcept
             {
                 return {x + other.x, y + other.y};
             }
-            constexpr Vec2 operator-(const Vec2 &other) const
+            constexpr Vec2 operator-(const Vec2 &other) const noexcept
             {
                 return {x - other.x, y - other.y};
             }
 
-            constexpr Vec2 operator*(float scalar) const
+            constexpr Vec2 operator*(float scalar) const noexcept
             {
                 return {x * scalar, y * scalar};
             }
 
             // CrossProduct
-            constexpr float operator*(const Vec2 &other) const
+            constexpr float operator*(const Vec2 &other) const noexcept
             {
                 return {data[0] * other.data[1] - data[1] * other.data[0]};
             }
 
-            constexpr Vec2 operator/(float scalar) const
+            constexpr Vec2 operator/(float scalar) const noexcept
             {
                 return {x / scalar, y / scalar};
             }
 
-            constexpr float length() const
+            constexpr float length() const noexcept
             {
                 return std::sqrt(lengthSq());
             }
 
-            constexpr float lengthSq() const
+            constexpr float lengthSq() const noexcept
             {
                 return x * x + y * y;
             }
 
-            constexpr Vec2 normalized() const
+            constexpr Vec2 normalized() const noexcept
             {
                 float lenSq = lengthSq();
                 if (lenSq < 1e-8f)
@@ -68,13 +68,18 @@ namespace sas
                 return *this * invLen;
             }
 
+            Vec2 operator-() const
+            {
+                return {-x, -y};
+            }
+
             // So cringe ngl
-            friend constexpr Vec2 operator*(float scalar, const Vec2 &v)
+            friend constexpr Vec2 operator*(float scalar, const Vec2 &v) noexcept
             {
                 return v * scalar;
             }
 
-            friend constexpr Vec2 operator/(float scalar, const Vec2 &v)
+            friend constexpr Vec2 operator/(float scalar, const Vec2 &v) noexcept
             {
                 return v / scalar;
             }
@@ -95,12 +100,12 @@ namespace sas
             };
             static constexpr int ElementCount = 3;
 
-            constexpr Vec3() : x(0), y(0), z(0) {}
-            constexpr explicit Vec3(float val) : x(val), y(val), z(val) {}
-            constexpr Vec3(float nx, float ny, float nz) : x(nx), y(ny), z(nz) {}
+            constexpr Vec3() noexcept : x(0), y(0), z(0) {}
+            constexpr explicit Vec3(float val) noexcept : x(val), y(val), z(val) {}
+            constexpr Vec3(float nx, float ny, float nz) noexcept : x(nx), y(ny), z(nz) {}
 
             // data(0, 1, 2) is proven to be one next to the other
-            constexpr Vec3 operator+(const Vec3 &other) const
+            constexpr Vec3 operator+(const Vec3 &other) const noexcept
             {
                 Vec3 res;
 
@@ -110,7 +115,7 @@ namespace sas
 
                 return res;
             }
-            constexpr Vec3 operator-(const Vec3 &other) const
+            constexpr Vec3 operator-(const Vec3 &other) const noexcept
             {
                 Vec3 res;
 
@@ -121,7 +126,8 @@ namespace sas
                 return res;
             }
 
-            constexpr Vec3 operator*(float scalar) const
+            // Dot
+            constexpr Vec3 operator*(float scalar) const noexcept
             {
                 Vec3 res;
 
@@ -132,7 +138,7 @@ namespace sas
                 return res;
             }
 
-            constexpr Vec3 operator/(float scalar) const
+            constexpr Vec3 operator/(float scalar) const noexcept
             {
                 Vec3 res;
 
@@ -143,17 +149,17 @@ namespace sas
                 return res;
             }
 
-            constexpr float length() const
+            constexpr float length() const noexcept
             {
                 return std::sqrt(lengthSq());
             }
 
-            constexpr float lengthSq() const
+            constexpr float lengthSq() const noexcept
             {
                 return data[0] * data[0] + data[1] * data[1] + data[2] * data[2];
             }
 
-            constexpr Vec3 normalized() const
+            constexpr Vec3 normalized() const noexcept
             {
                 float lenSq = lengthSq();
                 if (lenSq < 1e-8f)
@@ -163,8 +169,13 @@ namespace sas
                 return *this * invLen;
             }
 
+            Vec3 operator-() const
+            {
+                return {-x, -y, -z};
+            }
+
             // Cross
-            constexpr Vec3 operator*(const Vec3 &other) const
+            constexpr Vec3 operator*(const Vec3 &other) const noexcept
             {
                 return {
                     data[1] * other.data[2] - data[2] * other.data[1],
@@ -172,12 +183,12 @@ namespace sas
                     data[0] * other.data[1] - data[1] * other.data[0]};
             }
 
-            friend constexpr Vec3 operator*(float scalar, const Vec3 &v)
+            friend constexpr Vec3 operator*(float scalar, const Vec3 &v) noexcept
             {
                 return v * scalar;
             }
 
-            friend constexpr Vec3 operator/(float scalar, const Vec3 &v)
+            friend constexpr Vec3 operator/(float scalar, const Vec3 &v) noexcept
             {
                 return v / scalar;
             }
@@ -199,12 +210,12 @@ namespace sas
                 float data[4];
             };
 
-            constexpr Vec4() : x(0), y(0), z(0), w(0) {}
-            constexpr explicit Vec4(float val) : x(val), y(val), z(val), w(val) {}
+            constexpr Vec4() noexcept : x(0), y(0), z(0), w(0) {}
+            constexpr explicit Vec4(float val) noexcept : x(val), y(val), z(val), w(val) {}
 
-            constexpr Vec4(float nx, float ny, float nz, float nw) : x(nx), y(ny), z(nz), w(nw) {}
+            constexpr Vec4(float nx, float ny, float nz, float nw) noexcept : x(nx), y(ny), z(nz), w(nw) {}
 
-            constexpr Vec4 operator+(const Vec4 &other) const
+            constexpr Vec4 operator+(const Vec4 &other) const noexcept
             {
                 Vec4 res;
 
@@ -215,7 +226,7 @@ namespace sas
 
                 return res;
             }
-            constexpr Vec4 operator-(const Vec4 &other) const
+            constexpr Vec4 operator-(const Vec4 &other) const noexcept
             {
                 Vec4 res;
 
@@ -227,7 +238,7 @@ namespace sas
                 return res;
             }
 
-            constexpr Vec4 operator*(float scalar) const
+            constexpr Vec4 operator*(float scalar) const noexcept
             {
                 Vec4 res;
 
@@ -239,7 +250,7 @@ namespace sas
                 return res;
             }
 
-            constexpr Vec3 operator*(Vec3 other) const
+            constexpr Vec3 operator*(const Vec3 &other) const noexcept
             {
 
                 Vec3 temp{data[0], data[1], data[2]};
@@ -247,7 +258,7 @@ namespace sas
                 return temp * other;
             }
 
-            constexpr Vec4 operator/(float scalar) const
+            constexpr Vec4 operator/(float scalar) const noexcept
             {
                 Vec4 res;
 
@@ -259,17 +270,17 @@ namespace sas
                 return res;
             }
 
-            constexpr float length() const
+            constexpr float length() const noexcept
             {
                 return std::sqrt(lengthSq());
             }
 
-            constexpr float lengthSq() const
+            constexpr float lengthSq() const noexcept
             {
                 return data[0] * data[0] + data[1] * data[1] + data[2] * data[2] + data[3] * data[3];
             }
 
-            constexpr Vec4 normalized() const
+            constexpr Vec4 normalized() const noexcept
             {
                 float lenSq = lengthSq();
                 if (lenSq < 1e-8f)
@@ -279,12 +290,17 @@ namespace sas
                 return *this * invLen;
             }
 
-            friend constexpr Vec4 operator*(float scalar, const Vec4 &v)
+            Vec4 operator-() const
+            {
+                return {-x, -y, -z, -w};
+            }
+
+            friend constexpr Vec4 operator*(float scalar, const Vec4 &v) noexcept
             {
                 return v * scalar;
             }
 
-            friend constexpr Vec4 operator/(float scalar, const Vec4 &v)
+            friend constexpr Vec4 operator/(float scalar, const Vec4 &v) noexcept
             {
                 return v / scalar;
             }
@@ -307,175 +323,312 @@ namespace sas
             return result;
         }
 
-        // template <customVector T>
-        // float distance(const T &vec1, const T &vec2) noexcept
-        // {
-        //     float result = (vec2.x - vec1.x) * (vec2.x - vec1.x) + (vec2.y - vec1.y) * (vec2.y - vec1.y);
-        //     if constexpr (requires { vec1.z; })
-        //     {
-        //         result = result + (vec2.z - vec1.z) * (vec2.z - vec1.z);
+        struct Mat2
+        {
+        private:
+            float data[4];
 
-        //         if constexpr (requires { vec1.w; })
-        //         {
-        //             result = result + (vec2.w - vec1.w) * (vec2.w - vec1.w);
-        //         }
-        //     }
+            size_t getIndex(size_t row, size_t col) const noexcept
+            {
+                return col * Rows + row;
+            }
 
-        //     return std::sqrt(result);
-        // }
+        public:
+            static constexpr unsigned Rows = 2;
+            static constexpr unsigned Cols = 2;
+            static constexpr unsigned ElementCount = Rows * Cols;
 
-        // template <customVector T>
-        // T projection(const T &vec1, const T &vec2) noexcept
-        // {
-        //     float scalar = dotProduct(vec1, vec2) / dotProduct(vec2, vec2);
+            constexpr Mat2() noexcept
+                : data{1.f, 0.f,
+                       0.f, 1.f} {}
 
-        //     return vec2 * scalar;
-        // }
+            constexpr explicit Mat2(float val) noexcept
+            {
+                for (unsigned i = 0; i < ElementCount; ++i)
+                {
+                    data[i] = val;
+                }
+            }
 
-        // template <customVector T>
-        // T lerp(const T &vec1, const T &vec2, float t) noexcept
-        // {
-        //     return vec1 * (1 - t) + vec2 * t;
-        // }
+            constexpr Mat2(float m00, float m01,
+                           float m10, float m11) noexcept
+                : data{m00, m10, m01, m11} {}
 
-        // template <customVector T>
-        // T min(const T &vec1, const T &vec2) noexcept
-        // {
-        //     T result;
-        //     result.x = std::min(vec1.x, vec2.x);
-        //     result.y = std::min(vec1.y, vec2.y);
+            constexpr float &operator[](size_t index) noexcept
+            {
+                return data[index];
+            }
+            constexpr const float &operator[](size_t index) const noexcept
+            {
+                return data[index];
+            }
 
-        //     if constexpr (requires { vec1.z; })
-        //     {
-        //         result.z = std::min(vec1.z, vec2.z);
+            constexpr float &operator()(size_t row, size_t col) noexcept
+            {
+                return data[getIndex(row, col)];
+            }
+            constexpr const float &operator()(size_t row, size_t col) const noexcept
+            {
+                return data[getIndex(row, col)];
+            }
 
-        //         if constexpr (requires { vec1.w; })
-        //         {
-        //             result.w = std::min(vec1.w, vec2.w);
-        //         }
-        //     }
+            // Pointer access for passing directly to graphics APIs (OpenGL/Vulkan)
+            constexpr float *data_ptr() noexcept
+            {
+                return data;
+            }
+            constexpr const float *data_ptr() const noexcept
+            {
+                return data;
+            }
 
-        //     return result;
-        // }
+            constexpr Mat2 operator*(const Mat2 &other) const noexcept
+            {
+                Mat2 result;
 
-        // template <customVector T>
-        // T max(const T &vec1, const T &vec2) noexcept
-        // {
-        //     T result;
-        //     result.x = std::max(vec1.x, vec2.x);
-        //     result.y = std::max(vec1.y, vec2.y);
+                result[0] = data[0] * other[0] + data[2] * other[1];
+                result[1] = data[1] * other[0] + data[3] * other[1];
 
-        //     if constexpr (requires { vec1.z; })
-        //     {
-        //         result.z = std::max(vec1.z, vec2.z);
+                result[2] = data[0] * other[2] + data[2] * other[3];
+                result[3] = data[1] * other[2] + data[3] * other[3];
 
-        //         if constexpr (requires { vec1.w; })
-        //         {
-        //             result.w = std::max(vec1.w, vec2.w);
-        //         }
-        //     }
+                return result;
+            }
 
-        //     return result;
-        // }
+            constexpr Mat2 operator*(float scalar) const noexcept
+            {
+                Mat2 temp;
+                temp[0] = data[0] * scalar;
+                temp[1] = data[1] * scalar;
+                temp[2] = data[2] * scalar;
+                temp[3] = data[3] * scalar;
 
-        // template <customVector T>
-        // T clamp(const T &vec1, const T &min, const T &max) noexcept
-        // {
-        //     T result;
-        //     result.x = std::clamp(vec1.x, min.x, max.x);
-        //     result.y = std::clamp(vec1.y, min.y, max.y);
+                return temp;
+            }
+        };
 
-        //     if constexpr (requires { vec1.z; })
-        //     {
-        //         result.z = std::clamp(vec1.z, min.y, max.y);
+        struct Mat3
+        {
+        private:
+            float data[9];
 
-        //         if constexpr (requires { vec1.w; })
-        //         {
-        //             result.w = std::clamp(vec1.w, min.y, max.y);
-        //         }
-        //     }
+            size_t getIndex(size_t row, size_t col) const noexcept
+            {
+                return col * Rows + row;
+            }
 
-        //     return result;
-        // }
+        public:
+            static constexpr unsigned Rows = 3;
+            static constexpr unsigned Cols = 3;
+            static constexpr unsigned ElementCount = Rows * Cols;
 
-        // struct Mat3
-        // {
-        //     float data[3][3]{};
+            constexpr Mat3() noexcept
+                : data{1.f, 0.f, 0.f,
+                       0.f, 1.f, 0.f,
+                       0.f, 0.f, 1.f} {}
 
-        //     Mat3 identity() noexcept
-        //     {
-        //         Mat3 result;
+            constexpr explicit Mat3(float val) noexcept
+            {
+                for (unsigned i = 0; i < ElementCount; ++i)
+                {
+                    data[i] = val;
+                }
+            }
 
-        //         result.data[0][0] = 1;
-        //         result.data[1][1] = 1;
-        //         result.data[2][2] = 1;
+            constexpr Mat3(float m00, float m01, float m02,
+                           float m10, float m11, float m12,
+                           float m20, float m21, float m22) noexcept
+                : data{m00, m10, m20, m01, m11, m21, m02, m12, m22} {}
 
-        //         return result;
-        //     }
+            constexpr explicit Mat3(const Mat2 &m2) noexcept
+                : data{
+                      m2(0, 0), m2(1, 0), 0.0f, // Column 0
+                      m2(0, 1), m2(1, 1), 0.0f, // Column 1
+                      0.0f, 0.0f, 1.0f}
+            {
+            }
+            constexpr float &operator[](size_t index) noexcept
+            {
+                return data[index];
+            }
+            constexpr const float &operator[](size_t index) const noexcept
+            {
+                return data[index];
+            }
 
-        //     // Not doing all that
-        //     Mat3 operator*(const Mat3 &other) const noexcept
-        //     {
-        //     }
+            constexpr float &operator()(size_t row, size_t col) noexcept
+            {
+                return data[getIndex(row, col)];
+            }
+            constexpr const float &operator()(size_t row, size_t col) const noexcept
+            {
+                return data[getIndex(row, col)];
+            }
 
-        //     Mat3 transpose() noexcept
-        //     {
-        //         Mat3 result;
-        //         for (int i = 0; i < 3; ++i)
-        //         {
-        //             for (int j = 0; j < 3; ++j)
-        //             {
-        //                 result.data[i][j] = data[j][i];
-        //             }
-        //         }
+            constexpr float *data_ptr() noexcept
+            {
+                return data;
+            }
+            constexpr const float *data_ptr() const noexcept
+            {
+                return data;
+            }
 
-        //         return result;
-        //     }
+            constexpr Mat3 operator*(const Mat3 &other) const noexcept
+            {
+                Mat3 result;
 
-        //     // Diabolical, calculate adjugate + inverse + check det != 0
-        //     Mat3 inverse() noexcept
-        //     {
-        //     }
-        // };
+                result[0] = data[0] * other[0] + data[3] * other[1] + data[6] * other[2];
+                result[1] = data[1] * other[0] + data[4] * other[1] + data[7] * other[2];
+                result[2] = data[2] * other[0] + data[5] * other[1] + data[8] * other[2];
 
-        // struct Mat4
-        // {
-        //     float data[4][4]{};
+                result[3] = data[0] * other[3] + data[3] * other[4] + data[6] * other[5];
+                result[4] = data[1] * other[3] + data[4] * other[4] + data[7] * other[5];
+                result[5] = data[2] * other[3] + data[5] * other[4] + data[8] * other[5];
 
-        //     Mat4 identity() noexcept
-        //     {
-        //         Mat4 result;
+                result[6] = data[0] * other[6] + data[3] * other[7] + data[6] * other[8];
+                result[7] = data[1] * other[6] + data[4] * other[7] + data[7] * other[8];
+                result[8] = data[2] * other[6] + data[5] * other[7] + data[8] * other[8];
 
-        //         result.data[0][0] = 1;
-        //         result.data[1][1] = 1;
-        //         result.data[2][2] = 1;
-        //         result.data[3][3] = 1;
+                return result;
+            }
 
-        //         return result;
-        //     }
+            constexpr Mat3 operator*(float scalar) const noexcept
+            {
+                Mat3 temp;
+                for (unsigned i = 0; i < ElementCount; ++i)
+                {
+                    temp[i] = data[i] * scalar;
+                }
 
-        //     Mat4 operator*(const Mat4 &other) const noexcept
-        //     {
-        //     }
+                return temp;
+            }
+        };
 
-        //     Mat4 transpose() noexcept
-        //     {
-        //         Mat4 result;
-        //         for (int i = 0; i < 4; ++i)
-        //         {
-        //             for (int j = 0; j < 4; ++j)
-        //             {
-        //                 result.data[i][j] = data[j][i];
-        //             }
-        //         }
+        struct Mat4
+        {
+        private:
+            float data[16];
 
-        //         return result;
-        //     }
+            size_t getIndex(size_t row, size_t col) const noexcept
+            {
+                return col * Rows + row;
+            }
 
-        //     Mat4 inverse() noexcept
-        //     {
-        //     }
-        // };
+        public:
+            static constexpr unsigned Rows = 4;
+            static constexpr unsigned Cols = 4;
+            static constexpr unsigned ElementCount = Rows * Cols;
+
+            constexpr Mat4() noexcept
+                : data{1.f, 0.f, 0.f, 0.f,
+                       0.f, 1.f, 0.f, 0.f,
+                       0.f, 0.f, 1.f, 0.f,
+                       0.f, 0.f, 0.f, 1.f} {}
+
+            constexpr explicit Mat4(float val) noexcept
+            {
+                for (unsigned i = 0; i < ElementCount; ++i)
+                {
+                    data[i] = val;
+                }
+            }
+
+            constexpr Mat4(float m00, float m01, float m02, float m03,
+                           float m10, float m11, float m12, float m13,
+                           float m20, float m21, float m22, float m23,
+                           float m30, float m31, float m32, float m33) noexcept
+                : data{m00, m10, m20, m30, m01, m11, m21, m31, m02, m12, m22, m32, m03, m13, m23, m33} {}
+
+            constexpr explicit Mat4(const Mat2 &m2) noexcept
+                : data{
+                      m2(0, 0), m2(1, 0), 0.0f, 0.0f,
+                      m2(0, 1), m2(1, 1), 0.0f, 0.0f,
+                      0.0f, 0.0f, 1.0f, 0.0f,        
+                      0.0f, 0.0f, 0.0f, 1.0f         
+                  }
+            {
+            }
+
+            constexpr explicit Mat4(const Mat3 &m3) noexcept
+                : data{
+                      m3(0, 0), m3(1, 0), m3(2, 0), 0.0f, 
+                      m3(0, 1), m3(1, 1), m3(2, 1), 0.0f, 
+                      m3(0, 2), m3(1, 2), m3(2, 2), 0.0f, 
+                      0.0f, 0.0f, 0.0f, 1.0f              
+                  }
+            {
+            }
+            constexpr float &operator[](size_t index) noexcept
+            {
+                return data[index];
+            }
+            constexpr const float &operator[](size_t index) const noexcept
+            {
+                return data[index];
+            }
+
+            constexpr float &operator()(size_t row, size_t col) noexcept
+            {
+                return data[getIndex(row, col)];
+            }
+            constexpr const float &operator()(size_t row, size_t col) const noexcept
+            {
+                return data[getIndex(row, col)];
+            }
+
+            constexpr float *data_ptr() noexcept
+            {
+                return data;
+            }
+            constexpr const float *data_ptr() const noexcept
+            {
+                return data;
+            }
+
+            constexpr Mat4 operator*(const Mat4 &other) const noexcept
+            {
+                Mat4 result;
+
+                result[0] = data[0] * other[0] + data[4] * other[1] + data[8] * other[2] + data[12] * other[3];
+                result[1] = data[1] * other[0] + data[5] * other[1] + data[9] * other[2] + data[13] * other[3];
+                result[2] = data[2] * other[0] + data[6] * other[1] + data[10] * other[2] + data[14] * other[3];
+                result[3] = data[3] * other[0] + data[7] * other[1] + data[11] * other[2] + data[15] * other[3];
+
+                result[4] = data[0] * other[4] + data[4] * other[5] + data[8] * other[6] + data[12] * other[7];
+                result[5] = data[1] * other[4] + data[5] * other[5] + data[9] * other[6] + data[13] * other[7];
+                result[6] = data[2] * other[4] + data[6] * other[5] + data[10] * other[6] + data[14] * other[7];
+                result[7] = data[3] * other[4] + data[7] * other[5] + data[11] * other[6] + data[15] * other[7];
+
+                result[8] = data[0] * other[8] + data[4] * other[9] + data[8] * other[10] + data[12] * other[11];
+                result[9] = data[1] * other[8] + data[5] * other[9] + data[9] * other[10] + data[13] * other[11];
+                result[10] = data[2] * other[8] + data[6] * other[9] + data[10] * other[10] + data[14] * other[11];
+                result[11] = data[3] * other[8] + data[7] * other[9] + data[11] * other[10] + data[15] * other[11];
+
+                result[12] = data[0] * other[12] + data[4] * other[13] + data[8] * other[14] + data[12] * other[15];
+                result[13] = data[1] * other[12] + data[5] * other[13] + data[9] * other[14] + data[13] * other[15];
+                result[14] = data[2] * other[12] + data[6] * other[13] + data[10] * other[14] + data[14] * other[15];
+                result[15] = data[3] * other[12] + data[7] * other[13] + data[11] * other[14] + data[15] * other[15];
+
+                return result;
+            }
+
+            constexpr Mat4 operator*(float scalar) const noexcept
+            {
+                Mat4 temp;
+                for (unsigned i = 0; i < ElementCount; ++i)
+                {
+                    temp[i] = data[i] * scalar;
+                }
+
+                return temp;
+            }
+        };
+
+        Mat4 lookAt(const Vec3 &position, const Vec3 &target, const Vec3 &worldUp) noexcept;
+        Mat4 perspective(float fovY, float aspect, float zNear, float zFar) noexcept;
+        float degToRad(float deg) noexcept;
+        float radToDeg(float rad) noexcept;
 
     } // namespace math
 

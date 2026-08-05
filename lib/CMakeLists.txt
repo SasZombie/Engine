@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(sas_physics
     src/PhysicsWorld.cpp
     src/AABBTree.cpp
+    src/Math.cpp
 )
 target_include_directories(sas_physics PUBLIC include)
 
