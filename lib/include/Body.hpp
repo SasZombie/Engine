@@ -68,7 +68,7 @@ namespace sas
 
     struct Body
     {
-        Transform transform;
+        Transform2D transform;
         Kinematics kinematics;
 
         Shape shape;

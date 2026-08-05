@@ -3,10 +3,10 @@
 
 TEST_F(FixtureTest, CircleCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {410, 400};
 
     sas::Kinematics k1;
@@ -30,10 +30,10 @@ TEST_F(FixtureTest, CircleCollide)
 
 TEST_F(FixtureTest, CircleDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {450, 400};
 
     sas::Kinematics k1;
@@ -55,10 +55,10 @@ TEST_F(FixtureTest, CircleDontCollide)
 
 TEST_F(FixtureTest, CircleCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -93,10 +93,10 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
 
 TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -127,10 +127,10 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
 
 TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -161,10 +161,10 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
 
 TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -186,10 +186,10 @@ TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
 
 TEST_F(FixtureTest, CircleLayerTwoCollides)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -211,10 +211,10 @@ TEST_F(FixtureTest, CircleLayerTwoCollides)
 
 TEST_F(FixtureTest, ScaledCircleCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {410, 400};
 
     sas::Kinematics k1;
@@ -241,10 +241,10 @@ TEST_F(FixtureTest, ScaledCircleCollide)
 
 TEST_F(FixtureTest, ScaledCircleDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {200, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {450, 400};
 
     sas::Kinematics k1;
@@ -269,10 +269,10 @@ TEST_F(FixtureTest, ScaledCircleDontCollide)
 
 TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -310,10 +310,10 @@ TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
 
 TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {610, 200};
 
     sas::Kinematics k1;
@@ -347,10 +347,10 @@ TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
 
 TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -384,10 +384,10 @@ TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
 
 TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -412,10 +412,10 @@ TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
 
 TEST_F(FixtureTest, ScaledCircleLayerTwoCollides)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;

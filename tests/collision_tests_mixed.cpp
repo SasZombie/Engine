@@ -3,10 +3,10 @@
 
 TEST_F(FixtureTest, MixedCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {410, 400};
 
     sas::Kinematics k1;
@@ -30,10 +30,10 @@ TEST_F(FixtureTest, MixedCollide)
 
 TEST_F(FixtureTest, MixedDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {450, 400};
 
     sas::Kinematics k1;
@@ -55,10 +55,10 @@ TEST_F(FixtureTest, MixedDontCollide)
 
 TEST_F(FixtureTest, MixedCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -93,10 +93,10 @@ TEST_F(FixtureTest, MixedCollideAfterMoving)
 
 TEST_F(FixtureTest, MixedsDontCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -127,10 +127,10 @@ TEST_F(FixtureTest, MixedsDontCollideAfterMoving)
 
 TEST_F(FixtureTest, MixedsWithoutCollisionsDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -161,10 +161,10 @@ TEST_F(FixtureTest, MixedsWithoutCollisionsDontCollide)
 
 TEST_F(FixtureTest, MixedDifferentLayersDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -186,10 +186,10 @@ TEST_F(FixtureTest, MixedDifferentLayersDontCollide)
 
 TEST_F(FixtureTest, MixedLayerTwoCollides)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;

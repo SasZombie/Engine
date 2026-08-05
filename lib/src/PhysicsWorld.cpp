@@ -5,19 +5,19 @@
 #include <utility>
 #include <algorithm>
 
-sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform2D &trans, uint32_t options) noexcept
 {
     return createBodyFull(shape, trans, {}, options);
 }
 
-sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBody(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     return createBodyFull(shape, trans, kin, options);
 }
 
 // Default
 // Flags::Active | Flags::RigidBody
-sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle sas::PhysicsWorld::createBodyFull(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     uint32_t newID = getNextId();
     uint32_t internalIndex = static_cast<uint32_t>(bodies.size());

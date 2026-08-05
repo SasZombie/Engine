@@ -3,10 +3,10 @@
 
 TEST_F(FixtureTest, BoxCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {410, 400};
 
     sas::Kinematics k1;
@@ -30,10 +30,10 @@ TEST_F(FixtureTest, BoxCollide)
 
 TEST_F(FixtureTest, BoxDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {450, 400};
 
     sas::Kinematics k1;
@@ -55,10 +55,10 @@ TEST_F(FixtureTest, BoxDontCollide)
 
 TEST_F(FixtureTest, BoxCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -94,10 +94,10 @@ TEST_F(FixtureTest, BoxCollideAfterMoving)
 
 TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -129,10 +129,10 @@ TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
 
 TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -163,10 +163,10 @@ TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
 
 TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -188,10 +188,10 @@ TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
 
 TEST_F(FixtureTest, LayerTwoCollidesBoxes)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -214,10 +214,10 @@ TEST_F(FixtureTest, LayerTwoCollidesBoxes)
 
 TEST_F(FixtureTest, ScaledBoxCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {400, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {410, 400};
 
     sas::Kinematics k1;
@@ -244,10 +244,10 @@ TEST_F(FixtureTest, ScaledBoxCollide)
 
 TEST_F(FixtureTest, ScaledBoxDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {200, 400};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {450, 400};
 
     sas::Kinematics k1;
@@ -272,10 +272,10 @@ TEST_F(FixtureTest, ScaledBoxDontCollide)
 
 TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -312,10 +312,10 @@ TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
 
 TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {610, 200};
 
     sas::Kinematics k1;
@@ -349,10 +349,10 @@ TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
 
 TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {310, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -386,10 +386,10 @@ TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
 
 TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;
@@ -414,10 +414,10 @@ TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
 
 TEST_F(FixtureTest, ScaledBoxLayerTwoCollides)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {510, 200};
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {510, 200};
 
     sas::Kinematics k1;

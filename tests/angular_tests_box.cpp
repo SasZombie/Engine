@@ -2,7 +2,7 @@
 
 TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {WIDTH / 2, 300};
     t.rotation = 0.0f;
 
@@ -25,7 +25,7 @@ TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
 
 TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {WIDTH / 2, 400};
     t.rotation = 0.2f;
 
@@ -55,7 +55,7 @@ TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
 
 TEST_F(FixtureTest, BoxTiltedDrop_SettlesFlat)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {WIDTH / 2, 350};
     t.rotation = 0.2f;
 

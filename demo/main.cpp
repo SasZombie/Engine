@@ -30,7 +30,7 @@ int main()
 
     std::vector<Entity> entities;
 
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {470, 230};
     t.scale = {1, 1};
     float rot = 30.f * DEG2RAD;
@@ -85,10 +85,10 @@ int main()
     sas::Kinematics bouncyKinematics;
     bouncyKinematics.restituition = 0.2f;
 
-    sas::BodyHandle topWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle bottomWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle leftWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{1, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle rightWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform{{SCREEN_WIDTH, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle topWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle bottomWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle leftWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{1, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle rightWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{SCREEN_WIDTH, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     entities.push_back({topWall, WHITE, sas::ShapeType::Box});
     entities.push_back({bottomWall, WHITE, sas::ShapeType::Box});
@@ -109,7 +109,7 @@ int main()
             }
             else
             {
-                sas::Transform t1;
+                sas::Transform2D t1;
                 t1.position = {x, y};
                 t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};

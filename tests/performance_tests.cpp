@@ -15,7 +15,7 @@ TEST_F(FixtureTest, Performance_Circle)
     {
         for (size_t i = 0; i < batchSize; ++i)
         {
-            sas::Transform t1;
+            sas::Transform2D t1;
             float x = 50.f + static_cast<float>((totalObjects + i) % 20) * 35.f;
             float y = 50.f + static_cast<float>((totalObjects + i) / 20) * 35.f;
             t1.position = {x, y};
@@ -61,7 +61,7 @@ TEST_F(FixtureTest, Performance_Box)
     {
         for (size_t i = 0; i < batchSize; ++i)
         {
-            sas::Transform t1;
+            sas::Transform2D t1;
             float x = 50.f + static_cast<float>((totalObjects + i) % 20) * 35.f;
             float y = 50.f + static_cast<float>((totalObjects + i) / 20) * 35.f;
             t1.position = {x, y};
@@ -108,7 +108,7 @@ TEST_F(FixtureTest, Performance_Mixed)
     {
         for (size_t i = 0; i < batchSize; ++i)
         {
-            sas::Transform t1;
+            sas::Transform2D t1;
             float x = 50.f + static_cast<float>((totalObjects + i) % 20) * 35.f;
             float y = 50.f + static_cast<float>((totalObjects + i) / 20) * 35.f;
             t1.position = {x, y};

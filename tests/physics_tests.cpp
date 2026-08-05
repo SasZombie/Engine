@@ -5,21 +5,21 @@
 
 TEST_F(FixtureTest, CircleIsBounded)
 {
-    sas::Transform t1;
+    sas::Transform2D t1;
     t1.position = {470, 50};
 
     AddCircle(t1, {});
 
-    sas::Transform t2;
+    sas::Transform2D t2;
     t2.position = {-50, 50};
     AddCircle(t2, {});
 
-    sas::Transform t3;
+    sas::Transform2D t3;
     t3.position = {1000, 50};
 
     AddCircle(t3, {});
 
-    sas::Transform t4;
+    sas::Transform2D t4;
     t4.position = {-100, 50};
 
     AddCircle(t4, {});
@@ -36,7 +36,7 @@ TEST_F(FixtureTest, CircleIsBounded)
 
 TEST_F(FixtureTest, CircleStopsOnFloor)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {400, 440};
 
     sas::Kinematics k;
@@ -66,7 +66,7 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
 TEST_F(FixtureTest, CircleBouncesOnFloor)
 {
 
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {400, 440};
 
     sas::Kinematics k;
@@ -88,7 +88,7 @@ TEST_F(FixtureTest, CircleBouncesOnFloor)
 
 TEST_F(FixtureTest, EnergyLossOnHighDrop)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {400, 50};
 
     sas::Kinematics k;
@@ -125,7 +125,7 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
 
 TEST_F(FixtureTest, CircleBouncesOnWall)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {750, 225};
 
     sas::Kinematics k;
@@ -148,7 +148,7 @@ TEST_F(FixtureTest, CircleBouncesOnWall)
 
 TEST_F(FixtureTest, CircleIsInnelastic)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {750, 225};
 
     sas::Kinematics k;
@@ -174,7 +174,7 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
     world->settings.groundFriction = 1.f;
     world->settings.wallFriction = 1.f;
 
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {750, 225};
 
     sas::Kinematics k;
@@ -196,7 +196,7 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
 
 TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
 {
-    sas::Transform t;
+    sas::Transform2D t;
     t.position = {750, 225};
 
     sas::Kinematics k;

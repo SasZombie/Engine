@@ -64,8 +64,8 @@ namespace sas
         // Not Optimized
         void drawDebug(const DrawCallback &cb) const noexcept;
 
-        BodyHandle createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
-        BodyHandle createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform2D &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
         void addToCollisionPool(Body &body) noexcept;
         void removeFromCollisionPool(Body &body) noexcept;
@@ -118,7 +118,7 @@ namespace sas
 
         [[nodiscard]] uint32_t getNextId() noexcept;
 
-        BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
+        BodyHandle createBodyFull(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options) noexcept;
 
         void initializeBodyPhysics(Body& body) noexcept;
         void setupCollision(Body& body) noexcept;
