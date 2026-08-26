@@ -544,19 +544,17 @@ namespace sas
                 : data{
                       m2(0, 0), m2(1, 0), 0.0f, 0.0f,
                       m2(0, 1), m2(1, 1), 0.0f, 0.0f,
-                      0.0f, 0.0f, 1.0f, 0.0f,        
-                      0.0f, 0.0f, 0.0f, 1.0f         
-                  }
+                      0.0f, 0.0f, 1.0f, 0.0f,
+                      0.0f, 0.0f, 0.0f, 1.0f}
             {
             }
 
             constexpr explicit Mat4(const Mat3 &m3) noexcept
                 : data{
-                      m3(0, 0), m3(1, 0), m3(2, 0), 0.0f, 
-                      m3(0, 1), m3(1, 1), m3(2, 1), 0.0f, 
-                      m3(0, 2), m3(1, 2), m3(2, 2), 0.0f, 
-                      0.0f, 0.0f, 0.0f, 1.0f              
-                  }
+                      m3(0, 0), m3(1, 0), m3(2, 0), 0.0f,
+                      m3(0, 1), m3(1, 1), m3(2, 1), 0.0f,
+                      m3(0, 2), m3(1, 2), m3(2, 2), 0.0f,
+                      0.0f, 0.0f, 0.0f, 1.0f}
             {
             }
             constexpr float &operator[](size_t index) noexcept
@@ -627,6 +625,11 @@ namespace sas
 
         Mat4 lookAt(const Vec3 &position, const Vec3 &target, const Vec3 &worldUp) noexcept;
         Mat4 perspective(float fovY, float aspect, float zNear, float zFar) noexcept;
+
+        Mat4 translate(const Mat4& model, const Vec3& position) noexcept;
+        Mat4 rotate(const Mat4& model, float angleDeg, const Vec3& degrees) noexcept;
+        Mat4 scale(const Mat4& model, const Vec3& scale) noexcept;
+
         float degToRad(float deg) noexcept;
         float radToDeg(float rad) noexcept;
 
