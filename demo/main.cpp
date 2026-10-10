@@ -12,7 +12,7 @@ struct Entity
 
     Color c;
 
-    sas::ShapeType type;
+    sas::ShapeType2D type;
 };
 
 int main()
@@ -23,7 +23,7 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
     SetTargetFPS(60);
 
-    sas::PhysicsWorld world;
+    sas::PhysicsWorld<sas::Traits2D> world;
     sas::PhysicsSettings &settings = world.settings;
     settings.dragCoeff = 0.47f;
     Entity *currentBody = nullptr;
@@ -36,31 +36,31 @@ int main()
     float rot = 30.f * DEG2RAD;
     t.rotation = rot;
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 0.2f;
     k.restituition = e;
     k.velocity.x = 0;
 
-    sas::BodyHandle firstBH = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle firstBH = world.createBody(sas::Shape2D::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     t.position = {300, 180};
     t.rotation = 0;
 
-    sas::BodyHandle seccondBh = world.createBody(sas::Shape::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle seccondBh = world.createBody(sas::Shape2D::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     t.position = {500, 180};
     t.rotation = 0;
 
-    sas::BodyHandle thirdBh = world.createBody(sas::Shape::MakeBox(16, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    sas::BodyHandle thirdBh = world.createBody(sas::Shape2D::MakeBox(16, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
 
     t.position = {500, 100};
-    sas::BodyHandle gravityBh = world.createBody(sas::Shape::MakeBox(100, 100), t, k, sas::Flags::Active | sas::Flags::Trigger);
+    sas::BodyHandle gravityBh = world.createBody(sas::Shape2D::MakeBox(100, 100), t, k, sas::Flags::Active | sas::Flags::Trigger);
 
-    Entity firstEntity{firstBH, MAROON, sas::ShapeType::Box};
-    Entity seccondEntity{seccondBh, MAROON, sas::ShapeType::Box};
-    Entity thirdEntity{thirdBh, MAROON, sas::ShapeType::Box};
+    Entity firstEntity{firstBH, MAROON, sas::ShapeType2D::Box};
+    Entity seccondEntity{seccondBh, MAROON, sas::ShapeType2D::Box};
+    Entity thirdEntity{thirdBh, MAROON, sas::ShapeType2D::Box};
 
-    Entity forthEntity{gravityBh, GREEN, sas::ShapeType::Box};
+    Entity forthEntity{gravityBh, GREEN, sas::ShapeType2D::Box};
 
     entities.push_back(firstEntity);
     entities.push_back(seccondEntity);
@@ -68,7 +68,7 @@ int main()
     entities.push_back(forthEntity);
     entities[0].bodyHandle->kinematics = k;
 
-    auto lambda = [](const sas::AABB &b, bool isLeaf)
+    auto lambda = [](const sas::AABB2D &b, bool isLeaf)
     {
         float width = b.maxX - b.minX;
         float height = b.maxY - b.minY;
@@ -80,20 +80,20 @@ int main()
     bool collision = false;
     bool shapeType = false;
 
-    sas::ShapeType st;
+    sas::ShapeType2D st;
 
-    sas::Kinematics bouncyKinematics;
+    sas::Kinematics2D bouncyKinematics;
     bouncyKinematics.restituition = 0.2f;
 
-    sas::BodyHandle topWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle bottomWall = world.createBody(sas::Shape::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle leftWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{1, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    sas::BodyHandle rightWall = world.createBody(sas::Shape::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{SCREEN_WIDTH, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle topWall = world.createBody(sas::Shape2D::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle bottomWall = world.createBody(sas::Shape2D::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle leftWall = world.createBody(sas::Shape2D::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{1, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    sas::BodyHandle rightWall = world.createBody(sas::Shape2D::MakeBox(1, SCREEN_HEIGHT), sas::Transform2D{{SCREEN_WIDTH, SCREEN_HEIGHT / 2}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
-    entities.push_back({topWall, WHITE, sas::ShapeType::Box});
-    entities.push_back({bottomWall, WHITE, sas::ShapeType::Box});
-    entities.push_back({rightWall, WHITE, sas::ShapeType::Box});
-    entities.push_back({leftWall, WHITE, sas::ShapeType::Box});
+    entities.push_back({topWall, WHITE, sas::ShapeType2D::Box});
+    entities.push_back({bottomWall, WHITE, sas::ShapeType2D::Box});
+    entities.push_back({rightWall, WHITE, sas::ShapeType2D::Box});
+    entities.push_back({leftWall, WHITE, sas::ShapeType2D::Box});
 
     while (!WindowShouldClose())
     {
@@ -114,13 +114,13 @@ int main()
                 t1.rotation = 0.f;
                 t1.scale = sas::math::Vec2{1.f};
 
-                sas::Kinematics kin;
+                sas::Kinematics2D kin;
                 kin.inverseMass = 0.01f;
                 kin.restituition = 0;
 
-                sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape::MakeCircle(25) : sas::Shape::MakeBox(50, 50), t1, kin);
+                sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape2D::MakeCircle(25) : sas::Shape2D::MakeBox(50, 50), t1, kin);
 
-                Entity temp{bh, MAROON, shapeType ? sas::ShapeType::Circle : sas::ShapeType::Box};
+                Entity temp{bh, MAROON, shapeType ? sas::ShapeType2D::Circle : sas::ShapeType2D::Box};
 
                 if (collision)
                 {
@@ -140,9 +140,10 @@ int main()
             currentBody = nullptr;
         }
 
+
         if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
         {
-            sas::Kinematics kin;
+            sas::Kinematics2D kin;
             kin.inverseMass = 0.5f;
             kin.restituition = 1.f;
 
@@ -267,11 +268,12 @@ int main()
         for (auto &entity : entities)
         {
             const auto &handle = entity.bodyHandle.get();
-            if (entity.type == sas::ShapeType::Circle)
+
+            if (entity.type == sas::ShapeType2D::Circle)
             {
                 DrawCircle(handle->transform.position.x, handle->transform.position.y, handle->shape.radius * handle->transform.scale.x, entity.c);
             }
-            else if (entity.type == sas::ShapeType::Box)
+            else if (entity.type == sas::ShapeType2D::Box)
             {
                 float width = handle->shape.halfSize.x * 2 * handle->transform.scale.x;
                 float height = handle->shape.halfSize.y * 2 * handle->transform.scale.y;
@@ -284,6 +286,14 @@ int main()
 
                 Vector2 origin = {width / 2, height / 2};
                 DrawRectanglePro(rect, origin, handle->transform.rotation * RAD2DEG, entity.c);
+            }
+        }
+
+        for(const auto& entity : entities)
+        {
+            if(entity.bodyHandle.isColliding())
+            {
+                std::cout << "Collision\n";
             }
         }
 

@@ -4,30 +4,30 @@
 #include <vector>
 #include <functional>
 
-#include "Body.hpp"
+#include "Body2D.hpp"
 
 namespace sas
 {
-    struct AABB
+    struct AABB2D
     {
         float minX, minY;
         float maxX, maxY;
     };
 
-    AABB computeFatAABB(const Body &body, float margin = 10.f) noexcept;
+    AABB2D computeFatAABB(const Body2D &body, float margin = 10.f) noexcept;
 
-    bool AABBOverlap(const AABB &a, const AABB &b) noexcept;
+    bool AABBOverlap(const AABB2D &a, const AABB2D &b) noexcept;
 
-    AABB AABBUnion(const AABB &a, const AABB &b) noexcept;
-    AABB computeTightAABB(const Body &body) noexcept;
+    AABB2D AABBUnion(const AABB2D &a, const AABB2D &b) noexcept;
+    AABB2D computeTightAABB(const Body2D &body) noexcept;
 
-    float getAreaAABB(const AABB &a) noexcept;
+    float getAreaAABB(const AABB2D &a) noexcept;
 
-    using DrawCallback = std::function<void(const AABB&, bool isLeaf)>;
+    using DrawCallback = std::function<void(const AABB2D&, bool isLeaf)>;
     
     struct Node
     {
-        AABB aabb;
+        AABB2D aabb;
 
         Node *parent = nullptr;
         Node *children[2] = {nullptr, nullptr};
@@ -42,7 +42,7 @@ namespace sas
         void Draw(const DrawCallback& cb) const;
     };
 
-    class AABBTree
+    class AABBTree2D
     {
     private:
         Node *root = nullptr;
@@ -51,20 +51,20 @@ namespace sas
         void remove(Node *leaf) noexcept;
         
     public:
-        void insert(uint32_t bodyID, const AABB& aabb) noexcept;
+        void insert(uint32_t bodyID, const AABB2D& aabb) noexcept;
 
-        void query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
-        void query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept;
+        void query(const AABB2D &targetAABB, std::vector<uint32_t> &results) const noexcept;
+        void query(Node *node, const AABB2D &targetAABB, std::vector<uint32_t> &results) const noexcept;
 
         void remove(uint32_t id) noexcept;
 
-        void updateObject(const Body &body, float margin = 0.f) noexcept;
+        void updateObject(const Body2D &body, float margin = 0.f) noexcept;
 
         void draw(const DrawCallback& cb) const;
 
         void clear() noexcept;
         
-        ~AABBTree() noexcept
+        ~AABBTree2D() noexcept
         {
             clear(root);
         }

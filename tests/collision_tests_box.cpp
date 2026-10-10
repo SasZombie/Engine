@@ -9,10 +9,10 @@ TEST_F(FixtureTest, BoxCollide)
     sas::Transform2D t2;
     t2.position = {410, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -36,10 +36,10 @@ TEST_F(FixtureTest, BoxDontCollide)
     sas::Transform2D t2;
     t2.position = {450, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -61,11 +61,11 @@ TEST_F(FixtureTest, BoxCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {100, 0};
     k1.inverseMass = 0.2f;
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-100, 0};
     k2.inverseMass = 0.2f;
 
@@ -100,10 +100,10 @@ TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {-10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -135,10 +135,10 @@ TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -169,10 +169,10 @@ TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -194,10 +194,10 @@ TEST_F(FixtureTest, LayerTwoCollidesBoxes)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -220,10 +220,10 @@ TEST_F(FixtureTest, ScaledBoxCollide)
     sas::Transform2D t2;
     t2.position = {410, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -250,10 +250,10 @@ TEST_F(FixtureTest, ScaledBoxDontCollide)
     sas::Transform2D t2;
     t2.position = {450, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -278,11 +278,11 @@ TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {100, 0};
     k1.inverseMass = 0.2f;
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-100, 0};
     k2.inverseMass = 0.2f;
 
@@ -318,10 +318,10 @@ TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {610, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {-10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -355,10 +355,10 @@ TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -392,10 +392,10 @@ TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
@@ -420,10 +420,10 @@ TEST_F(FixtureTest, ScaledBoxLayerTwoCollides)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#include <meta>
 #include "Transform.hpp"
 #include "Kinematics.hpp"
 
@@ -39,15 +40,18 @@ namespace sas
         };
     } // namespace Flags
 
-    enum struct ShapeType
+    enum struct ShapeType2D
     {
         Circle,
-        Box
+        Box,
+        __count__
     };
 
-    struct Shape
+    // constexpr auto ShapeType2DCount = std::meta::enumerators_of(^^ShapeType2D).size();
+
+    struct Shape2D
     {
-        ShapeType type;
+        ShapeType2D type;
 
         union
         {
@@ -55,23 +59,23 @@ namespace sas
             math::Vec2 halfSize;
         };
 
-        static Shape MakeCircle(float r)
+        static Shape2D MakeCircle(float r)
         {
-            return {.type = ShapeType::Circle, .radius = r};
+            return {.type = ShapeType2D::Circle, .radius = r};
         }
 
-        static Shape MakeBox(float x, float y)
+        static Shape2D MakeBox(float x, float y)
         {
-            return {.type = ShapeType::Box, .halfSize = {x / 2, y / 2}};
+            return {.type = ShapeType2D::Box, .halfSize = {x / 2, y / 2}};
         }
     };
 
-    struct Body
+    struct Body2D
     {
         Transform2D transform;
-        Kinematics kinematics;
+        Kinematics2D kinematics;
 
-        Shape shape;
+        Shape2D shape;
 
         uint32_t bodyID;
         uint32_t flags;

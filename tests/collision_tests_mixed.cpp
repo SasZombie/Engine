@@ -9,10 +9,10 @@ TEST_F(FixtureTest, MixedCollide)
     sas::Transform2D t2;
     t2.position = {410, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -36,10 +36,10 @@ TEST_F(FixtureTest, MixedDontCollide)
     sas::Transform2D t2;
     t2.position = {450, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -61,10 +61,10 @@ TEST_F(FixtureTest, MixedCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {100, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-100, 0};
 
     k1.inverseMass = 0.2f;
@@ -99,10 +99,10 @@ TEST_F(FixtureTest, MixedsDontCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {-10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -133,10 +133,10 @@ TEST_F(FixtureTest, MixedsWithoutCollisionsDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -167,10 +167,10 @@ TEST_F(FixtureTest, MixedDifferentLayersDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -192,10 +192,10 @@ TEST_F(FixtureTest, MixedLayerTwoCollides)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);

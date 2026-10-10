@@ -9,10 +9,10 @@ TEST_F(FixtureTest, CircleCollide)
     sas::Transform2D t2;
     t2.position = {410, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -36,10 +36,10 @@ TEST_F(FixtureTest, CircleDontCollide)
     sas::Transform2D t2;
     t2.position = {450, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -61,10 +61,10 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {100, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-100, 0};
 
     k1.inverseMass = 0.2f;
@@ -99,10 +99,10 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {-10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -133,10 +133,10 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -167,10 +167,10 @@ TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -192,10 +192,10 @@ TEST_F(FixtureTest, CircleLayerTwoCollides)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -217,10 +217,10 @@ TEST_F(FixtureTest, ScaledCircleCollide)
     sas::Transform2D t2;
     t2.position = {410, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -247,10 +247,10 @@ TEST_F(FixtureTest, ScaledCircleDontCollide)
     sas::Transform2D t2;
     t2.position = {450, 400};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -275,10 +275,10 @@ TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {100, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-100, 0};
 
     k1.inverseMass = 0.2f;
@@ -316,10 +316,10 @@ TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
     sas::Transform2D t2;
     t2.position = {610, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {-10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -353,10 +353,10 @@ TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -390,10 +390,10 @@ TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);
@@ -418,10 +418,10 @@ TEST_F(FixtureTest, ScaledCircleLayerTwoCollides)
     sas::Transform2D t2;
     t2.position = {510, 200};
 
-    sas::Kinematics k1;
+    sas::Kinematics2D k1;
     k1.velocity = {10, 0};
 
-    sas::Kinematics k2;
+    sas::Kinematics2D k2;
     k2.velocity = {-10, 0};
 
     sas::BodyHandle bh1 = AddCircle(t1, k1);

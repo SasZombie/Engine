@@ -39,7 +39,7 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
     sas::Transform2D t;
     t.position = {400, 440};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 100};
     k.restituition = 0.f;
@@ -69,7 +69,7 @@ TEST_F(FixtureTest, CircleBouncesOnFloor)
     sas::Transform2D t;
     t.position = {400, 440};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 100};
     k.restituition = 0.5f;
@@ -91,7 +91,7 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
     sas::Transform2D t;
     t.position = {400, 50};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
     k.restituition = 0.5f;
@@ -128,7 +128,7 @@ TEST_F(FixtureTest, CircleBouncesOnWall)
     sas::Transform2D t;
     t.position = {750, 225};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
     k.restituition = 0.5f;
@@ -151,7 +151,7 @@ TEST_F(FixtureTest, CircleIsInnelastic)
     sas::Transform2D t;
     t.position = {750, 225};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
     k.restituition = 0.0f;
@@ -177,7 +177,7 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
     sas::Transform2D t;
     t.position = {750, 225};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {400.f, 0};
     k.restituition = 1.0f;
@@ -199,7 +199,7 @@ TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
     sas::Transform2D t;
     t.position = {750, 225};
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {400.f, 0};
     k.restituition = 1.0f;

@@ -3,7 +3,7 @@
 
 namespace sas
 {
-    struct Kinematics
+    struct Kinematics2D
     {
         float inverseMass = 0;
         // 0 = perfect innelastic

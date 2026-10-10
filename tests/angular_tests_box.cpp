@@ -6,7 +6,7 @@ TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
     t.position = {WIDTH / 2, 300};
     t.rotation = 0.0f;
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.restituition = 0.5f;
 
@@ -29,7 +29,7 @@ TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
     t.position = {WIDTH / 2, 400};
     t.rotation = 0.2f;
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.restituition = 0.5f;
 
@@ -59,7 +59,7 @@ TEST_F(FixtureTest, BoxTiltedDrop_SettlesFlat)
     t.position = {WIDTH / 2, 350};
     t.rotation = 0.2f;
 
-    sas::Kinematics k;
+    sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.restituition = 0.0f;
 

@@ -1,50 +1,34 @@
 #pragma once
 #include <vector>
 
+#include "Traits.hpp"
 #include "AABBTree.hpp"
 #include "Primitives.hpp"
+#include "PhysicsSettings.hpp"
 
 namespace sas
 {
     struct CollisionInfo;
-    struct PhysicsSettings
-    {
-        float gravity = 500.f;
-        float dragCoeff = 0.47f;
-        float groundFriction = 0.98f;
-        float wallFriction = 0.98f;
-        float physicsDt = 1.0f / 120.0f;
-    };
-
-    struct ContactPoint
-    {
-        math::Vec2 position;
-        float depth;
-    };
-
-    struct Contact
-    {
-        uint32_t bodyA;
-        uint32_t bodyB;
-
-        math::Vec2 normal;
-        ContactPoint points[2];
-        uint32_t pointCount = 0;
-        float overlap;
-    };
 
     struct BodyHandle;
 
+    template <DimensionalTraits Traits>
     class PhysicsWorld
     {
     public:
+        using Body = typename Traits::Body;
+        using Contact = typename Traits::Contact;
+        using Transform = typename Traits::Transform;
+        using Shape = typename Traits::Shape;
+        using Kinematics = typename Traits::Kinematics;
+
         PhysicsSettings settings;
         uint32_t idCounter = 0;
 
     private:
         float deltaTime;
         float timeAccumulator = 0;
-        AABBTree root;
+        AABBTree2D root;
 
     public:
         // Cashe locality
@@ -63,10 +47,13 @@ namespace sas
 
         // Visualizing hitboxes
         // Not Optimized
-        void drawDebug(const DrawCallback &cb) const noexcept;
+        void drawDebug(const DrawCallback &cb) const noexcept
+        {
+            root.draw(cb);
+        }
 
-        BodyHandle createBody(Shape shape, const Transform2D &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
-        BodyHandle createBody(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
         void addToCollisionPool(Body &body) noexcept;
         void removeFromCollisionPool(Body &body) noexcept;
@@ -74,13 +61,22 @@ namespace sas
         void step(float dt) noexcept;
 
         [[nodiscard]] bool bodyExists(uint32_t id) const noexcept;
-        [[nodiscard]] bool isBodyInCollision(uint32_t id) const noexcept;
+        [[nodiscard]] bool isBodyInCollision(uint32_t id) const noexcept
+        {
+            return collisionFlags[id] != 0;
+        }
 
-        [[nodiscard]] Body &getBodyUnsafe(uint32_t id) noexcept;
-        [[nodiscard]] const Body &getBodyUnsafe(uint32_t id) const noexcept;
+        [[nodiscard]] Body &getBodyUnsafe(uint32_t id) noexcept
+        {
+            return getBodyFromSparse(id);
+        }
+        [[nodiscard]] const Body &getBodyUnsafe(uint32_t id) const noexcept
+        {
+            return getBodyFromSparse(id);
+        }
 
-        [[nodiscard]] Body* getBody(uint32_t id) noexcept;
-        [[nodiscard]] const Body* getBody(uint32_t id) const noexcept;
+        [[nodiscard]] Body *getBody(uint32_t id) noexcept;
+        [[nodiscard]] const Body *getBody(uint32_t id) const noexcept;
 
         [[nodiscard]] std::vector<CollisionInfo> getAllCollisions(uint32_t id) noexcept;
 
@@ -91,58 +87,50 @@ namespace sas
 
         PhysicsWorld() noexcept = default;
         ~PhysicsWorld() noexcept = default;
-        
+
     private:
+        BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
+
         void step() noexcept;
-
-        void applyForces(Body &obj) const noexcept;
-
-        void integrateVelocity(Body &obj) const noexcept;
-        void integratePosition(Body &obj) const noexcept;
-
-        void checkCollisionCircleCircle(Body &obj, Body &other) noexcept;
-        void checkCollisionDispatcher(Body &obj) noexcept;
-        void checkCollisionBoxBox(Body &obj, Body &other) noexcept;
-        void checkCollisionCircleBox(Body &obj, Body &other) noexcept;
-        void checkCollisionBoxCircle(Body &obj, Body &other) noexcept;
-
-        void resolveCollision(Contact& contact) noexcept;
-        void correctPosition(Contact& contact) noexcept;
         void updateCollisionFlags() noexcept;
 
         void reset(Body &obj) const noexcept;
 
-        //This is unchecked
-        [[nodiscard]] const Body& getBodyFromSparse(uint32_t id) const noexcept;
-        //This is unchecked
-        [[nodiscard]] Body& getBodyFromSparse(uint32_t id) noexcept;
+        void initializeBodyPhysics(Body &body) noexcept;
+        void setupCollision(Body &body) noexcept;
+        // This is unchecked
+        [[nodiscard]] const Body &getBodyFromSparse(uint32_t id) const noexcept
+        {
+            return bodies[sparse[id]];
+        }
+        // This is unchecked
+        [[nodiscard]] Body &getBodyFromSparse(uint32_t id) noexcept
+        {
+            return bodies[sparse[id]];
+        }
 
         [[nodiscard]] uint32_t getNextId() noexcept;
-
-        BodyHandle createBodyFull(Shape shape, const Transform2D &trans, const Kinematics &kin, uint32_t options) noexcept;
-
-        void initializeBodyPhysics(Body& body) noexcept;
-        void setupCollision(Body& body) noexcept;
-        using CollisionFunc = void (PhysicsWorld::*)(Body &, Body &);
-        static inline const CollisionFunc DispatchTable[2][2] = {
-            {&sas::PhysicsWorld::checkCollisionCircleCircle, &sas::PhysicsWorld::checkCollisionCircleBox},
-            {&sas::PhysicsWorld::checkCollisionBoxCircle,    &sas::PhysicsWorld::checkCollisionBoxBox}
-        };
     };
+
+    using PhysicsWorld2D = PhysicsWorld<Traits2D>;
+    // using PhysicsWorld3D = PhysicsWorld<Traits3D>;
+
+    extern template class PhysicsWorld<Traits2D>;
+    // extern template class PhysicsWorld<Traits3D>;
 
     class BodyHandle
     {
     private:
         uint32_t id;
-        PhysicsWorld *world;
+        PhysicsWorld<Traits2D> *world;
 
     public:
-        BodyHandle(uint32_t bodyID, PhysicsWorld *pworld)
+        BodyHandle(uint32_t bodyID, PhysicsWorld<Traits2D> *pworld)
             : id(bodyID), world(pworld)
         {
         }
 
-        Body *operator->()
+        Body2D *operator->()
         {
             return &world->getBodyUnsafe(id);
         }
@@ -152,7 +140,7 @@ namespace sas
             return world->bodyExists(id);
         }
 
-        Body *get() const
+        Body2D *get() const
         {
             return &world->getBodyUnsafe(id);
         }

@@ -1,7 +1,7 @@
 #include "AABBTree.hpp"
 
 
-sas::AABB sas::computeFatAABB(const Body &body, float margin) noexcept
+sas::AABB2D sas::computeFatAABB(const Body2D &body, float margin) noexcept
 {
     float x = body.transform.position.x;
     float y = body.transform.position.y;
@@ -9,7 +9,7 @@ sas::AABB sas::computeFatAABB(const Body &body, float margin) noexcept
 
     float minX, minY, maxX, maxY;
 
-    if (body.shape.type == ShapeType::Circle)
+    if (body.shape.type == ShapeType2D::Circle)
     {
         // Rotation for circle is trivial
         minX = x - body.shape.radius * body.transform.scale.x;
@@ -38,25 +38,25 @@ sas::AABB sas::computeFatAABB(const Body &body, float margin) noexcept
     return {minX - margin, minY - margin, maxX + margin, maxY + margin};
 }
 
-sas::AABB sas::computeTightAABB(const Body &body) noexcept
+sas::AABB2D sas::computeTightAABB(const Body2D &body) noexcept
 {
     return computeFatAABB(body, 0.0f);
 }
 
-bool sas::AABBOverlap(const AABB &a, const AABB &b) noexcept
+bool sas::AABBOverlap(const AABB2D &a, const AABB2D &b) noexcept
 {
     return (a.minX <= b.maxX && a.maxX >= b.minX) &&
            (a.minY <= b.maxY && a.maxY >= b.minY);
 }
 
-sas::AABB sas::AABBUnion(const AABB &a, const AABB &b) noexcept
+sas::AABB2D sas::AABBUnion(const AABB2D &a, const AABB2D &b) noexcept
 {
     return {
         std::min(a.minX, b.minX), std::min(a.minY, b.minY),
         std::max(a.maxX, b.maxX), std::max(a.maxY, b.maxY)};
 }
 
-float sas::getAreaAABB(const AABB &a) noexcept
+float sas::getAreaAABB(const AABB2D &a) noexcept
 {
     float width = a.maxX - a.minX;
     float height = a.maxY - a.minY;
@@ -64,7 +64,7 @@ float sas::getAreaAABB(const AABB &a) noexcept
     return width * height;
 }
 
-void sas::AABBTree::insert(uint32_t bodyID, const AABB &aabb) noexcept
+void sas::AABBTree2D::insert(uint32_t bodyID, const AABB2D &aabb) noexcept
 {
 
     Node *leaf = new Node();
@@ -120,7 +120,7 @@ void sas::AABBTree::insert(uint32_t bodyID, const AABB &aabb) noexcept
     }
 }
 
-void sas::AABBTree::query(Node *node, const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
+void sas::AABBTree2D::query(Node *node, const AABB2D &targetAABB, std::vector<uint32_t> &results) const noexcept
 {
     if (!node || !AABBOverlap(node->aabb, targetAABB))
     {
@@ -138,12 +138,12 @@ void sas::AABBTree::query(Node *node, const AABB &targetAABB, std::vector<uint32
     }
 }
 
-void sas::AABBTree::query(const AABB &targetAABB, std::vector<uint32_t> &results) const noexcept
+void sas::AABBTree2D::query(const AABB2D &targetAABB, std::vector<uint32_t> &results) const noexcept
 {
     query(root, targetAABB, results);
 }
 
-void sas::AABBTree::remove(Node *leaf) noexcept
+void sas::AABBTree2D::remove(Node *leaf) noexcept
 {
     if (leaf == root)
     {
@@ -181,7 +181,7 @@ void sas::AABBTree::remove(Node *leaf) noexcept
     }
 }
 
-void sas::AABBTree::remove(uint32_t id) noexcept
+void sas::AABBTree2D::remove(uint32_t id) noexcept
 {
     Node *leaf = leafMap[id];
     remove(leaf);
@@ -191,10 +191,10 @@ void sas::AABBTree::remove(uint32_t id) noexcept
     delete leaf;
 }
 
-void sas::AABBTree::updateObject(const Body &body, float margin) noexcept
+void sas::AABBTree2D::updateObject(const Body2D &body, float margin) noexcept
 {
 
-    AABB actual = computeTightAABB(body);
+    AABB2D actual = computeTightAABB(body);
 
     Node *curNode = leafMap[body.bodyID];
     if (actual.minX < curNode->aabb.minX || actual.maxX > curNode->aabb.maxX ||
@@ -206,7 +206,7 @@ void sas::AABBTree::updateObject(const Body &body, float margin) noexcept
     }
 }
 
-void sas::AABBTree::clear(Node *node) noexcept
+void sas::AABBTree2D::clear(Node *node) noexcept
 {
     if (!node)
         return;
@@ -227,7 +227,7 @@ void sas::Node::Draw(const DrawCallback &cb) const
         children[1]->Draw(cb);
 }
 
-void sas::AABBTree::draw(const DrawCallback &cb) const
+void sas::AABBTree2D::draw(const DrawCallback &cb) const
 {
     if (root != nullptr)
     {
@@ -235,7 +235,7 @@ void sas::AABBTree::draw(const DrawCallback &cb) const
     }
 }
 
-void sas::AABBTree::clear() noexcept
+void sas::AABBTree2D::clear() noexcept
 {
     clear(root);
     root = nullptr;

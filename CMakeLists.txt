@@ -9,6 +9,7 @@ option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(project_warnings INTERFACE)
 add_library(project_sanitizers INTERFACE)
+# add_library(CXX_FLAGS INTERFACE)
 
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
