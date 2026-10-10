@@ -157,8 +157,6 @@ uint32_t sas::PhysicsWorld::getNextId() noexcept
     return idCounter++;
 }
 
-static constexpr float physicsDt = 1.0f / 120.0f;
-
 void sas::PhysicsWorld::step(float realDeltaTime) noexcept
 {
     if (realDeltaTime > 0.25f)
@@ -166,17 +164,17 @@ void sas::PhysicsWorld::step(float realDeltaTime) noexcept
 
     timeAccumulator += realDeltaTime;
 
-    deltaTime = physicsDt;
+    deltaTime = settings.physicsDt;
 
     frameContacts.clear();
     frameContacts.reserve(contacts.capacity());
 
     std::fill(collisionFlags.begin(), collisionFlags.end(), 0);
 
-    while (timeAccumulator >= physicsDt)
+    while (timeAccumulator >= settings.physicsDt)
     {
         step();
-        timeAccumulator -= physicsDt;
+        timeAccumulator -= settings.physicsDt;
     }
 }
 
