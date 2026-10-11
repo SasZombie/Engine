@@ -21,4 +21,21 @@ namespace sas
         float overlap;
     };
 
+    struct ContactPoint3D
+    {
+        math::Vec3 position;
+        float depth;
+    };
+
+    struct Contact3D
+    {
+        uint32_t bodyA;
+        uint32_t bodyB;
+
+        math::Vec3 normal;
+        ContactPoint3D points[4];
+        uint32_t pointCount = 0;
+        float overlap;
+    };
+
 } // namespace sas

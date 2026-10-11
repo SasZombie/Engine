@@ -51,12 +51,11 @@ namespace sas
     enum struct ShapeType3D
     {
         Sphere,
-        Cube,
+        Orthotope,
         Cilinder
     };
 
     constexpr std::size_t ShapeType3DCount = std::meta::enumerators_of(^^ShapeType3D).size();
-
 
     struct Shape2D
     {
@@ -68,14 +67,41 @@ namespace sas
             math::Vec2 halfSize;
         };
 
-        static Shape2D MakeCircle(float r)
+        [[nodiscard]] static Shape2D MakeCircle(float r) noexcept
         {
             return {.type = ShapeType2D::Circle, .radius = r};
         }
 
-        static Shape2D MakeBox(float x, float y)
+        [[nodiscard]] static Shape2D MakeBox(float x, float y) noexcept
         {
             return {.type = ShapeType2D::Box, .halfSize = {x / 2, y / 2}};
+        }
+    };
+
+    struct Shape3D
+    {
+        ShapeType3D type;
+
+        union
+        {
+            float radius;
+            math::Vec2 radHeight;
+            math::Vec3 halfSize;
+        };
+
+        [[nodiscard]] static Shape3D MakeSphere(float r) noexcept
+        {
+            return {.type = ShapeType3D::Sphere, .radius = r};
+        }
+
+        [[nodiscard]] static Shape3D MakeOrthotope(float x, float y, float z) noexcept
+        {
+            return {.type = ShapeType3D::Orthotope, .halfSize = {x / 2, y / 2, z / 2}};
+        }
+
+        [[nodiscard]] static Shape3D MakeCilinder(float r, float height) noexcept
+        {
+            return {.type = ShapeType3D::Cilinder, .radHeight = {r, height / 2}};
         }
     };
 
@@ -95,6 +121,27 @@ namespace sas
         uint32_t dataType = 0;
         void *userData = nullptr;
 
+        [[nodiscard]] constexpr bool hasFlag(uint32_t flag) const noexcept
+        {
+            return (flags & flag) != 0;
+        }
+    };
+
+    struct Body3D
+    {
+        Transform3D transform;
+        Kinematics3D kinematics;
+
+        Shape3D shape;
+
+        uint32_t bodyID;
+        uint32_t flags;
+        uint32_t collisionMask;
+
+        float gravityScale = 1.f;
+
+        uint32_t dataType = 0;
+        void *userData = nullptr;
 
         [[nodiscard]] constexpr bool hasFlag(uint32_t flag) const noexcept
         {
