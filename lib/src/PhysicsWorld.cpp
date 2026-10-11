@@ -7,12 +7,12 @@
 
 //TODO: Creation should be in Traits as well
 template <sas::DimensionalTraits Traits>
-sas::BodyHandle sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
+sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
     return createBodyFull(shape, trans, {}, options);
 }
 template <sas::DimensionalTraits Traits>
-sas::BodyHandle sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     return createBodyFull(shape, trans, kin, options);
 }
@@ -20,7 +20,7 @@ sas::BodyHandle sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transfo
 // Default
 // Flags::Active | Flags::RigidBody
 template <sas::DimensionalTraits Traits>
-sas::BodyHandle sas::PhysicsWorld<Traits>::createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
+sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept
 {
     uint32_t newID = getNextId();
     uint32_t internalIndex = static_cast<uint32_t>(bodies.size());
@@ -111,7 +111,7 @@ void sas::PhysicsWorld<Traits>::setupCollision(Body &body) noexcept
 }
 
 template <sas::DimensionalTraits Traits>
-void sas::PhysicsWorld<Traits>::removeBody(const BodyHandle &handle) noexcept
+void sas::PhysicsWorld<Traits>::removeBody(const BodyHandle<Traits> &handle) noexcept
 {
     removeBody(handle.get()->bodyID);
 }
@@ -394,12 +394,12 @@ const typename Traits::Body *sas::PhysicsWorld<Traits>::getBody(uint32_t id) con
 }
 
 template <sas::DimensionalTraits Traits>
-std::vector<sas::CollisionInfo> sas::PhysicsWorld<Traits>::getAllCollisions(uint32_t id) noexcept
+std::vector<sas::CollisionInfo<Traits>> sas::PhysicsWorld<Traits>::getAllCollisions(uint32_t id) noexcept
 {
     if (!isBodyInCollision(id))
         return {};
 
-    std::vector<sas::CollisionInfo> collisions;
+    std::vector<sas::CollisionInfo<Traits>> collisions;
 
     collisions.reserve(8);
 
@@ -407,11 +407,11 @@ std::vector<sas::CollisionInfo> sas::PhysicsWorld<Traits>::getAllCollisions(uint
     {
         if (contact.bodyA == id)
         {
-            collisions.emplace_back(BodyHandle{contact.bodyB, this}, contact.normal, contact.overlap);
+            collisions.emplace_back(BodyHandle<Traits>{contact.bodyB, this}, contact.normal, contact.overlap);
         }
         else if (contact.bodyB == id)
         {
-            collisions.emplace_back(BodyHandle{contact.bodyA, this}, -1 * contact.normal, contact.overlap);
+            collisions.emplace_back(BodyHandle<Traits>{contact.bodyA, this}, -1 * contact.normal, contact.overlap);
         }
     }
 

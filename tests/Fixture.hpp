@@ -25,19 +25,19 @@ protected:
         world->clear();
     }
 
-    sas::BodyHandle AddCircle(sas::Transform2D trans, sas::Kinematics2D kin)
+    sas::BodyHandle<sas::Traits2D> AddCircle(sas::Transform2D trans, sas::Kinematics2D kin)
     {
         sas::BodyHandle bh = world->createBody(sas::Shape2D{sas::ShapeType2D::Circle, 10.f}, trans, kin);
         return bh;
     }
 
-    sas::BodyHandle AddBox(sas::Transform2D trans, sas::Kinematics2D kin)
+    sas::BodyHandle<sas::Traits2D> AddBox(sas::Transform2D trans, sas::Kinematics2D kin)
     {
         sas::BodyHandle bh = world->createBody(sas::Shape2D::MakeBox(20.f, 20.f), trans, kin);
         return bh;
     }
 
-    std::vector<sas::BodyHandle> walls;
+    std::vector<sas::BodyHandle<sas::Traits2D>> walls;
 
     std::unique_ptr<sas::PhysicsWorld<sas::Traits2D>> world;
 

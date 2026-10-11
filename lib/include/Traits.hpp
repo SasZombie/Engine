@@ -1,7 +1,5 @@
 #pragma once
 #include "Contact.hpp"
-#include <iostream>
-#include "Body2D.hpp"
 #include "AABBTree.hpp"
 namespace sas
 {
@@ -10,12 +8,12 @@ namespace sas
     struct Traits2D
     {
         static constexpr size_t Dimension = 2;
+        using Body = Body2D;
+        using Shape = Shape2D;
+        using Contact = Contact2D;
+        using AABBTree = AABBTree2D;
         using Transform = Transform2D;
         using Kinematics = Kinematics2D;
-        using Shape = Shape2D;
-        using AABBTree = AABBTree2D;
-        using Body = Body2D;
-        using Contact = Contact2D;
 
         static void applyForces(Body &obj, const PhysicsSettings &settings) noexcept;
         static void integrateVelocity(Body &obj, float dt) noexcept;

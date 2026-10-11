@@ -4,7 +4,7 @@
 #include <vector>
 #include <functional>
 
-#include "Body2D.hpp"
+#include "Body.hpp"
 
 namespace sas
 {

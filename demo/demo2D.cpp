@@ -8,7 +8,7 @@ extern "C" const char *__lsan_default_suppressions();
 
 struct Entity
 {
-    sas::BodyHandle bodyHandle;
+    sas::BodyHandle<sas::Traits2D> bodyHandle;
 
     Color c;
 

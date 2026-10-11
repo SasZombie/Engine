@@ -8,8 +8,10 @@
 
 namespace sas
 {
+    template <DimensionalTraits Traits>
     struct CollisionInfo;
 
+    template <DimensionalTraits Traits>
     struct BodyHandle;
 
     template <DimensionalTraits Traits>
@@ -17,9 +19,10 @@ namespace sas
     {
     public:
         using Body = typename Traits::Body;
-        using Contact = typename Traits::Contact;
-        using Transform = typename Traits::Transform;
         using Shape = typename Traits::Shape;
+        using Contact = typename Traits::Contact;
+        using AABBTree = typename Traits::AABBTree;
+        using Transform = typename Traits::Transform;
         using Kinematics = typename Traits::Kinematics;
 
         PhysicsSettings settings;
@@ -28,7 +31,7 @@ namespace sas
     private:
         float deltaTime;
         float timeAccumulator = 0;
-        AABBTree2D root;
+        AABBTree root;
 
     public:
         // Cashe locality
@@ -52,8 +55,8 @@ namespace sas
             root.draw(cb);
         }
 
-        BodyHandle createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
-        BodyHandle createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle<Traits> createBody(Shape shape, const Transform &trans, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
+        BodyHandle<Traits> createBody(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options = Flags::Active | Flags::RigidBodyDynamic) noexcept;
 
         void addToCollisionPool(Body &body) noexcept;
         void removeFromCollisionPool(Body &body) noexcept;
@@ -78,9 +81,9 @@ namespace sas
         [[nodiscard]] Body *getBody(uint32_t id) noexcept;
         [[nodiscard]] const Body *getBody(uint32_t id) const noexcept;
 
-        [[nodiscard]] std::vector<CollisionInfo> getAllCollisions(uint32_t id) noexcept;
+        [[nodiscard]] std::vector<CollisionInfo<Traits>> getAllCollisions(uint32_t id) noexcept;
 
-        void removeBody(const BodyHandle &handle) noexcept;
+        void removeBody(const BodyHandle<Traits> &handle) noexcept;
         void removeBody(uint32_t bodyID) noexcept;
 
         void clear() noexcept;
@@ -89,7 +92,7 @@ namespace sas
         ~PhysicsWorld() noexcept = default;
 
     private:
-        BodyHandle createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
+        BodyHandle<Traits> createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
 
         void step() noexcept;
         void updateCollisionFlags() noexcept;
@@ -118,19 +121,23 @@ namespace sas
     extern template class PhysicsWorld<Traits2D>;
     // extern template class PhysicsWorld<Traits3D>;
 
+    template <DimensionalTraits Traits>
     class BodyHandle
     {
     private:
+
+        using Body = typename Traits::Body;
+
         uint32_t id;
-        PhysicsWorld<Traits2D> *world;
+        PhysicsWorld<Traits> *world;
 
     public:
-        BodyHandle(uint32_t bodyID, PhysicsWorld<Traits2D> *pworld)
+        BodyHandle(uint32_t bodyID, PhysicsWorld<Traits> *pworld)
             : id(bodyID), world(pworld)
         {
         }
 
-        Body2D *operator->()
+        Body *operator->()
         {
             return &world->getBodyUnsafe(id);
         }
@@ -140,7 +147,7 @@ namespace sas
             return world->bodyExists(id);
         }
 
-        Body2D *get() const
+        Body *get() const
         {
             return &world->getBodyUnsafe(id);
         }
@@ -150,7 +157,7 @@ namespace sas
             return world->isBodyInCollision(id);
         }
 
-        [[nodiscard]] std::vector<CollisionInfo> getCollisions() const noexcept
+        [[nodiscard]] std::vector<CollisionInfo<Traits>> getCollisions() const noexcept
         {
             return world->getAllCollisions(id);
         }
@@ -233,9 +240,10 @@ namespace sas
         ~BodyHandle() = default;
     };
 
+    template <DimensionalTraits Traits>
     struct CollisionInfo
     {
-        BodyHandle other;
+        BodyHandle<Traits> other;
 
         math::Vec2 normal;
 

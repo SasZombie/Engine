@@ -48,6 +48,16 @@ namespace sas
 
     constexpr std::size_t ShapeType2DCount = std::meta::enumerators_of(^^ShapeType2D).size();
 
+    enum struct ShapeType3D
+    {
+        Sphere,
+        Cube,
+        Cilinder
+    };
+
+    constexpr std::size_t ShapeType3DCount = std::meta::enumerators_of(^^ShapeType3D).size();
+
+
     struct Shape2D
     {
         ShapeType2D type;
