@@ -14,16 +14,16 @@ namespace sas
         float maxX, maxY;
     };
 
-    AABB2D computeFatAABB(const Body2D &body, float margin = 10.f) noexcept;
+    [[nodiscard]] AABB2D computeFatAABB2D(const Body2D &body, float margin = 10.f) noexcept;
 
-    bool AABBOverlap(const AABB2D &a, const AABB2D &b) noexcept;
+    [[nodiscard]] bool AABBOverlap2D(const AABB2D &a, const AABB2D &b) noexcept;
 
-    AABB2D AABBUnion(const AABB2D &a, const AABB2D &b) noexcept;
-    AABB2D computeTightAABB(const Body2D &body) noexcept;
+    [[nodiscard]] AABB2D AABBUnion2D(const AABB2D &a, const AABB2D &b) noexcept;
+    [[nodiscard]] AABB2D computeTightAABB2D(const Body2D &body) noexcept;
 
-    float getAreaAABB(const AABB2D &a) noexcept;
+    [[nodiscard]] float getAreaAABB2D(const AABB2D &a) noexcept;
 
-    using DrawCallback = std::function<void(const AABB2D&, bool isLeaf)>;
+    using DrawCallback2D = std::function<void(const AABB2D&, bool isLeaf)>;
     
     struct Node
     {
@@ -39,7 +39,7 @@ namespace sas
             return children[0] == nullptr;
         }
 
-        void Draw(const DrawCallback& cb) const;
+        void Draw(const DrawCallback2D& cb) const;
     };
 
     class AABBTree2D
@@ -60,7 +60,7 @@ namespace sas
 
         void updateObject(const Body2D &body, float margin = 0.f) noexcept;
 
-        void draw(const DrawCallback& cb) const;
+        void draw(const DrawCallback2D& cb) const;
 
         void clear() noexcept;
         

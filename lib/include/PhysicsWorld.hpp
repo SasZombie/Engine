@@ -50,7 +50,7 @@ namespace sas
 
         // Visualizing hitboxes
         // Not Optimized
-        void drawDebug(const DrawCallback &cb) const noexcept
+        void drawDebug(const DrawCallback2D &cb) const noexcept
         {
             root.draw(cb);
         }
@@ -96,10 +96,8 @@ namespace sas
 
         void step() noexcept;
         void updateCollisionFlags() noexcept;
-
         void reset(Body &obj) const noexcept;
 
-        void initializeBodyPhysics(Body &body) noexcept;
         void setupCollision(Body &body) noexcept;
         // This is unchecked
         [[nodiscard]] const Body &getBodyFromSparse(uint32_t id) const noexcept

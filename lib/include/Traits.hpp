@@ -15,22 +15,27 @@ namespace sas
         using Transform = Transform2D;
         using Kinematics = Kinematics2D;
 
+        // ======= Creation =======
+        static void initializeBodyPhysics(Body &body) noexcept;
+        [[nodiscard]]static AABB2D computeTightAABB(Body& body) noexcept
+        {
+            return computeTightAABB2D(body);
+        }
+
+        // ======= Physics =======
         static void applyForces(Body &obj, const PhysicsSettings &settings) noexcept;
         static void integrateVelocity(Body &obj, float dt) noexcept;
         static void integratePosition(Body &obj, float dt) noexcept;
         static void resolveCollision(Body &obj, Body &other, Contact &contact) noexcept;
         static void correctPosition(Body &obj, Body &other, Contact &contact) noexcept;
 
-        // static void updateCollisionFlags() noexcept;
-        // static void reset(Body &obj) noexcept;
-
+        // ======= Collision =======
         static bool testCircleCircle(const Body &obj, const Body &other, Contact &outContact) noexcept;
         static bool testCircleBox(const Body &circle, const Body &box, Contact &outContact) noexcept;
         static bool testBoxBox(const Body &obj, const Body &other, Contact &outContact) noexcept;
 
         using CollisionHandler = bool (*)(const Body &, const Body &, Contact &) noexcept;
 
-        // Dispatch table sized strictly to 2D shape types
         static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType2DCount)][static_cast<size_t>(ShapeType2DCount)] = {
             {&testCircleCircle, &testCircleBox},
             {[](const Body &obj, const Body &other, Contact &c) noexcept

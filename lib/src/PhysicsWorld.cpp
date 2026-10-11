@@ -5,7 +5,6 @@
 #include <utility>
 #include <algorithm>
 
-//TODO: Creation should be in Traits as well
 template <sas::DimensionalTraits Traits>
 sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
@@ -33,7 +32,7 @@ sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBodyFull(Shape shape, c
 
     Body newBody{trans, kin, shape, newID, options, 0};
 
-    initializeBodyPhysics(newBody);
+    Traits::initializeBodyPhysics(newBody);
 
     setupCollision(newBody);
 
@@ -42,59 +41,6 @@ sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBodyFull(Shape shape, c
     bodies.push_back(newBody);
 
     return {newID, this};
-}
-
-template <sas::DimensionalTraits Traits>
-void sas::PhysicsWorld<Traits>::initializeBodyPhysics(Body &body) noexcept
-{
-    if (body.hasFlag(Flags::RigidBodyDynamic))
-    {
-        const float mass = (body.kinematics.inverseMass > 0) ? 1.0f / body.kinematics.inverseMass : 0.0f;
-
-        switch (body.shape.type)
-        {
-        case ShapeType2D::Box:
-        {
-            float hx = body.shape.halfSize.x * body.transform.scale.x;
-            float hy = body.shape.halfSize.y * body.transform.scale.y;
-            body.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
-            break;
-        }
-        case ShapeType2D::Circle:
-        {
-            float r = body.shape.radius * body.transform.scale.x;
-            body.kinematics.inertia = 0.5f * mass * (r * r);
-            break;
-        }
-        default:
-            body.kinematics.inertia = 0.f;
-            break;
-        }
-
-        body.kinematics.inverseInertia = (body.kinematics.inertia > 0) ? 1.0f / body.kinematics.inertia : 0.0f;
-
-        return;
-    }
-
-    body.kinematics.inverseMass = 0.0f;
-    body.kinematics.inertia = 0.0f;
-    body.kinematics.inverseInertia = 0.0f;
-
-    if (body.hasFlag(Flags::BodyFlags::Trigger))
-    {
-        body.kinematics.pushForce = 0.f;
-    }
-    else
-    {
-        body.kinematics.pushForce = body.kinematics.pushForce > 0.0f ? body.kinematics.pushForce : 70.0f;
-    }
-
-    if (body.hasFlag(Flags::BodyFlags::RigidBodyStatic))
-    {
-        body.kinematics.velocity = {0.0f, 0.0f};
-        body.kinematics.angularVelocity = 0.0f;
-        body.kinematics.pushForce = 0.0f;
-    }
 }
 
 template <sas::DimensionalTraits Traits>
@@ -244,7 +190,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
 
         std::vector<uint32_t> potentialCollisions;
 
-        root.query(computeTightAABB(obj), potentialCollisions);
+        root.query(computeTightAABB2D(obj), potentialCollisions);
 
         for (uint32_t otherID : potentialCollisions)
         {
@@ -335,7 +281,7 @@ void sas::PhysicsWorld<Traits>::addToCollisionPool(Body &body) noexcept
     {
         body.flags |= Flags::InCollisionPool;
 
-        root.insert(body.bodyID, computeTightAABB(body));
+        root.insert(body.bodyID, Traits::computeTightAABB(body));
     }
 }
 

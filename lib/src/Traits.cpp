@@ -2,6 +2,58 @@
 #include "PhysicsSettings.hpp"
 #include <algorithm>
 
+void sas::Traits2D::initializeBodyPhysics(Body &body) noexcept
+{
+    if (body.hasFlag(Flags::RigidBodyDynamic))
+    {
+        const float mass = (body.kinematics.inverseMass > 0) ? 1.0f / body.kinematics.inverseMass : 0.0f;
+
+        switch (body.shape.type)
+        {
+        case ShapeType2D::Box:
+        {
+            float hx = body.shape.halfSize.x * body.transform.scale.x;
+            float hy = body.shape.halfSize.y * body.transform.scale.y;
+            body.kinematics.inertia = (1.0f / 3.0f) * mass * (hx * hx + hy * hy);
+            break;
+        }
+        case ShapeType2D::Circle:
+        {
+            float r = body.shape.radius * body.transform.scale.x;
+            body.kinematics.inertia = 0.5f * mass * (r * r);
+            break;
+        }
+        default:
+            body.kinematics.inertia = 0.f;
+            break;
+        }
+
+        body.kinematics.inverseInertia = (body.kinematics.inertia > 0) ? 1.0f / body.kinematics.inertia : 0.0f;
+
+        return;
+    }
+
+    body.kinematics.inverseMass = 0.0f;
+    body.kinematics.inertia = 0.0f;
+    body.kinematics.inverseInertia = 0.0f;
+
+    if (body.hasFlag(Flags::BodyFlags::Trigger))
+    {
+        body.kinematics.pushForce = 0.f;
+    }
+    else
+    {
+        body.kinematics.pushForce = body.kinematics.pushForce > 0.0f ? body.kinematics.pushForce : 70.0f;
+    }
+
+    if (body.hasFlag(Flags::BodyFlags::RigidBodyStatic))
+    {
+        body.kinematics.velocity = {0.0f, 0.0f};
+        body.kinematics.angularVelocity = 0.0f;
+        body.kinematics.pushForce = 0.0f;
+    }
+}
+
 void sas::Traits2D::applyForces(Body &obj, const PhysicsSettings &settings) noexcept
 {
     float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
@@ -479,7 +531,7 @@ bool sas::Traits2D::testBoxBox(const Body &obj, const Body &other, Contact &outC
         }
     }
 
-    if(outContact.pointCount == 0)
+    if (outContact.pointCount == 0)
     {
         return false;
     }

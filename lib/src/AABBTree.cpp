@@ -1,7 +1,7 @@
 #include "AABBTree.hpp"
 
 
-sas::AABB2D sas::computeFatAABB(const Body2D &body, float margin) noexcept
+sas::AABB2D sas::computeFatAABB2D(const Body2D &body, float margin) noexcept
 {
     float x = body.transform.position.x;
     float y = body.transform.position.y;
@@ -38,25 +38,25 @@ sas::AABB2D sas::computeFatAABB(const Body2D &body, float margin) noexcept
     return {minX - margin, minY - margin, maxX + margin, maxY + margin};
 }
 
-sas::AABB2D sas::computeTightAABB(const Body2D &body) noexcept
+sas::AABB2D sas::computeTightAABB2D(const Body2D &body) noexcept
 {
-    return computeFatAABB(body, 0.0f);
+    return computeFatAABB2D(body, 0.0f);
 }
 
-bool sas::AABBOverlap(const AABB2D &a, const AABB2D &b) noexcept
+bool sas::AABBOverlap2D(const AABB2D &a, const AABB2D &b) noexcept
 {
     return (a.minX <= b.maxX && a.maxX >= b.minX) &&
            (a.minY <= b.maxY && a.maxY >= b.minY);
 }
 
-sas::AABB2D sas::AABBUnion(const AABB2D &a, const AABB2D &b) noexcept
+sas::AABB2D sas::AABBUnion2D(const AABB2D &a, const AABB2D &b) noexcept
 {
     return {
         std::min(a.minX, b.minX), std::min(a.minY, b.minY),
         std::max(a.maxX, b.maxX), std::max(a.maxY, b.maxY)};
 }
 
-float sas::getAreaAABB(const AABB2D &a) noexcept
+float sas::getAreaAABB2D(const AABB2D &a) noexcept
 {
     float width = a.maxX - a.minX;
     float height = a.maxY - a.minY;
@@ -82,8 +82,8 @@ void sas::AABBTree2D::insert(uint32_t bodyID, const AABB2D &aabb) noexcept
     Node *sibling = root;
     while (!sibling->isLeaf())
     {
-        float area0 = getAreaAABB(AABBUnion(sibling->children[0]->aabb, leaf->aabb));
-        float area1 = getAreaAABB(AABBUnion(sibling->children[1]->aabb, leaf->aabb));
+        float area0 = getAreaAABB2D(AABBUnion2D(sibling->children[0]->aabb, leaf->aabb));
+        float area1 = getAreaAABB2D(AABBUnion2D(sibling->children[1]->aabb, leaf->aabb));
 
         if (area0 < area1)
             sibling = sibling->children[0];
@@ -115,14 +115,14 @@ void sas::AABBTree2D::insert(uint32_t bodyID, const AABB2D &aabb) noexcept
     Node *walk = newParent;
     while (walk != nullptr)
     {
-        walk->aabb = AABBUnion(walk->children[0]->aabb, walk->children[1]->aabb);
+        walk->aabb = AABBUnion2D(walk->children[0]->aabb, walk->children[1]->aabb);
         walk = walk->parent;
     }
 }
 
 void sas::AABBTree2D::query(Node *node, const AABB2D &targetAABB, std::vector<uint32_t> &results) const noexcept
 {
-    if (!node || !AABBOverlap(node->aabb, targetAABB))
+    if (!node || !AABBOverlap2D(node->aabb, targetAABB))
     {
         return;
     }
@@ -169,7 +169,7 @@ void sas::AABBTree2D::remove(Node *leaf) noexcept
         Node *walk = grandParent;
         while (walk)
         {
-            walk->aabb = AABBUnion(walk->children[0]->aabb, walk->children[1]->aabb);
+            walk->aabb = AABBUnion2D(walk->children[0]->aabb, walk->children[1]->aabb);
             walk = walk->parent;
         }
     }
@@ -194,7 +194,7 @@ void sas::AABBTree2D::remove(uint32_t id) noexcept
 void sas::AABBTree2D::updateObject(const Body2D &body, float margin) noexcept
 {
 
-    AABB2D actual = computeTightAABB(body);
+    AABB2D actual = computeTightAABB2D(body);
 
     Node *curNode = leafMap[body.bodyID];
     if (actual.minX < curNode->aabb.minX || actual.maxX > curNode->aabb.maxX ||
@@ -202,7 +202,7 @@ void sas::AABBTree2D::updateObject(const Body2D &body, float margin) noexcept
     {
 
         remove(body.bodyID);
-        insert(body.bodyID, computeFatAABB(body, margin));
+        insert(body.bodyID, computeFatAABB2D(body, margin));
     }
 }
 
@@ -217,7 +217,7 @@ void sas::AABBTree2D::clear(Node *node) noexcept
     delete node;
 }
 
-void sas::Node::Draw(const DrawCallback &cb) const
+void sas::Node::Draw(const DrawCallback2D &cb) const
 {
     cb(aabb, isLeaf());
 
@@ -227,7 +227,7 @@ void sas::Node::Draw(const DrawCallback &cb) const
         children[1]->Draw(cb);
 }
 
-void sas::AABBTree2D::draw(const DrawCallback &cb) const
+void sas::AABBTree2D::draw(const DrawCallback2D &cb) const
 {
     if (root != nullptr)
     {
