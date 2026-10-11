@@ -39,6 +39,7 @@ namespace sas
         float restitution = 0.0f;
         math::Vec3 velocity{0.0f};
         math::Vec3 pushForce{0.0f};
+        math::Vec3 acceleration{0.0f};
 
         // math::Quat orientation{1.0f, 0.0f, 0.0f, 0.0f};
         math::Vec3 angularVelocity{0.0f};

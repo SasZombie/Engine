@@ -24,6 +24,7 @@ namespace sas
         using AABBTree = typename Traits::AABBTree;
         using Transform = typename Traits::Transform;
         using Kinematics = typename Traits::Kinematics;
+        using DrawCallback = typename Traits::DrawCallback;
 
         PhysicsSettings settings;
         uint32_t idCounter = 0;
@@ -50,7 +51,7 @@ namespace sas
 
         // Visualizing hitboxes
         // Not Optimized
-        void drawDebug(const DrawCallback2D &cb) const noexcept
+        void drawDebug(const DrawCallback &cb) const noexcept
         {
             root.draw(cb);
         }
@@ -114,10 +115,10 @@ namespace sas
     };
 
     using PhysicsWorld2D = PhysicsWorld<Traits2D>;
-    // using PhysicsWorld3D = PhysicsWorld<Traits3D>;
+    using PhysicsWorld3D = PhysicsWorld<Traits3D>;
 
     extern template class PhysicsWorld<Traits2D>;
-    // extern template class PhysicsWorld<Traits3D>;
+    extern template class PhysicsWorld<Traits3D>;
 
     template <DimensionalTraits Traits>
     class BodyHandle
@@ -243,7 +244,7 @@ namespace sas
     {
         BodyHandle<Traits> other;
 
-        math::Vec2 normal;
+        typename Traits::Vector normal;
 
         float depth;
     };

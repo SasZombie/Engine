@@ -21,9 +21,11 @@ namespace sas
 
     struct Transform3D
     {
-        float rotation = 0;
+        math::Vec3 rotation{0};
         math::Vec3 position;
         math::Vec3 scale{1.f, 1.f, 1.f};
+        math::Quaterion quaterion;
+        math::Mat3 rotMatrix;
 
         Transform3D() noexcept = default;
         explicit Transform3D(const math::Vec3& pos) noexcept

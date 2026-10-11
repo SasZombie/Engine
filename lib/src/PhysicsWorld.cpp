@@ -190,7 +190,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
 
         std::vector<uint32_t> potentialCollisions;
 
-        root.query(computeTightAABB2D(obj), potentialCollisions);
+        root.query(Traits::computeTightAABB(obj), potentialCollisions);
 
         for (uint32_t otherID : potentialCollisions)
         {
@@ -215,7 +215,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
         
     }
 
-    const auto &shouldResolveCollision = [&](const Contact2D &contact)
+    const auto &shouldResolveCollision = [&](const Contact &contact)
     {
         const Body &bodyA = getBodyFromSparse(contact.bodyA);
         const Body &bodyB = getBodyFromSparse(contact.bodyB);
@@ -295,10 +295,11 @@ void sas::PhysicsWorld<Traits>::removeFromCollisionPool(Body &body) noexcept
         root.remove(body.bodyID);
     }
 }
+//Maybe in future we must reset something else
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::reset(Body &obj) const noexcept
 {
-    obj.kinematics.acceleration = {0, 0};
+    Traits::reset(obj);
 }
 
 template <sas::DimensionalTraits Traits>
@@ -381,4 +382,4 @@ void sas::PhysicsWorld<Traits>::clear() noexcept
 }
 
 template class sas::PhysicsWorld<sas::Traits2D>;
-// template class sas::PhysicsWorld<sas::Traits3D>;
+template class sas::PhysicsWorld<sas::Traits3D>;

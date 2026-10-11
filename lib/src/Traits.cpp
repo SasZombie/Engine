@@ -537,3 +537,27 @@ bool sas::Traits2D::testBoxBox(const Body &obj, const Body &other, Contact &outC
     }
     return true;
 }
+
+void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
+{
+}
+
+void sas::Traits3D::applyForces(Body &obj, const PhysicsSettings &settings) noexcept
+{
+}
+
+void sas::Traits3D::integrateVelocity(Body &obj, float dt) noexcept
+{
+}
+
+void sas::Traits3D::integratePosition(Body &obj, float dt) noexcept
+{
+}
+
+void sas::Traits3D::resolveCollision(Body &obj, Body &other, Contact &contact) noexcept
+{
+}
+
+void sas::Traits3D::correctPosition(Body &obj, Body &other, Contact &contact) noexcept
+{
+}
