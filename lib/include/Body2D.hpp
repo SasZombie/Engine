@@ -44,10 +44,9 @@ namespace sas
     {
         Circle,
         Box,
-        __count__
     };
 
-    // constexpr auto ShapeType2DCount = std::meta::enumerators_of(^^ShapeType2D).size();
+    constexpr std::size_t ShapeType2DCount = std::meta::enumerators_of(^^ShapeType2D).size();
 
     struct Shape2D
     {

@@ -289,14 +289,6 @@ int main()
             }
         }
 
-        for(const auto& entity : entities)
-        {
-            if(entity.bodyHandle.isColliding())
-            {
-                std::cout << "Collision\n";
-            }
-        }
-
         const std::string msg1("Gravity = " + std::to_string(settings.gravity));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));
         const std::string msg3("Objects = " + std::to_string(entities.size()));

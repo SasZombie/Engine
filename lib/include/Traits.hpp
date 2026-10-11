@@ -33,7 +33,7 @@ namespace sas
         using CollisionHandler = bool (*)(const Body &, const Body &, Contact &) noexcept;
 
         // Dispatch table sized strictly to 2D shape types
-        static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType2D::__count__)][static_cast<size_t>(ShapeType2D::__count__)] = {
+        static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType2DCount)][static_cast<size_t>(ShapeType2DCount)] = {
             {&testCircleCircle, &testCircleBox},
             {[](const Body &obj, const Body &other, Contact &c) noexcept
              {
