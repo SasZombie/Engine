@@ -130,3 +130,8 @@ float sas::math::radToDeg(float rad) noexcept
 {
     return rad * 180 / M_PI;
 }
+
+bool sas::math::floatAlmostEqual(float a, float b, float epsilon)
+{
+    return std::abs(a - b) < epsilon;
+}

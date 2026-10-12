@@ -7,11 +7,11 @@ protected:
     void SetUp() override
     {
         sas::Kinematics2D bouncyKinematics;
-        bouncyKinematics.restituition = 1.f;
+        bouncyKinematics.restitution = 1.f;
         
         // Pointer so it resets each test
         world = std::make_unique<sas::PhysicsWorld<sas::Traits2D>>();
-        world->settings.gravity = 500.0f;
+        world->settings.gravity = {500.0f, 0.f, 0.f};
         world->settings.dragCoeff = 0.47f;
 
         walls.push_back(world->createBody(sas::Shape2D::MakeBox(WIDTH, 1), sas::Transform2D{{WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic));

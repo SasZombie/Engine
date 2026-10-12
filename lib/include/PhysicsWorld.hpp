@@ -124,7 +124,6 @@ namespace sas
     class BodyHandle
     {
     private:
-
         using Body = typename Traits::Body;
 
         uint32_t id;
@@ -239,6 +238,9 @@ namespace sas
         ~BodyHandle() = default;
     };
 
+    using BodyHandle2D = BodyHandle<Traits2D>;
+    using BodyHandle3D = BodyHandle<Traits3D>;
+
     template <DimensionalTraits Traits>
     struct CollisionInfo
     {
@@ -248,5 +250,8 @@ namespace sas
 
         float depth;
     };
+
+    using CollisionInfo2D = CollisionInfo<Traits2D>;
+    using CollisionInfo3D = CollisionInfo<Traits3D>;
 
 } // namespace sas

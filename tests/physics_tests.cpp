@@ -42,16 +42,16 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 100};
-    k.restituition = 0.f;
+    k.restitution = 0.f;
 
     const auto& handle = AddCircle(t, k);
 
     float dt = 1.0f / 60.0f;
 
-    walls[0]->kinematics.restituition = 0;
-    walls[1]->kinematics.restituition = 0;
-    walls[2]->kinematics.restituition = 0;
-    walls[3]->kinematics.restituition = 0;
+    walls[0]->kinematics.restitution = 0;
+    walls[1]->kinematics.restitution = 0;
+    walls[2]->kinematics.restitution = 0;
+    walls[3]->kinematics.restitution = 0;
     
     for (int i = 0; i < 30; ++i) 
     {
@@ -72,7 +72,7 @@ TEST_F(FixtureTest, CircleBouncesOnFloor)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 100};
-    k.restituition = 0.5f;
+    k.restitution = 0.5f;
 
     const auto& body = AddCircle(t, k);
 
@@ -94,7 +94,7 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
-    k.restituition = 0.5f;
+    k.restitution = 0.5f;
 
     const auto& body = AddCircle(t, k);
 
@@ -131,7 +131,7 @@ TEST_F(FixtureTest, CircleBouncesOnWall)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
-    k.restituition = 0.5f;
+    k.restitution = 0.5f;
 
     AddCircle(t, k);
 
@@ -154,7 +154,7 @@ TEST_F(FixtureTest, CircleIsInnelastic)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {0, 0};
-    k.restituition = 0.0f;
+    k.restitution = 0.0f;
 
     AddCircle(t, k);
 
@@ -169,7 +169,7 @@ TEST_F(FixtureTest, CircleIsInnelastic)
 
 TEST_F(FixtureTest, CircleIsPerfectEllastic)
 {
-    world->settings.gravity = 500.0f;
+    world->settings.gravity = {500.0f, 0, 0};
     world->settings.dragCoeff = 0.f;
     world->settings.groundFriction = 1.f;
     world->settings.wallFriction = 1.f;
@@ -180,7 +180,7 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {400.f, 0};
-    k.restituition = 1.0f;
+    k.restitution = 1.0f;
 
     const auto& body = AddCircle(t, k);
 
@@ -202,7 +202,7 @@ TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
     k.velocity = {400.f, 0};
-    k.restituition = 1.0f;
+    k.restitution = 1.0f;
 
     AddCircle(t, k);
     AddCircle(t, k);

@@ -1,6 +1,8 @@
 #include "Traits.hpp"
 #include "PhysicsSettings.hpp"
 #include <algorithm>
+#include <utility>
+#include "Logger.hpp"
 
 void sas::Traits2D::initializeBodyPhysics(Body &body) noexcept
 {
@@ -57,10 +59,10 @@ void sas::Traits2D::initializeBodyPhysics(Body &body) noexcept
 void sas::Traits2D::applyForces(Body &obj, const PhysicsSettings &settings) noexcept
 {
     float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
-    obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity) - (dragForceY * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity.y) - (dragForceY * obj.kinematics.inverseMass);
 
     float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += -1 * (dragForceX * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) * (dragForceX * obj.kinematics.inverseMass);
 }
 
 void sas::Traits2D::integrateVelocity(Body &obj, float dt) noexcept
@@ -132,7 +134,7 @@ void sas::Traits2D::resolveCollision(Body &obj, Body &other, Contact &contact) n
                            (raCrossN * raCrossN) * obj.kinematics.inverseInertia +
                            (rbCrossN * rbCrossN) * other.kinematics.inverseInertia;
 
-        float e = std::max(obj.kinematics.restituition, other.kinematics.restituition);
+        float e = std::max(obj.kinematics.restitution, other.kinematics.restitution);
         if (obj.kinematics.inverseMass > 0.0f && other.kinematics.inverseMass > 0.0f)
         {
             e = std::min(e * 1.2f, 1.0f);
@@ -540,18 +542,113 @@ bool sas::Traits2D::testBoxBox(const Body &obj, const Body &other, Contact &outC
 
 void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
 {
+    const float mass = (body.kinematics.inverseMass > 0) ? 1.0f / body.kinematics.inverseMass : 0.0f;
+    const float inversMass = body.kinematics.inverseMass;
+    math::Mat3 inverseInertiaTensorLocal;
+
+    if (body.hasFlag(Flags::RigidBodyDynamic))
+    {
+
+        switch (body.shape.type)
+        {
+        case ShapeType3D::Orthotope:
+        {
+            float c = (1.0f / 3.0f) * mass;
+
+            float Ixx = c * (body.shape.halfSize.y * body.shape.halfSize.y + body.shape.halfSize.z * body.shape.halfSize.z);
+            float Iyy = c * (body.shape.halfSize.x * body.shape.halfSize.x + body.shape.halfSize.z * body.shape.halfSize.z);
+            float Izz = c * (body.shape.halfSize.x * body.shape.halfSize.x + body.shape.halfSize.y * body.shape.halfSize.y);
+
+            inverseInertiaTensorLocal(0, 0) = 1.0f / Ixx;
+            inverseInertiaTensorLocal(1, 1) = 1.0f / Iyy;
+            inverseInertiaTensorLocal(2, 2) = 1.0f / Izz;
+
+            break;
+        }
+        case ShapeType3D::Sphere:
+        {
+            float invI = (2.5f * inversMass) / (body.shape.radius * body.shape.radius);
+
+            inverseInertiaTensorLocal(0, 0) = invI;
+            inverseInertiaTensorLocal(1, 1) = invI;
+            inverseInertiaTensorLocal(2, 2) = invI;
+
+            break;
+        }
+        case ShapeType3D::Cilinder:
+        {
+
+            float invSide = inversMass / (0.25f * body.shape.radHeight.x * body.shape.radHeight.x + (1.0f / 3.0f) * body.shape.radHeight * body.shape.radHeight);
+            float invAxial = (2.0f * inversMass) / (body.shape.radHeight.x * body.shape.radHeight.x);
+
+            inverseInertiaTensorLocal(0, 0) = invSide;
+            inverseInertiaTensorLocal(1, 1) = invAxial;
+            inverseInertiaTensorLocal(2, 2) = invSide;
+            break;
+            ;
+        }
+        default:
+
+            BaseLogger::error(std::string("Trying to create an unimplemented Shape ") + enumToString(body.shape.type));
+            std::unreachable();
+        }
+
+        body.kinematics.inverseInertiaTensorLocal = inverseInertiaTensorLocal;
+        return;
+    }
+
+    body.kinematics.inverseMass = 0.0f;
+    body.kinematics.inverseInertiaTensorLocal = inverseInertiaTensorLocal;
+
+    if (body.hasFlag(Flags::BodyFlags::Trigger))
+    {
+        body.kinematics.pushForce = math::Vec3{0};
+    }
+    else
+    {
+        body.kinematics.pushForce = body.kinematics.pushForce == math::Vec3{0.f} ? body.kinematics.pushForce : math::Vec3{70.f, 70.f, 70.f};
+    }
+
+    if (body.hasFlag(Flags::BodyFlags::RigidBodyStatic))
+    {
+        body.kinematics.velocity = math::Vec3{0.f};
+        body.kinematics.angularVelocity = math::Vec3{0.f};
+    }
 }
 
 void sas::Traits3D::applyForces(Body &obj, const PhysicsSettings &settings) noexcept
 {
+    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
+    obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity.y) - (dragForceY * obj.kinematics.inverseMass);
+
+    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
+    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) * (dragForceX * obj.kinematics.inverseMass);
+
+    float dragForceZ = obj.kinematics.velocity.z * settings.dragCoeff;
+    obj.kinematics.acceleration.z += (obj.gravityScale * settings.gravity.z) * (dragForceZ * obj.kinematics.inverseMass);
 }
 
 void sas::Traits3D::integrateVelocity(Body &obj, float dt) noexcept
 {
+    obj.kinematics.velocity = obj.kinematics.velocity + obj.kinematics.acceleration * dt;
 }
 
 void sas::Traits3D::integratePosition(Body &obj, float dt) noexcept
 {
+    obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
+
+    const math::Vec3 w = obj.kinematics.angularVelocity;
+    const float wLen = w.lengthSq();
+
+    if(wLen < 1e-3) return;
+
+    const float dtTheta = wLen * dt;
+
+    math::Quaterion deltaQ(w.normalized(), dtTheta);
+
+    obj.transform.quaterion = (deltaQ * obj.transform.quaterion).norm();
+    obj.transform.rotMatrix = obj.transform.quaterion.toMat4();
+
 }
 
 void sas::Traits3D::resolveCollision(Body &obj, Body &other, Contact &contact) noexcept

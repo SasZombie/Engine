@@ -8,7 +8,7 @@ TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
 
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
-    k.restituition = 0.5f;
+    k.restitution = 0.5f;
 
     const auto &handle = AddBox(t, k);
 
@@ -31,7 +31,7 @@ TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
 
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
-    k.restituition = 0.5f;
+    k.restitution = 0.5f;
 
     const auto &handle = AddBox(t, k);
 
@@ -61,16 +61,16 @@ TEST_F(FixtureTest, BoxTiltedDrop_SettlesFlat)
 
     sas::Kinematics2D k;
     k.inverseMass = 1.0f;
-    k.restituition = 0.0f;
+    k.restitution = 0.0f;
 
     const auto &handle = AddBox(t, k);
 
     float dt = 1.0f / 60.0f;
 
-    walls[0]->kinematics.restituition = 0.0f;
-    walls[1]->kinematics.restituition = 0.0f;
-    walls[2]->kinematics.restituition = 0.0f;
-    walls[3]->kinematics.restituition = 0.0f;
+    walls[0]->kinematics.restitution = 0.0f;
+    walls[1]->kinematics.restitution = 0.0f;
+    walls[2]->kinematics.restitution = 0.0f;
+    walls[3]->kinematics.restitution = 0.0f;
 
     for (int i = 0; i < 380; ++i)
     {

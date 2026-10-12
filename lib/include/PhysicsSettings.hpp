@@ -1,10 +1,11 @@
 #pragma once
+#include "Math.hpp"
 
 namespace sas
 {
     struct PhysicsSettings
     {
-        float gravity = 500.f;
+        math::Vec3 gravity;
         float dragCoeff = 0.47f;
         float groundFriction = 0.98f;
         float wallFriction = 0.98f;

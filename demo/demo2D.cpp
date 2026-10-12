@@ -26,6 +26,7 @@ int main()
     sas::PhysicsWorld<sas::Traits2D> world;
     sas::PhysicsSettings &settings = world.settings;
     settings.dragCoeff = 0.47f;
+    settings.gravity = {0, 500, 0};
     Entity *currentBody = nullptr;
 
     std::vector<Entity> entities;
@@ -38,7 +39,7 @@ int main()
 
     sas::Kinematics2D k;
     k.inverseMass = 0.2f;
-    k.restituition = e;
+    k.restitution = e;
     k.velocity.x = 0;
 
     sas::BodyHandle firstBH = world.createBody(sas::Shape2D::MakeBox(200, 16), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
@@ -83,7 +84,7 @@ int main()
     sas::ShapeType2D st;
 
     sas::Kinematics2D bouncyKinematics;
-    bouncyKinematics.restituition = 0.2f;
+    bouncyKinematics.restitution = 0.2f;
 
     sas::BodyHandle topWall = world.createBody(sas::Shape2D::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, 0}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
     sas::BodyHandle bottomWall = world.createBody(sas::Shape2D::MakeBox(SCREEN_WIDTH, 1), sas::Transform2D{{SCREEN_WIDTH / 2, SCREEN_HEIGHT - 1}}, bouncyKinematics, sas::Flags::Active | sas::Flags::RigidBodyStatic);
@@ -116,7 +117,7 @@ int main()
 
                 sas::Kinematics2D kin;
                 kin.inverseMass = 0.01f;
-                kin.restituition = 0;
+                kin.restitution = 0;
 
                 sas::BodyHandle bh = world.createBody(shapeType ? sas::Shape2D::MakeCircle(25) : sas::Shape2D::MakeBox(50, 50), t1, kin);
 
@@ -145,7 +146,7 @@ int main()
         {
             sas::Kinematics2D kin;
             kin.inverseMass = 0.5f;
-            kin.restituition = 1.f;
+            kin.restitution = 1.f;
 
             const auto &[x, y] = GetMouseDelta();
             kin.velocity = {x * 10, y * 10};
@@ -188,12 +189,12 @@ int main()
 
         if (IsKeyPressed(KEY_Q))
         {
-            settings.gravity += 50.f;
+            settings.gravity.y += 50.f;
         }
 
         if (IsKeyPressed(KEY_E))
         {
-            settings.gravity -= 50.f;
+            settings.gravity.y -= 50.f;
         }
 
         if (IsKeyPressed(KEY_A))
@@ -289,7 +290,7 @@ int main()
             }
         }
 
-        const std::string msg1("Gravity = " + std::to_string(settings.gravity));
+        const std::string msg1("Gravity = " + std::to_string(settings.gravity.y));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));
         const std::string msg3("Objects = " + std::to_string(entities.size()));
 

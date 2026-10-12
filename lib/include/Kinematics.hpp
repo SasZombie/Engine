@@ -9,7 +9,7 @@ namespace sas
         // 0 = perfect innelastic
         // 1 = perfect ellastic
         //>1 = explosive
-        float restituition = 0;
+        float restitution = 0;
         math::Vec2 velocity;
         math::Vec2 acceleration;
         float angularVelocity = 0;
@@ -41,7 +41,6 @@ namespace sas
         math::Vec3 pushForce{0.0f};
         math::Vec3 acceleration{0.0f};
 
-        // math::Quat orientation{1.0f, 0.0f, 0.0f, 0.0f};
         math::Vec3 angularVelocity{0.0f};
         math::Vec3 torque{0.0f};
         math::Mat3 inverseInertiaTensorLocal{0.0f};
@@ -53,7 +52,6 @@ namespace sas
             velocity = math::Vec3{0.0f};
             pushForce = math::Vec3{0.0f};
 
-            // orientation = math::Quat{1.0f, 0.0f, 0.0f, 0.0f};
             angularVelocity = math::Vec3{0.0f};
             torque = math::Vec3{0.0f};
 

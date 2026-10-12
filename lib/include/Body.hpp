@@ -2,6 +2,8 @@
 #include <cstdint>
 
 #include <meta>
+#include <string_view>
+
 #include "Transform.hpp"
 #include "Kinematics.hpp"
 
@@ -15,11 +17,14 @@ namespace sas
         {
             None = 0,
             Active = 1 << 0,
+            //Nothing just collisions
             RigidBodyStatic = 1 << 1,
+            //Physics applys
             RigidBodyDynamic = 1 << 2,
+            //Player
             RigidBodyKinematic = 1 << 3,
-            InCollisionPool = 1 << 4,
-            Trigger = 1 << 5
+            Trigger = 1 << 4,
+            InCollisionPool = 1 << 5
         };
 
         enum CollisionFlags : uint32_t
@@ -43,7 +48,7 @@ namespace sas
     enum struct ShapeType2D
     {
         Circle,
-        Box,
+        Box
     };
 
     constexpr std::size_t ShapeType2DCount = std::meta::enumerators_of(^^ShapeType2D).size();
@@ -56,6 +61,23 @@ namespace sas
     };
 
     constexpr std::size_t ShapeType3DCount = std::meta::enumerators_of(^^ShapeType3D).size();
+    
+    template <typename E>
+        requires std::is_enum_v<E>
+    constexpr std::string_view enumToString(E val) noexcept
+    {
+        static constexpr auto enumerators = std::define_static_array(std::meta::enumerators_of(^^E));
+
+        template for (constexpr auto e : enumerators)
+        {
+            if (val == [:e:])
+            {
+                return std::meta::identifier_of(e);
+            }
+        }
+
+        return "Unknown code";
+    }
 
     struct Shape2D
     {
@@ -94,9 +116,9 @@ namespace sas
             return {.type = ShapeType3D::Sphere, .radius = r};
         }
 
-        [[nodiscard]] static Shape3D MakeOrthotope(float x, float y, float z) noexcept
+        [[nodiscard]] static Shape3D MakeOrthotope(float width, float height, float length) noexcept
         {
-            return {.type = ShapeType3D::Orthotope, .halfSize = {x / 2, y / 2, z / 2}};
+            return {.type = ShapeType3D::Orthotope, .halfSize = {width / 2, height / 2, length / 2}};
         }
 
         [[nodiscard]] static Shape3D MakeCilinder(float r, float height) noexcept

@@ -6,6 +6,8 @@ namespace sas
 {
     namespace math
     {
+        bool floatAlmostEqual(float a, float b, float epsilon = std::numeric_limits<float>::epsilon());
+
         struct alignas(16) Vec2
         {
             static constexpr int ElementCount = 2;
@@ -22,6 +24,11 @@ namespace sas
             constexpr Vec2() noexcept : x(0), y(0) {}
             constexpr explicit Vec2(float val) noexcept : x(val), y(val) {}
             constexpr Vec2(float nx, float ny) noexcept : x(nx), y(ny) {}
+
+            constexpr bool operator==(const Vec2 &other) const
+            {
+                return floatAlmostEqual(x, other.x) && floatAlmostEqual(y, other.y);
+            }
 
             [[nodiscard]] constexpr Vec2 operator+(const Vec2 &other) const noexcept
             {
@@ -103,6 +110,11 @@ namespace sas
             constexpr Vec3() noexcept : x(0), y(0), z(0) {}
             constexpr explicit Vec3(float val) noexcept : x(val), y(val), z(val) {}
             constexpr Vec3(float nx, float ny, float nz) noexcept : x(nx), y(ny), z(nz) {}
+
+            constexpr bool operator==(const Vec3 &other) const
+            {
+                return floatAlmostEqual(x, other.x) && floatAlmostEqual(y, other.y) && floatAlmostEqual(z, other.z);
+            }
 
             // data(0, 1, 2) is proven to be one next to the other
             [[nodiscard]] constexpr Vec3 operator+(const Vec3 &other) const noexcept
@@ -214,6 +226,11 @@ namespace sas
             constexpr explicit Vec4(float val) noexcept : x(val), y(val), z(val), w(val) {}
 
             constexpr Vec4(float nx, float ny, float nz, float nw) noexcept : x(nx), y(ny), z(nz), w(nw) {}
+
+            constexpr bool operator==(const Vec4 &other) const
+            {
+                return floatAlmostEqual(x, other.x) && floatAlmostEqual(y, other.y) && floatAlmostEqual(z, other.z) && floatAlmostEqual(w, other.w);
+            }
 
             [[nodiscard]] constexpr Vec4 operator+(const Vec4 &other) const noexcept
             {

@@ -1,7 +1,5 @@
 #include "PhysicsWorld.hpp"
 
-#include "Util.hpp"
-
 #include <utility>
 #include <algorithm>
 

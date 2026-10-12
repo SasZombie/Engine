@@ -13,5 +13,6 @@ add_library(sas_physics
     extern/Logger.cpp
 )
 target_include_directories(sas_physics PUBLIC include)
+target_include_directories(sas_physics PUBLIC extern)
 
 target_link_libraries(sas_physics PRIVATE project_warnings project_sanitizers project_options)

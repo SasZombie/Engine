@@ -1,4 +1,5 @@
 #pragma once
+#include "Logger.hpp"
 #include "Contact.hpp"
 #include "AABBTree.hpp"
 namespace sas
@@ -108,7 +109,7 @@ namespace sas
 
         // using CollisionHandler = bool (*)(const Body &, const Body &, Contact &) noexcept;
 
-        // static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType2DCount)][static_cast<size_t>(ShapeType2DCount)] = {
+        // static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType3DCount)][static_cast<size_t>(ShapeType2DCount)] = {
         //     {&testCircleCircle, &testCircleBox},
         //     {[](const Body &obj, const Body &other, Contact &c) noexcept
         //      {
@@ -123,17 +124,17 @@ namespace sas
 
         static void checkCollisionDispatcher(const Body &a, const Body &b, std::vector<Contact> &contacts) noexcept
         {
-            // size_t typeA = static_cast<size_t>(a.shape.type);
-            // size_t typeB = static_cast<size_t>(b.shape.type);
+        //     size_t typeA = static_cast<size_t>(a.shape.type);
+        //     size_t typeB = static_cast<size_t>(b.shape.type);
 
-            // Contact contact;
-            // contact.bodyA = a.bodyID;
-            // contact.bodyB = b.bodyID;
+        //     Contact contact;
+        //     contact.bodyA = a.bodyID;
+        //     contact.bodyB = b.bodyID;
 
-            // if (DispatchTable[typeA][typeB](a, b, contact))
-            // {
-            //     contacts.push_back(contact);
-            // }
+        //     if (DispatchTable[typeA][typeB](a, b, contact))
+        //     {
+        //         contacts.push_back(contact);
+        //     }
         }
     };
 
