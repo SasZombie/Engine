@@ -37,8 +37,8 @@ namespace sas
         // 1 = perfect ellastic
         //>1 = explosive
         float restitution = 0.0f;
+        float pushForce = 0.f;
         math::Vec3 velocity{0.0f};
-        math::Vec3 pushForce{0.0f};
         math::Vec3 acceleration{0.0f};
 
         math::Vec3 angularVelocity{0.0f};
@@ -50,7 +50,7 @@ namespace sas
         {
             inverseMass = 0.0f;
             velocity = math::Vec3{0.0f};
-            pushForce = math::Vec3{0.0f};
+            pushForce = 0;
 
             angularVelocity = math::Vec3{0.0f};
             torque = math::Vec3{0.0f};

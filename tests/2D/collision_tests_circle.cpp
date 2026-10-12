@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, CircleCollide)
+TEST_F(FixtureTest2D, CircleCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -28,7 +28,7 @@ TEST_F(FixtureTest, CircleCollide)
     EXPECT_TRUE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, CircleDontCollide)
+TEST_F(FixtureTest2D, CircleDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -53,7 +53,7 @@ TEST_F(FixtureTest, CircleDontCollide)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, CircleCollideAfterMoving)
+TEST_F(FixtureTest2D, CircleCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -91,7 +91,7 @@ TEST_F(FixtureTest, CircleCollideAfterMoving)
                             << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
+TEST_F(FixtureTest2D, CirclesDontCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -125,7 +125,7 @@ TEST_F(FixtureTest, CirclesDontCollideAfterMoving)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
+TEST_F(FixtureTest2D, CirclesWithoutCollisionsDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -159,7 +159,7 @@ TEST_F(FixtureTest, CirclesWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
+TEST_F(FixtureTest2D, CircleDifferentLayersDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -184,7 +184,7 @@ TEST_F(FixtureTest, CircleDifferentLayersDontCollide)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, CircleLayerTwoCollides)
+TEST_F(FixtureTest2D, CircleLayerTwoCollides2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -209,7 +209,7 @@ TEST_F(FixtureTest, CircleLayerTwoCollides)
     EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledCircleCollide)
+TEST_F(FixtureTest2D, ScaledCircleCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -239,7 +239,7 @@ TEST_F(FixtureTest, ScaledCircleCollide)
     EXPECT_TRUE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledCircleDontCollide)
+TEST_F(FixtureTest2D, ScaledCircleDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {200, 400};
@@ -267,7 +267,7 @@ TEST_F(FixtureTest, ScaledCircleDontCollide)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
+TEST_F(FixtureTest2D, ScaledCircleCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -308,7 +308,7 @@ TEST_F(FixtureTest, ScaledCircleCollideAfterMoving)
                             << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
+TEST_F(FixtureTest2D, ScaledCirclesDontCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -345,7 +345,7 @@ TEST_F(FixtureTest, ScaledCirclesDontCollideAfterMoving)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
+TEST_F(FixtureTest2D, ScaledCirclesWithoutCollisionsDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -382,7 +382,7 @@ TEST_F(FixtureTest, ScaledCirclesWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
+TEST_F(FixtureTest2D, ScaledCircleDifferentLayersDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -410,7 +410,7 @@ TEST_F(FixtureTest, ScaledCircleDifferentLayersDontCollide)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledCircleLayerTwoCollides)
+TEST_F(FixtureTest2D, ScaledCircleLayerTwoCollides2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};

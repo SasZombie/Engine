@@ -3,7 +3,7 @@
 
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, Performance_Circle)
+TEST_F(FixtureTest2D, Performance_Circle2D)
 {
     constexpr float dt = 1.f / 60.f;
     constexpr double targetFrameBudgetMs = 16.66; 
@@ -49,7 +49,7 @@ TEST_F(FixtureTest, Performance_Circle)
     }
 }
 
-TEST_F(FixtureTest, Performance_Box)
+TEST_F(FixtureTest2D, Performance_Box2D)
 {
     constexpr float dt = 1.f / 60.f;
     constexpr double targetFrameBudgetMs = 16.66; 
@@ -96,7 +96,7 @@ TEST_F(FixtureTest, Performance_Box)
     }
 }
 
-TEST_F(FixtureTest, Performance_Mixed)
+TEST_F(FixtureTest2D, Performance_Mixed2D)
 {
     constexpr float dt = 1.f / 60.f;
     constexpr double targetFrameBudgetMs = 16.66; 

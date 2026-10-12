@@ -117,6 +117,24 @@ namespace sas
             }
 
             // data(0, 1, 2) is proven to be one next to the other
+            constexpr Vec3& operator+=(const Vec3 &other) noexcept
+            {
+                data[0] = data[0] + other.data[0];
+                data[1] = data[1] + other.data[1];
+                data[2] = data[2] + other.data[2];
+
+                return *this;
+            }
+
+            constexpr Vec3& operator-=(const Vec3 &other) noexcept
+            {
+                data[0] = data[0] - other.data[0];
+                data[1] = data[1] - other.data[1];
+                data[2] = data[2] - other.data[2];
+
+                return *this;
+            }
+
             [[nodiscard]] constexpr Vec3 operator+(const Vec3 &other) const noexcept
             {
                 Vec3 res;
@@ -193,6 +211,11 @@ namespace sas
                     data[1] * other.data[2] - data[2] * other.data[1],
                     data[2] * other.data[0] - data[0] * other.data[2],
                     data[0] * other.data[1] - data[1] * other.data[0]};
+            }
+
+            [[nodiscard]] friend constexpr Vec3 operator+(float scalar, const Vec3 &v) noexcept
+            {
+                return scalar + v;
             }
 
             [[nodiscard]] friend constexpr Vec3 operator*(float scalar, const Vec3 &v) noexcept
@@ -407,6 +430,13 @@ namespace sas
 
                 return temp;
             }
+
+            [[nodiscard]] constexpr Vec2 operator*(const Vec2 &other) const noexcept
+            {
+                return Vec2{
+                    data[0] * other.data[0] + data[2] * other.data[1],
+                    data[1] * other.data[0] + data[3] * other.data[1]};
+            }
         };
 
         struct Mat3
@@ -504,6 +534,13 @@ namespace sas
                 }
 
                 return temp;
+            }
+            [[nodiscard]] constexpr Vec3 operator*(const Vec3 &other) const noexcept
+            {
+                return Vec3{
+                    data[0] * other.data[0] + data[3] * other.data[1] + data[6] * other.data[2],
+                    data[1] * other.data[0] + data[4] * other.data[1] + data[7] * other.data[2],
+                    data[2] * other.data[0] + data[5] * other.data[1] + data[8] * other.data[2]};
             }
         };
 
@@ -622,6 +659,15 @@ namespace sas
                 }
 
                 return temp;
+            }
+
+            [[nodiscard]] constexpr Vec4 operator*(const Vec4 &other) const noexcept
+            {
+                return Vec4{
+                    data[0] * other.data[0] + data[4] * other.data[1] + data[8] * other.data[2] + data[12] * other.data[3],
+                    data[1] * other.data[0] + data[5] * other.data[1] + data[9] * other.data[2] + data[13] * other.data[3],
+                    data[2] * other.data[0] + data[6] * other.data[1] + data[10] * other.data[2] + data[14] * other.data[3],
+                    data[3] * other.data[0] + data[7] * other.data[1] + data[11] * other.data[2] + data[15] * other.data[3]};
             }
         };
 

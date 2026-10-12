@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, MixedCollide)
+TEST_F(FixtureTest2D, MixedCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -28,7 +28,7 @@ TEST_F(FixtureTest, MixedCollide)
     EXPECT_TRUE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, MixedDontCollide)
+TEST_F(FixtureTest2D, MixedDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -53,7 +53,7 @@ TEST_F(FixtureTest, MixedDontCollide)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, MixedCollideAfterMoving)
+TEST_F(FixtureTest2D, MixedCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -91,7 +91,7 @@ TEST_F(FixtureTest, MixedCollideAfterMoving)
                             << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest, MixedsDontCollideAfterMoving)
+TEST_F(FixtureTest2D, MixedsDontCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -125,7 +125,7 @@ TEST_F(FixtureTest, MixedsDontCollideAfterMoving)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, MixedsWithoutCollisionsDontCollide)
+TEST_F(FixtureTest2D, MixedsWithoutCollisionsDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -159,7 +159,7 @@ TEST_F(FixtureTest, MixedsWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, MixedDifferentLayersDontCollide)
+TEST_F(FixtureTest2D, MixedDifferentLayersDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -184,7 +184,7 @@ TEST_F(FixtureTest, MixedDifferentLayersDontCollide)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, MixedLayerTwoCollides)
+TEST_F(FixtureTest2D, MixedLayerTwoCollides2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};

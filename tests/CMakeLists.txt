@@ -13,16 +13,44 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_executable(Tests
-    physics_tests.cpp
-    collision_tests_circle.cpp
-    collision_tests_box.cpp
-    collision_tests_mixed.cpp
-    angular_tests_box.cpp
-    math_tests.cpp
-    performance_tests.cpp
+include_directories(.)
+
+add_executable(Tests2D
+    2D/physics_tests.cpp
+    2D/collision_tests_circle.cpp
+    2D/collision_tests_box.cpp
+    2D/collision_tests_mixed.cpp
+    2D/angular_tests_box.cpp
+    2D/performance_tests.cpp
 )
-target_link_libraries(Tests PRIVATE
+add_executable(MathTests
+    math_tests.cpp)
+
+add_executable(Tests3D
+    # 3D/physics_tests.cpp
+    3D/collision_tests_circle.cpp
+    # 3D/collision_tests_box.cpp
+    # 3D/collision_tests_mixed.cpp
+    # 3D/angular_tests_box.cpp
+    # 3D/performance_tests.cpp
+)
+target_link_libraries(Tests2D PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+    GTest::gtest_main
+)
+
+target_link_libraries(Tests3D PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+    GTest::gtest_main
+)
+
+target_link_libraries(MathTests PRIVATE
     sas_physics
     project_warnings
     project_sanitizers

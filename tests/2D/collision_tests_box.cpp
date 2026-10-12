@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, BoxCollide)
+TEST_F(FixtureTest2D, BoxCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -28,7 +28,7 @@ TEST_F(FixtureTest, BoxCollide)
     ASSERT_EQ(world->contacts.size(), 1);
 }
 
-TEST_F(FixtureTest, BoxDontCollide)
+TEST_F(FixtureTest2D, BoxDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -53,7 +53,7 @@ TEST_F(FixtureTest, BoxDontCollide)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, BoxCollideAfterMoving)
+TEST_F(FixtureTest2D, BoxCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -92,7 +92,7 @@ TEST_F(FixtureTest, BoxCollideAfterMoving)
 }
 
 
-TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
+TEST_F(FixtureTest2D, BoxsDontCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -127,7 +127,7 @@ TEST_F(FixtureTest, BoxsDontCollideAfterMoving)
 }
 
 
-TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
+TEST_F(FixtureTest2D, BoxsWithoutCollisionsDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -161,7 +161,7 @@ TEST_F(FixtureTest, BoxsWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
+TEST_F(FixtureTest2D, DifferentLayersDontCollideBoxes2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -186,7 +186,7 @@ TEST_F(FixtureTest, DifferentLayersDontCollideBoxes)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, LayerTwoCollidesBoxes)
+TEST_F(FixtureTest2D, LayerTwoCollidesBoxes2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -212,7 +212,7 @@ TEST_F(FixtureTest, LayerTwoCollidesBoxes)
 }
 
 
-TEST_F(FixtureTest, ScaledBoxCollide)
+TEST_F(FixtureTest2D, ScaledBoxCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {400, 400};
@@ -242,7 +242,7 @@ TEST_F(FixtureTest, ScaledBoxCollide)
     EXPECT_TRUE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledBoxDontCollide)
+TEST_F(FixtureTest2D, ScaledBoxDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {200, 400};
@@ -270,7 +270,7 @@ TEST_F(FixtureTest, ScaledBoxDontCollide)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
+TEST_F(FixtureTest2D, ScaledBoxCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -310,7 +310,7 @@ TEST_F(FixtureTest, ScaledBoxCollideAfterMoving)
                             << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
+TEST_F(FixtureTest2D, ScaledBoxsDontCollideAfterMoving2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -347,7 +347,7 @@ TEST_F(FixtureTest, ScaledBoxsDontCollideAfterMoving)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
+TEST_F(FixtureTest2D, ScaledBoxsWithoutCollisionsDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {310, 200};
@@ -384,7 +384,7 @@ TEST_F(FixtureTest, ScaledBoxsWithoutCollisionsDontCollide)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
+TEST_F(FixtureTest2D, ScaledBoxDifferentLayersDontCollide2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};
@@ -412,7 +412,7 @@ TEST_F(FixtureTest, ScaledBoxDifferentLayersDontCollide)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest, ScaledBoxLayerTwoCollides)
+TEST_F(FixtureTest2D, ScaledBoxLayerTwoCollides2D)
 {
     sas::Transform2D t1;
     t1.position = {510, 200};

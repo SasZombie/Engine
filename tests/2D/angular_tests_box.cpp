@@ -1,6 +1,6 @@
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
+TEST_F(FixtureTest2D, BoxFlatDrop_NoRotation2D)
 {
     sas::Transform2D t;
     t.position = {WIDTH / 2, 300};
@@ -23,7 +23,7 @@ TEST_F(FixtureTest, BoxFlatDrop_NoRotation)
     EXPECT_FLOAT_EQ(handle.get()->transform.rotation, 0.0f);
 }
 
-TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
+TEST_F(FixtureTest2D, BoxTiltedDrop_InducesRotation2D)
 {
     sas::Transform2D t;
     t.position = {WIDTH / 2, 400};
@@ -53,7 +53,7 @@ TEST_F(FixtureTest, BoxTiltedDrop_InducesRotation)
         << "Box failed to spin. Peak spin observed was only: " << maxAngularVelocityObserved;
 }
 
-TEST_F(FixtureTest, BoxTiltedDrop_SettlesFlat)
+TEST_F(FixtureTest2D, BoxTiltedDrop_SettlesFlat2D)
 {
     sas::Transform2D t;
     t.position = {WIDTH / 2, 350};

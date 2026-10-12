@@ -68,7 +68,7 @@ int main()
     t.position = {0, 20, 0};
 
     sas::Kinematics3D k;
-    k.pushForce = sas::math::Vec3{10};
+    k.pushForce = 10;
 
     sas::BodyHandle3D RoofBH = world.createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
@@ -100,25 +100,32 @@ int main()
 
     // Bouncy :D
     k.restitution = 1;
-    k.pushForce = sas::math::Vec3{1};
+    k.pushForce = 1;
     k.inverseMass = 0.2;
 
-    sas::BodyHandle3D Sphere = world.createBody(sas::Shape3D::MakeSphere(1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    sas::BodyHandle3D Sphere = world.createBody(sas::Shape3D::MakeSphere(1), t, k, sas::Flags::Active | sas::Flags::RigidBodyDynamic);
     entities.push_back({Sphere, PURPLE, sas::ShapeType3D::Sphere});
 
-    Sphere->kinematics.angularVelocity = {1, 1, 1};
+    // Sphere->kinematics.angularVelocity = {1, 1, 1};
 
-    t.position = {10, 15, 0};
-    sas::BodyHandle3D Cube = world.createBody(sas::Shape3D::MakeOrthotope(1, 1, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    entities.push_back({Cube, PURPLE, sas::ShapeType3D::Orthotope});
+    // t.position = {10, 15, 0};
+    // sas::BodyHandle3D Cube = world.createBody(sas::Shape3D::MakeOrthotope(1, 1, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    // entities.push_back({Cube, PURPLE, sas::ShapeType3D::Orthotope});
 
-    Cube->kinematics.angularVelocity = {1, 1, 1};
+    // Cube->kinematics.angularVelocity = {1, 1, 1};
 
-    t.position = {-10, 15, 0};
-    sas::BodyHandle3D Cilinder = world.createBody(sas::Shape3D::MakeCilinder(1, 3), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    entities.push_back({Cilinder, PURPLE, sas::ShapeType3D::Cilinder});
+    // t.position = {-10, 15, 0};
+    // sas::BodyHandle3D Cilinder = world.createBody(sas::Shape3D::MakeCilinder(1, 3), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    // entities.push_back({Cilinder, PURPLE, sas::ShapeType3D::Cilinder});
 
-    Cilinder->kinematics.angularVelocity = {1, 1, 1};
+    // Cilinder->kinematics.angularVelocity = {1, 1, 1};
+
+
+    // t.position = {0, 1, 0};
+    // sas::BodyHandle3D ColSphere = world.createBody(sas::Shape3D::MakeSphere(1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    // entities.push_back({ColSphere, PURPLE, sas::ShapeType3D::Sphere});
+
+    // ColSphere->kinematics.velocity = {0, 1, 0};
 
     while (!WindowShouldClose())
     {
@@ -164,23 +171,6 @@ int main()
             settings.gravity.y -= 50.f;
         }
 
-        // if (IsKeyPressed(KEY_A))
-        // {
-        //     settings.dragCoeff += 0.1;
-        // }
-
-        // if (IsKeyPressed(KEY_D))
-        // {
-        //     if (settings.dragCoeff <= 0)
-        //     {
-        //         settings.dragCoeff = 0;
-        //     }
-        //     else
-        //     {
-        //         settings.dragCoeff -= 0.1;
-        //     }
-        // }
-
         if (IsKeyPressed(KEY_L))
         {
             drawHitbox = !drawHitbox;
@@ -222,6 +212,7 @@ int main()
         for (const auto &entity : entities)
         {
             const auto &handle = entity.bodyHandle.get();
+            std::cout << handle->transform.position.x << ' ' << handle->transform.position.y << ' ' << handle->transform.position.z << '\n';
             switch (entity.type)
             {
             case sas::ShapeType3D::Sphere:
@@ -293,6 +284,11 @@ int main()
         }
 
         EndMode3D();
+
+        if(Sphere.isColliding())
+        {
+            std::cout << "Collision Detected\n";
+        }
 
         const std::string msg1("Gravity = " + std::to_string(settings.gravity.y));
         const std::string msg2("DragCoeff = " + std::to_string(settings.dragCoeff));

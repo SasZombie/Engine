@@ -585,7 +585,6 @@ void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
             inverseInertiaTensorLocal(1, 1) = invAxial;
             inverseInertiaTensorLocal(2, 2) = invSide;
             break;
-            ;
         }
         default:
 
@@ -602,11 +601,11 @@ void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
 
     if (body.hasFlag(Flags::BodyFlags::Trigger))
     {
-        body.kinematics.pushForce = math::Vec3{0};
+        body.kinematics.pushForce = 0;
     }
     else
     {
-        body.kinematics.pushForce = body.kinematics.pushForce == math::Vec3{0.f} ? body.kinematics.pushForce : math::Vec3{70.f, 70.f, 70.f};
+        body.kinematics.pushForce = math::floatAlmostEqual(body.kinematics.pushForce, 0) ? body.kinematics.pushForce : 0.5f;
     }
 
     if (body.hasFlag(Flags::BodyFlags::RigidBodyStatic))
@@ -622,10 +621,10 @@ void sas::Traits3D::applyForces(Body &obj, const PhysicsSettings &settings) noex
     obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity.y) - (dragForceY * obj.kinematics.inverseMass);
 
     float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) * (dragForceX * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) - (dragForceX * obj.kinematics.inverseMass);
 
     float dragForceZ = obj.kinematics.velocity.z * settings.dragCoeff;
-    obj.kinematics.acceleration.z += (obj.gravityScale * settings.gravity.z) * (dragForceZ * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.z += (obj.gravityScale * settings.gravity.z) - (dragForceZ * obj.kinematics.inverseMass);
 }
 
 void sas::Traits3D::integrateVelocity(Body &obj, float dt) noexcept
@@ -640,7 +639,8 @@ void sas::Traits3D::integratePosition(Body &obj, float dt) noexcept
     const math::Vec3 w = obj.kinematics.angularVelocity;
     const float wLen = w.lengthSq();
 
-    if(wLen < 1e-3) return;
+    if (wLen < 1e-3)
+        return;
 
     const float dtTheta = wLen * dt;
 
@@ -648,13 +648,241 @@ void sas::Traits3D::integratePosition(Body &obj, float dt) noexcept
 
     obj.transform.quaterion = (deltaQ * obj.transform.quaterion).norm();
     obj.transform.rotMatrix = obj.transform.quaterion.toMat4();
-
 }
 
 void sas::Traits3D::resolveCollision(Body &obj, Body &other, Contact &contact) noexcept
 {
+    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+    if (totalInvMass <= 0.0f)
+        return;
+
+    for (uint32_t i = 0; i < contact.pointCount; ++i)
+    {
+        math::Vec3 contactPoint = contact.points[i].position;
+
+        math::Vec3 rA = contactPoint - obj.transform.position;
+        math::Vec3 rB = contactPoint - other.transform.position;
+
+        math::Vec3 velA = obj.kinematics.velocity + obj.kinematics.angularVelocity * rA;
+        math::Vec3 velB = other.kinematics.velocity + other.kinematics.angularVelocity * rB;
+
+        math::Vec3 relativeVel = velA - velB;
+        float velAlongNormal = math::dotProduct(relativeVel, contact.normal);
+
+        if (velAlongNormal >= 0.0f)
+            continue;
+
+        math::Vec3 raCrossN = rA * contact.normal;
+        math::Vec3 rbCrossN = rB * contact.normal;
+
+        math::Vec3 angInertiaA = obj.kinematics.inverseInertiaTensorWorld * raCrossN;
+        math::Vec3 angInertiaB = other.kinematics.inverseInertiaTensorWorld * rbCrossN;
+
+        float angularFactorA = math::dotProduct(raCrossN, angInertiaA);
+        float angularFactorB = math::dotProduct(rbCrossN, angInertiaB);
+
+        float invMassSum = totalInvMass + angularFactorA + angularFactorB;
+        if (invMassSum <= 0.0f)
+            continue;
+
+        float e = std::max(obj.kinematics.restitution, other.kinematics.restitution);
+
+        float j = -(1.0f + e) * velAlongNormal / invMassSum;
+
+        math::Vec3 impulse = contact.normal * j;
+
+        obj.kinematics.velocity += impulse * obj.kinematics.inverseMass;
+        other.kinematics.velocity -= impulse * other.kinematics.inverseMass;
+
+        obj.kinematics.angularVelocity += obj.kinematics.inverseInertiaTensorWorld * (raCrossN * j);
+        other.kinematics.angularVelocity -= other.kinematics.inverseInertiaTensorWorld * (rbCrossN * j);
+    }
 }
 
 void sas::Traits3D::correctPosition(Body &obj, Body &other, Contact &contact) noexcept
 {
+    float totalInvMass = obj.kinematics.inverseMass + other.kinematics.inverseMass;
+    if (totalInvMass <= 0.0f)
+        return;
+
+    const float percent = 0.4f;
+    const float slop = 0.01f;
+    float penetration = std::max(contact.overlap - slop, 0.0f);
+
+    math::Vec3 correction = contact.normal * (penetration / totalInvMass * percent);
+
+    obj.transform.position = obj.transform.position + correction * obj.kinematics.inverseMass;
+    other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
+}
+
+bool sas::Traits3D::SphereSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    float dx = obj.transform.position.x - other.transform.position.x;
+    float dy = obj.transform.position.y - other.transform.position.y;
+    float dz = obj.transform.position.z - other.transform.position.z;
+    float distanceSq = dx * dx + dy * dy + dz * dz;
+
+    float radiusA = obj.shape.radius * obj.transform.scale.x;
+    float radiusB = other.shape.radius * other.transform.scale.x;
+    float combinedRad = radiusA + radiusB;
+
+    if (distanceSq > combinedRad * combinedRad)
+        return false;
+
+    float distance = std::sqrt(distanceSq);
+
+    math::Vec3 normal = (distance > 0.0001f)
+                            ? math::Vec3(dx / distance, dy / distance, dz / distance)
+                            : math::Vec3(0.0f, 1.0f, 0.f);
+
+    float overlap = combinedRad - distance;
+
+    math::Vec3 contactPoint = obj.transform.position + normal * (radiusA - overlap * 0.5f);
+
+    outContact.bodyA = obj.bodyID;
+    outContact.bodyB = other.bodyID;
+    outContact.normal = normal;
+    outContact.overlap = overlap;
+
+    outContact.pointCount = 1;
+    outContact.points[0].position = contactPoint;
+    outContact.points[0].depth = overlap;
+
+    return true;
+}
+
+bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody, Contact &outContact) noexcept
+{
+    float sphereRadius = sphereBody.shape.radius * sphereBody.transform.scale.x;
+
+    // Box half-extents scaled by box scale
+    math::Vec3 boxHalfExtents = {
+        boxBody.shape.halfExtents.x * boxBody.transform.scale.x,
+        boxBody.shape.halfExtents.y * boxBody.transform.scale.y,
+        boxBody.shape.halfExtents.z * boxBody.transform.scale.z};
+
+    // 1. Transform sphere center into the box's local space
+    math::Vec3 deltaWorld = sphereBody.transform.position - boxBody.transform.position;
+
+    // R is the box's rotation matrix; transpose(R) transforms world offset to local offset
+    math::Mat3 boxRot = math::toMat3(boxBody.transform.orientation);
+    math::Mat3 invBoxRot = math::transpose(boxRot);
+    math::Vec3 localSpherePos = invBoxRot * deltaWorld;
+
+    // 2. Clamp local position to box half-extents to find closest point on/in box
+    math::Vec3 closestLocal = {
+        std::clamp(localSpherePos.x, -boxHalfExtents.x, boxHalfExtents.x),
+        std::clamp(localSpherePos.y, -boxHalfExtents.y, boxHalfExtents.y),
+        std::clamp(localSpherePos.z, -boxHalfExtents.z, boxHalfExtents.z)};
+
+    math::Vec3 localDiff = localSpherePos - closestLocal;
+    float distSq = localDiff.x * localDiff.x + localDiff.y * localDiff.y + localDiff.z * localDiff.z;
+
+    math::Vec3 localNormal;
+    float overlap = 0.0f;
+
+    if (distSq > 1e-8f)
+    {
+        // Case A: Sphere center is OUTSIDE the box
+        if (distSq > sphereRadius * sphereRadius)
+            return false;
+
+        float dist = std::sqrt(distSq);
+        localNormal = localDiff * (1.0f / dist);
+        overlap = sphereRadius - dist;
+    }
+    else
+    {
+        // Case B: Sphere center is INSIDE the box
+        // Find the closest face to push the sphere out along
+        float distToPositiveX = boxHalfExtents.x - localSpherePos.x;
+        float distToNegativeX = boxHalfExtents.x + localSpherePos.x;
+        float distToPositiveY = boxHalfExtents.y - localSpherePos.y;
+        float distToNegativeY = boxHalfExtents.y + localSpherePos.y;
+        float distToPositiveZ = boxHalfExtents.z - localSpherePos.z;
+        float distToNegativeZ = boxHalfExtents.z + localSpherePos.z;
+
+        float minDist = distToPositiveX;
+        localNormal = math::Vec3(1.0f, 0.0f, 0.0f);
+
+        if (distToNegativeX < minDist)
+        {
+            minDist = distToNegativeX;
+            localNormal = math::Vec3(-1.0f, 0.0f, 0.0f);
+        }
+        if (distToPositiveY < minDist)
+        {
+            minDist = distToPositiveY;
+            localNormal = math::Vec3(0.0f, 1.0f, 0.0f);
+        }
+        if (distToNegativeY < minDist)
+        {
+            minDist = distToNegativeY;
+            localNormal = math::Vec3(0.0f, -1.0f, 0.0f);
+        }
+        if (distToPositiveZ < minDist)
+        {
+            minDist = distToPositiveZ;
+            localNormal = math::Vec3(0.0f, 0.0f, 1.0f);
+        }
+        if (distToNegativeZ < minDist)
+        {
+            minDist = distToNegativeZ;
+            localNormal = math::Vec3(0.0f, 0.0f, -1.0f);
+        }
+
+        overlap = sphereRadius + minDist;
+        closestLocal = localSpherePos - localNormal * minDist;
+    }
+
+    // 3. Transform contact point and normal back to world space
+    // Box -> Sphere direction matches your convention (dx = sphere - box)
+    math::Vec3 normalWorld = boxRot * localNormal;
+    math::Vec3 contactPointWorld = boxBody.transform.position + (boxRot * closestLocal);
+
+    outContact.bodyA = sphereBody.bodyID;
+    outContact.bodyB = boxBody.bodyID;
+    outContact.normal = normalWorld;
+    outContact.overlap = overlap;
+
+    outContact.pointCount = 1;
+    outContact.points[0].position = contactPointWorld;
+    outContact.points[0].depth = overlap;
+
+    return true;
+}
+
+bool sas::Traits3D::SphereCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::OrthopeSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::OrthopeCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::CilinderOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
+}
+
+bool sas::Traits3D::CilinderCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
+{
+    return false;
 }

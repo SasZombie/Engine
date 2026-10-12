@@ -165,6 +165,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
         }
     }
 
+    // ===== Broad Phase =====
     for (uint32_t id : activeIDs)
     {
         Body &obj = bodies[sparse[id]];

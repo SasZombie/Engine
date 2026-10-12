@@ -3,7 +3,7 @@
 
 // static constexpr float WIDTH = 800, HEIGHT = 450;
 
-TEST_F(FixtureTest, CircleIsBounded)
+TEST_F(FixtureTest2D, CircleIsBounded2D)
 {
     sas::Transform2D t1;
     t1.position = {470, 50};
@@ -34,7 +34,7 @@ TEST_F(FixtureTest, CircleIsBounded)
     EXPECT_GE(world->bodies[3].transform.position.y, 0);
 }
 
-TEST_F(FixtureTest, CircleStopsOnFloor)
+TEST_F(FixtureTest2D, CircleStopsOnFloor2D)
 {
     sas::Transform2D t;
     t.position = {400, 440};
@@ -63,7 +63,7 @@ TEST_F(FixtureTest, CircleStopsOnFloor)
     EXPECT_NEAR(world->bodies[0].kinematics.velocity.y, 0.0f, 1.0f);
 }
 
-TEST_F(FixtureTest, CircleBouncesOnFloor)
+TEST_F(FixtureTest2D, CircleBouncesOnFloor2D)
 {
 
     sas::Transform2D t;
@@ -86,7 +86,7 @@ TEST_F(FixtureTest, CircleBouncesOnFloor)
     EXPECT_LE(body.get()->transform.position.y, HEIGHT - body.get()->shape.radius);
 }
 
-TEST_F(FixtureTest, EnergyLossOnHighDrop)
+TEST_F(FixtureTest2D, EnergyLossOnHighDrop2D)
 {
     sas::Transform2D t;
     t.position = {400, 50};
@@ -123,7 +123,7 @@ TEST_F(FixtureTest, EnergyLossOnHighDrop)
     EXPECT_GT(peakHeightAfterBounce, 100.0f);
 }
 
-TEST_F(FixtureTest, CircleBouncesOnWall)
+TEST_F(FixtureTest2D, CircleBouncesOnWall2D)
 {
     sas::Transform2D t;
     t.position = {750, 225};
@@ -146,7 +146,7 @@ TEST_F(FixtureTest, CircleBouncesOnWall)
     EXPECT_LE(currentVelX, 0);
 }
 
-TEST_F(FixtureTest, CircleIsInnelastic)
+TEST_F(FixtureTest2D, CircleIsInnelastic2D)
 {
     sas::Transform2D t;
     t.position = {750, 225};
@@ -167,7 +167,7 @@ TEST_F(FixtureTest, CircleIsInnelastic)
     EXPECT_EQ(world->bodies[0].kinematics.velocity.x, 0);
 }
 
-TEST_F(FixtureTest, CircleIsPerfectEllastic)
+TEST_F(FixtureTest2D, CircleIsPerfectEllastic2D)
 {
     world->settings.gravity = {500.0f, 0, 0};
     world->settings.dragCoeff = 0.f;
@@ -194,7 +194,7 @@ TEST_F(FixtureTest, CircleIsPerfectEllastic)
 
 }
 
-TEST_F(FixtureTest, ResetDoesNotCrashOrLeak)
+TEST_F(FixtureTest2D, ResetDoesNotCrashOrLeak2D)
 {
     sas::Transform2D t;
     t.position = {750, 225};
