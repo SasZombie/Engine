@@ -72,6 +72,15 @@ namespace sas
         }
     };
 
+    /*
+
+    Circle + Any --> direct
+    Box + Box --> SAT
+
+    Restul --> GJK + EPA (Orice ar fiiii astea)
+
+    */
+
     struct Traits3D
     {
         static constexpr size_t Dimension = 3;
@@ -103,26 +112,40 @@ namespace sas
         }
 
         // ======= Collision =======
-        static bool SphereSphere(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        static bool SphereOrthotope(const Body &circle, const Body &box, Contact &outContact) noexcept;
-        static bool SphereCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        
-        static bool OrthopeSphere(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        static bool OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        static bool OrthopeCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        
-        static bool CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        static bool CilinderOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        static bool CilinderCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept;
+        [[nodiscard]] static bool SphereSphere(const Body &obj, const Body &other, Contact &outContact) noexcept;
+        [[nodiscard]] static bool SphereOrthotope(const Body &circle, const Body &box, Contact &outContact) noexcept;
+        [[nodiscard]] static bool SphereCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept;
 
+        [[nodiscard]] static inline bool OrthopeSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+        {
+            if (SphereOrthotope(other, obj, outContact))
+            {
+                outContact.normal = -outContact.normal;
+                return true;
+            }
+
+            return false;
+        }
+        [[nodiscard]]static bool OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept;
+        [[nodiscard]]static inline bool CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+        {
+            if (SphereCilinder(other, obj, outContact))
+            {
+                outContact.normal = -outContact.normal;
+                return true;
+            }
+
+            return false;
+        }        
+        [[nodiscard]] static bool GJKEPA(const Body &obj, const Body &other, Contact &outContact) noexcept;
 
 
         using CollisionHandler = bool (*)(const Body &, const Body &, Contact &) noexcept;
 
         static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType3DCount)][static_cast<size_t>(ShapeType3DCount)] = {
             {&SphereSphere, &SphereOrthotope, &SphereCilinder},
-            {&OrthopeSphere, &OrthopeOrthope, &OrthopeCilinder},
-            {&CilinderSphere, &CilinderOrthope, &CilinderCilinder}
+            {&OrthopeSphere, &OrthopeOrthope, &GJKEPA},
+            {&CilinderSphere, &GJKEPA, &GJKEPA}
         };
 
         static void checkCollisionDispatcher(const Body &a, const Body &b, std::vector<Contact> &contacts) noexcept
@@ -133,6 +156,8 @@ namespace sas
             Contact contact;
             contact.bodyA = a.bodyID;
             contact.bodyB = b.bodyID;
+
+            // BaseLogger::log("Checking collision started");
 
             if (DispatchTable[typeA][typeB](a, b, contact))
             {

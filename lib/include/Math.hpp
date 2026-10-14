@@ -111,13 +111,22 @@ namespace sas
             constexpr explicit Vec3(float val) noexcept : x(val), y(val), z(val) {}
             constexpr Vec3(float nx, float ny, float nz) noexcept : x(nx), y(ny), z(nz) {}
 
-            constexpr bool operator==(const Vec3 &other) const
+            constexpr bool operator==(const Vec3 &other) const noexcept
             {
                 return floatAlmostEqual(x, other.x) && floatAlmostEqual(y, other.y) && floatAlmostEqual(z, other.z);
             }
 
+            constexpr std::partial_ordering operator<=>(const Vec3 &other) const noexcept
+            {
+                if (auto cmp = x <=> other.x; cmp != 0)
+                    return cmp;
+                if (auto cmp = y <=> other.y; cmp != 0)
+                    return cmp;
+                return z <=> other.z;
+            }
+            
             // data(0, 1, 2) is proven to be one next to the other
-            constexpr Vec3& operator+=(const Vec3 &other) noexcept
+            constexpr Vec3 &operator+=(const Vec3 &other) noexcept
             {
                 data[0] = data[0] + other.data[0];
                 data[1] = data[1] + other.data[1];
@@ -126,7 +135,7 @@ namespace sas
                 return *this;
             }
 
-            constexpr Vec3& operator-=(const Vec3 &other) noexcept
+            constexpr Vec3 &operator-=(const Vec3 &other) noexcept
             {
                 data[0] = data[0] - other.data[0];
                 data[1] = data[1] - other.data[1];
@@ -379,6 +388,19 @@ namespace sas
                            float m10, float m11) noexcept
                 : data{m00, m10, m01, m11} {}
 
+            [[nodiscard]] constexpr Mat2 transposed() const noexcept
+            {
+                Mat2 result;
+                for (size_t c = 0; c < Cols; ++c)
+                {
+                    for (size_t r = 0; r < Rows; ++r)
+                    {
+                        result(c, r) = (*this)(r, c);
+                    }
+                }
+                return result;
+            }
+
             [[nodiscard]] constexpr float &operator[](size_t index) noexcept
             {
                 return data[index];
@@ -478,6 +500,19 @@ namespace sas
                       m2(0, 1), m2(1, 1), 0.0f, // Column 1
                       0.0f, 0.0f, 1.0f}
             {
+            }
+
+            [[nodiscard]] constexpr Mat3 transposed() const noexcept
+            {
+                Mat3 result;
+                for (size_t c = 0; c < Cols; ++c)
+                {
+                    for (size_t r = 0; r < Rows; ++r)
+                    {
+                        result(c, r) = (*this)(r, c);
+                    }
+                }
+                return result;
             }
             [[nodiscard]] constexpr float &operator[](size_t index) noexcept
             {
@@ -621,6 +656,19 @@ namespace sas
             [[nodiscard]] constexpr const float *data_ptr() const noexcept
             {
                 return data;
+            }
+
+            [[nodiscard]] constexpr Mat4 transposed() const noexcept
+            {
+                Mat4 result;
+                for (size_t c = 0; c < Cols; ++c)
+                {
+                    for (size_t r = 0; r < Rows; ++r)
+                    {
+                        result(c, r) = (*this)(r, c);
+                    }
+                }
+                return result;
             }
 
             [[nodiscard]] constexpr Mat4 operator*(const Mat4 &other) const noexcept
@@ -814,6 +862,20 @@ namespace sas
                     2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx), 0,
                     2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy), 0,
                     0, 0, 0, 1};
+
+                return res;
+            }
+
+            [[nodiscard]] constexpr Mat3 toMat3() const noexcept
+            {
+                const float xx = x * x, yy = y * y, zz = z * z;
+                const float xy = x * y, xz = x * z, yz = y * z;
+                const float wx = w * x, wy = w * y, wz = w * z;
+
+                Mat3 res{
+                    1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy),
+                    2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx),
+                    2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy)};
 
                 return res;
             }

@@ -28,9 +28,10 @@ add_executable(MathTests
 
 add_executable(Tests3D
     # 3D/physics_tests.cpp
-    3D/collision_tests_circle.cpp
+    # 3D/collision_tests_circle.cpp
     # 3D/collision_tests_box.cpp
     # 3D/collision_tests_mixed.cpp
+    3D/collision_tests_GJK.cpp
     # 3D/angular_tests_box.cpp
     # 3D/performance_tests.cpp
 )

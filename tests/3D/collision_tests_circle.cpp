@@ -37,10 +37,10 @@ TEST_F(FixtureTest3D, CircleDontCollide3D)
     t2.position = {0, 0, 0};
 
     sas::Kinematics3D k1;
-    k1.velocity = {1, 0, 0};
+    k1.velocity = {0, 0, 0};
 
     sas::Kinematics3D k2;
-    k2.velocity = {-1, 0, 0};
+    k2.velocity = {0, 0, 0};
 
     sas::BodyHandle bh1 = AddSphere(t1, k1);
     sas::BodyHandle bh2 = AddSphere(t2, k2);

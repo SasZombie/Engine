@@ -62,7 +62,7 @@ void sas::Traits2D::applyForces(Body &obj, const PhysicsSettings &settings) noex
     obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity.y) - (dragForceY * obj.kinematics.inverseMass);
 
     float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) * (dragForceX * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) - (dragForceX * obj.kinematics.inverseMass);
 }
 
 void sas::Traits2D::integrateVelocity(Body &obj, float dt) noexcept
@@ -617,14 +617,16 @@ void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
 
 void sas::Traits3D::applyForces(Body &obj, const PhysicsSettings &settings) noexcept
 {
-    float dragForceY = obj.kinematics.velocity.y * settings.dragCoeff;
-    obj.kinematics.acceleration.y += (obj.gravityScale * settings.gravity.y) - (dragForceY * obj.kinematics.inverseMass);
+    math::Vec3 gravityAccel = settings.gravity * obj.gravityScale;
+    math::Vec3 dragAccel = obj.kinematics.velocity * (settings.dragCoeff * obj.kinematics.inverseMass);
 
-    float dragForceX = obj.kinematics.velocity.x * settings.dragCoeff;
-    obj.kinematics.acceleration.x += (obj.gravityScale * settings.gravity.x) - (dragForceX * obj.kinematics.inverseMass);
+    obj.kinematics.acceleration += gravityAccel - dragAccel;
 
-    float dragForceZ = obj.kinematics.velocity.z * settings.dragCoeff;
-    obj.kinematics.acceleration.z += (obj.gravityScale * settings.gravity.z) - (dragForceZ * obj.kinematics.inverseMass);
+    // TODO:
+    //  math::Vec3 angularDragTorque = obj.kinematics.angularVelocity * settings.angularDragCoeff;
+    //  math::Vec3 angularDragAccel = obj.kinematics.inverseInertiaTensorWorld * angularDragTorque;
+
+    // obj.kinematics.angularVelocity -= angularDragAccel * deltaTime;
 }
 
 void sas::Traits3D::integrateVelocity(Body &obj, float dt) noexcept
@@ -634,20 +636,25 @@ void sas::Traits3D::integrateVelocity(Body &obj, float dt) noexcept
 
 void sas::Traits3D::integratePosition(Body &obj, float dt) noexcept
 {
-    obj.transform.position = obj.transform.position + obj.kinematics.velocity * dt;
+    obj.transform.position += obj.kinematics.velocity * dt;
 
     const math::Vec3 w = obj.kinematics.angularVelocity;
-    const float wLen = w.lengthSq();
+    const float wLenSq = w.lengthSq();
 
-    if (wLen < 1e-3)
-        return;
+    if (wLenSq > 1e-8f)
+    {
+        const float wSpeed = std::sqrt(wLenSq);
+        const float angle = wSpeed * dt;
 
-    const float dtTheta = wLen * dt;
+        math::Vec3 axis = w * (1.0f / wSpeed);
+        math::Quaterion deltaQ(axis, angle);
 
-    math::Quaterion deltaQ(w.normalized(), dtTheta);
+        obj.transform.quaterion = (deltaQ * obj.transform.quaterion).norm();
+        obj.transform.rotMatrix = obj.transform.quaterion.toMat4();
 
-    obj.transform.quaterion = (deltaQ * obj.transform.quaterion).norm();
-    obj.transform.rotMatrix = obj.transform.quaterion.toMat4();
+        math::Mat3 R = obj.transform.quaterion.toMat3();
+        obj.kinematics.inverseInertiaTensorWorld = R * obj.kinematics.inverseInertiaTensorLocal * R.transposed();
+    }
 }
 
 void sas::Traits3D::resolveCollision(Body &obj, Body &other, Contact &contact) noexcept
@@ -755,21 +762,17 @@ bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody,
 {
     float sphereRadius = sphereBody.shape.radius * sphereBody.transform.scale.x;
 
-    // Box half-extents scaled by box scale
     math::Vec3 boxHalfExtents = {
-        boxBody.shape.halfExtents.x * boxBody.transform.scale.x,
-        boxBody.shape.halfExtents.y * boxBody.transform.scale.y,
-        boxBody.shape.halfExtents.z * boxBody.transform.scale.z};
+        boxBody.shape.halfSize.x * boxBody.transform.scale.x,
+        boxBody.shape.halfSize.y * boxBody.transform.scale.y,
+        boxBody.shape.halfSize.z * boxBody.transform.scale.z};
 
-    // 1. Transform sphere center into the box's local space
     math::Vec3 deltaWorld = sphereBody.transform.position - boxBody.transform.position;
 
-    // R is the box's rotation matrix; transpose(R) transforms world offset to local offset
-    math::Mat3 boxRot = math::toMat3(boxBody.transform.orientation);
-    math::Mat3 invBoxRot = math::transpose(boxRot);
+    math::Mat3 boxRot = boxBody.transform.quaterion.toMat3();
+    math::Mat3 invBoxRot = boxRot.transposed();
     math::Vec3 localSpherePos = invBoxRot * deltaWorld;
 
-    // 2. Clamp local position to box half-extents to find closest point on/in box
     math::Vec3 closestLocal = {
         std::clamp(localSpherePos.x, -boxHalfExtents.x, boxHalfExtents.x),
         std::clamp(localSpherePos.y, -boxHalfExtents.y, boxHalfExtents.y),
@@ -783,7 +786,6 @@ bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody,
 
     if (distSq > 1e-8f)
     {
-        // Case A: Sphere center is OUTSIDE the box
         if (distSq > sphereRadius * sphereRadius)
             return false;
 
@@ -793,14 +795,12 @@ bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody,
     }
     else
     {
-        // Case B: Sphere center is INSIDE the box
-        // Find the closest face to push the sphere out along
-        float distToPositiveX = boxHalfExtents.x - localSpherePos.x;
-        float distToNegativeX = boxHalfExtents.x + localSpherePos.x;
-        float distToPositiveY = boxHalfExtents.y - localSpherePos.y;
-        float distToNegativeY = boxHalfExtents.y + localSpherePos.y;
-        float distToPositiveZ = boxHalfExtents.z - localSpherePos.z;
-        float distToNegativeZ = boxHalfExtents.z + localSpherePos.z;
+        const float distToPositiveX = boxHalfExtents.x - localSpherePos.x;
+        const float distToNegativeX = boxHalfExtents.x + localSpherePos.x;
+        const float distToPositiveY = boxHalfExtents.y - localSpherePos.y;
+        const float distToNegativeY = boxHalfExtents.y + localSpherePos.y;
+        const float distToPositiveZ = boxHalfExtents.z - localSpherePos.z;
+        const float distToNegativeZ = boxHalfExtents.z + localSpherePos.z;
 
         float minDist = distToPositiveX;
         localNormal = math::Vec3(1.0f, 0.0f, 0.0f);
@@ -835,8 +835,7 @@ bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody,
         closestLocal = localSpherePos - localNormal * minDist;
     }
 
-    // 3. Transform contact point and normal back to world space
-    // Box -> Sphere direction matches your convention (dx = sphere - box)
+    // Local -> Wordl
     math::Vec3 normalWorld = boxRot * localNormal;
     math::Vec3 contactPointWorld = boxBody.transform.position + (boxRot * closestLocal);
 
@@ -854,35 +853,1045 @@ bool sas::Traits3D::SphereOrthotope(const Body &sphereBody, const Body &boxBody,
 
 bool sas::Traits3D::SphereCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
 {
-    return false;
+    float sphereRadius = obj.shape.radius * obj.transform.scale.x;
+
+    float cylRadius = other.shape.radHeight.x * other.transform.scale.x;
+    float cylHalfHeight = other.shape.radHeight.y * other.transform.scale.y;
+
+    math::Vec3 deltaWorld = obj.transform.position - other.transform.position;
+
+    math::Mat3 cylRot = other.transform.quaterion.toMat3();
+    math::Mat3 invCylRot = cylRot.transposed();
+    math::Vec3 localSphere = invCylRot * deltaWorld;
+
+    math::Vec3 closestLocal;
+    closestLocal.y = std::clamp(localSphere.y, -cylHalfHeight, cylHalfHeight);
+
+    float xzDistSq = localSphere.x * localSphere.x + localSphere.z * localSphere.z;
+
+    math::Vec3 localNormal;
+    float overlap = 0.0f;
+
+    bool insideY = (localSphere.y >= -cylHalfHeight && localSphere.y <= cylHalfHeight);
+    bool insideRadial = (xzDistSq <= cylRadius * cylRadius);
+
+    if (insideY && insideRadial)
+    {
+        float distToTop = cylHalfHeight - localSphere.y;
+        float distToBottom = localSphere.y + cylHalfHeight;
+        float distToCap = std::min(distToTop, distToBottom);
+
+        float xzDist = std::sqrt(xzDistSq);
+        float distToWall = cylRadius - xzDist;
+
+        if (distToCap < distToWall)
+        {
+            if (distToTop < distToBottom)
+            {
+                localNormal = math::Vec3(0.0f, 1.0f, 0.0f);
+                closestLocal = math::Vec3(localSphere.x, cylHalfHeight, localSphere.z);
+                overlap = sphereRadius + distToTop;
+            }
+            else
+            {
+                localNormal = math::Vec3(0.0f, -1.0f, 0.0f);
+                closestLocal = math::Vec3(localSphere.x, -cylHalfHeight, localSphere.z);
+                overlap = sphereRadius + distToBottom;
+            }
+        }
+        else
+        {
+            math::Vec3 radialDir = (xzDist > 1e-4f)
+                                       ? math::Vec3(localSphere.x / xzDist, 0.0f, localSphere.z / xzDist)
+                                       : math::Vec3(1.0f, 0.0f, 0.0f);
+
+            localNormal = radialDir;
+            closestLocal = math::Vec3(radialDir.x * cylRadius, localSphere.y, radialDir.z * cylRadius);
+            overlap = sphereRadius + distToWall;
+        }
+    }
+    else
+    {
+        if (xzDistSq > cylRadius * cylRadius)
+        {
+            float xzDist = std::sqrt(xzDistSq);
+            closestLocal.x = (localSphere.x / xzDist) * cylRadius;
+            closestLocal.z = (localSphere.z / xzDist) * cylRadius;
+        }
+        else
+        {
+            closestLocal.x = localSphere.x;
+            closestLocal.z = localSphere.z;
+        }
+
+        math::Vec3 localDiff = localSphere - closestLocal;
+        float distSq = localDiff.x * localDiff.x + localDiff.y * localDiff.y + localDiff.z * localDiff.z;
+
+        if (distSq > sphereRadius * sphereRadius)
+            return false;
+
+        float dist = std::sqrt(distSq);
+        localNormal = (dist > 1e-4f) ? (localDiff * (1.0f / dist)) : math::Vec3(0.0f, 1.0f, 0.0f);
+        overlap = sphereRadius - dist;
+    }
+
+    math::Vec3 normalWorld = cylRot * localNormal;
+    math::Vec3 contactPointWorld = other.transform.position + (cylRot * closestLocal);
+
+    outContact.bodyA = obj.bodyID;
+    outContact.bodyB = other.bodyID;
+    outContact.normal = normalWorld;
+    outContact.overlap = overlap;
+
+    outContact.pointCount = 1;
+    outContact.points[0].position = contactPointWorld;
+    outContact.points[0].depth = overlap;
+
+    return true;
 }
 
-bool sas::Traits3D::OrthopeSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
-{
-    return false;
-}
-
+// OOB. Nu s-a cerut rotatia. In aceest caz nu este necesara o implementare "completa" cu
+// Contact Manifolds
 bool sas::Traits3D::OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept
 {
+    math::Vec3 posA = obj.transform.position;
+    math::Vec3 posB = other.transform.position;
+
+    math::Vec3 extA = {
+        obj.shape.halfSize.x * other.transform.scale.x,
+        obj.shape.halfSize.y * other.transform.scale.y,
+        obj.shape.halfSize.z * other.transform.scale.z};
+
+    math::Vec3 extB = {
+        other.shape.halfSize.x * other.transform.scale.x,
+        other.shape.halfSize.y * other.transform.scale.y,
+        other.shape.halfSize.z * other.transform.scale.z};
+
+    math::Mat3 rotA = obj.transform.quaterion.toMat3();
+    math::Mat3 rotB = other.transform.quaterion.toMat3();
+
+    math::Vec3 uA[3] = {
+        math::Vec3{rotA(0, 0), rotA(1, 0), rotA(2, 0)},
+        math::Vec3{rotA(0, 1), rotA(1, 1), rotA(2, 1)},
+        math::Vec3{rotA(0, 2), rotA(1, 2), rotA(2, 2)}};
+
+    math::Vec3 uB[3] = {
+        math::Vec3{rotB(0, 0), rotB(1, 0), rotB(2, 0)},
+        math::Vec3{rotB(0, 1), rotB(1, 1), rotB(2, 1)},
+        math::Vec3{rotB(0, 2), rotB(1, 2), rotB(2, 2)}};
+
+    math::Vec3 delta = posA - posB;
+
+    float minOverlap = std::numeric_limits<float>::max();
+    math::Vec3 bestAxis(0.0f, 1.0f, 0.0f);
+
+    // 15 axe
+    auto testAxis = [&](math::Vec3 axis) -> bool
+    {
+        float lenSq = axis.lengthSq();
+        if (lenSq < 1e-6f)
+            return true;
+
+        axis = axis * (1.0f / std::sqrt(lenSq));
+
+        float rA = extA.x * std::abs(math::dotProduct(uA[0], axis)) +
+                   extA.y * std::abs(math::dotProduct(uA[1], axis)) +
+                   extA.z * std::abs(math::dotProduct(uA[2], axis));
+
+        float rB = extB.x * std::abs(math::dotProduct(uB[0], axis)) +
+                   extB.y * std::abs(math::dotProduct(uB[1], axis)) +
+                   extB.z * std::abs(math::dotProduct(uB[2], axis));
+
+        float dist = std::abs(math::dotProduct(delta, axis));
+        float overlap = (rA + rB) - dist;
+
+        if (overlap < 0.0f)
+            return false;
+
+        if (overlap < minOverlap)
+        {
+            minOverlap = overlap;
+
+            if (math::dotProduct(delta, axis) < 0.0f)
+            {
+                axis = -axis;
+            }
+            bestAxis = axis;
+        }
+
+        return true;
+    };
+
+    for (int i = 0; i < 3; ++i)
+        if (!testAxis(uA[i]))
+            return false;
+
+    for (int i = 0; i < 3; ++i)
+        if (!testAxis(uB[i]))
+            return false;
+
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            math::Vec3 crossAxis = uA[i] * uB[j];
+            if (!testAxis(crossAxis))
+                return false;
+        }
+    }
+
+    math::Vec3 ptA = posA;
+    for (int i = 0; i < 3; ++i)
+    {
+        float sign = (math::dotProduct(uA[i], -bestAxis) >= 0.0f) ? 1.0f : -1.0f;
+        ptA += uA[i] * (sign * extA.data[i]);
+    }
+
+    math::Vec3 ptB = posB;
+    for (int i = 0; i < 3; ++i)
+    {
+        float sign = (math::dotProduct(uB[i], bestAxis) >= 0.0f) ? 1.0f : -1.0f;
+        ptB += uB[i] * (sign * extB.data[i]);
+    }
+
+    math::Vec3 contactPoint = (ptA + ptB) * 0.5f;
+
+    outContact.bodyA = obj.bodyID;
+    outContact.bodyB = other.bodyID;
+    outContact.normal = bestAxis;
+    outContact.overlap = minOverlap;
+
+    outContact.pointCount = 1;
+    outContact.points[0].position = contactPoint;
+    outContact.points[0].depth = minOverlap;
+
+    return true;
+}
+#if 0
+[[nodiscard]] static bool GJK(const sas::Body3D &obj, const sas::Body3D &other) noexcept
+{
+    using namespace sas;
+    // 1 direction vector
+    math::Vec3 d = (obj.transform.position - other.transform.position) + math::Vec3(0.001f, 0.001f, 0.001f);
+
+    // 2 find Sc(d) = Sa(d) - Sb(-d)
+    // Sa(d) furthest point from d
+    // Sb(d) furthest point from d in opp direction
+    // Both have analytical formulas ---> No vertex loops needed
+    // If more shpaes are added, this should be a function pointer instead of this
+
+    auto signOf = [](float f) noexcept
+    {
+        return std::copysign(1.0f, f);
+    };
+
+    auto computerSD = [signOf](const Body3D &body, const math::Vec3 &objD) noexcept -> math::Vec3
+    {
+        switch (body.shape.type)
+        {
+        case ShapeType3D::Orthotope:
+        {
+            const auto &scaledHalfsObj = body.shape.halfSize * body.transform.scale;
+            return {
+                signOf(objD.x) * scaledHalfsObj.x,
+                signOf(objD.y) * scaledHalfsObj.y,
+                signOf(objD.z) * scaledHalfsObj.z,
+            };
+        }
+        case ShapeType3D::Cilinder:
+        {
+            float xzLenSq = objD.x * objD.x + objD.z * objD.z;
+            float px = 0.0f, pz = 0.0f;
+
+            if (xzLenSq > 1e-8f)
+            {
+                float xzLen = std::sqrt(xzLenSq);
+                px = (objD.x / xzLen) * body.shape.radHeight.x;
+                pz = (objD.z / xzLen) * body.shape.radHeight.x;
+            }
+            else
+            {
+                px = body.shape.radHeight.x;
+                pz = 0.0f;
+            }
+
+            float py = objD.y >= 0.0f ? body.shape.radHeight.y : -body.shape.radHeight.y;
+            math::Vec3 scaled = math::Vec3{px, py, pz} * body.transform.scale;
+            return scaled;
+        }
+        default:
+            BaseLogger::error(std::string("Passed to GJK a shape that is not known") + enumToString(body.shape.type));
+            std::unreachable();
+        }
+    };
+
+    const auto supportD = [&obj, &other, computerSD, signOf](const math::Vec3 &currentD) noexcept
+    {
+        const auto &localObjD = obj.transform.quaterion.inverse() * currentD;
+        const math::Vec3 Sda = obj.transform.quaterion.norm() * computerSD(obj, localObjD) + obj.transform.position;
+
+        const auto &localOtherD = other.transform.quaterion.inverse() * currentD;
+        const math::Vec3 Sdb = other.transform.quaterion.norm() * computerSD(other, -localOtherD) + other.transform.position;
+
+        return Sda - Sdb;
+    };
+
+    struct Simplex
+    {
+        std::array<sas::math::Vec3, 4> points;
+        int size = 0;
+
+        void push_front(const sas::math::Vec3 &point)
+        {
+            points = {point, points[0], points[1], points[2]};
+            size = std::min(size + 1, 4);
+        }
+    };
+
+    Simplex s;
+
+    const auto doSimplex = [&](this auto &&self) noexcept -> bool
+    {
+        switch (s.size)
+        {
+        case 2:
+        {
+            sas::math::Vec3 a = s.points[0];
+            sas::math::Vec3 b = s.points[1];
+            sas::math::Vec3 ab = b - a;
+            sas::math::Vec3 ao = -a;
+
+            if (dotProduct(ab, ao) > 0.0f)
+            {
+                d = (ab * ao) * ab;
+                if (d.lengthSq() < 1e-6f)
+                {
+                    sas::math::Vec3 up(0, 1, 0);
+                    d = ab * up;
+                    if (d.lengthSq() < 1e-6f)
+                    {
+                        d = ab * sas::math::Vec3(1, 0, 0);
+                    }
+                }
+            }
+            else
+            {
+                s.points = {a, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+                s.size = 1;
+                d = ao;
+            }
+            return false;
+        }
+
+        case 3:
+        {
+            sas::math::Vec3 a = s.points[0];
+            sas::math::Vec3 b = s.points[1];
+            sas::math::Vec3 c = s.points[2];
+
+            sas::math::Vec3 ab = b - a;
+            sas::math::Vec3 ac = c - a;
+            sas::math::Vec3 ao = -a;
+
+            sas::math::Vec3 abc = ab * ac;
+
+            if (dotProduct(abc * ac, ao) > 0.0f)
+            {
+                if (dotProduct(ac, ao) > 0.0f)
+                {
+                    s.points = {a, c, {0, 0, 0}, {0, 0, 0}};
+                    s.size = 2;
+                    return self();
+                }
+                else
+                {
+                    s.points = {a, b, {0, 0, 0}, {0, 0, 0}};
+                    s.size = 2;
+                    return self();
+                }
+            }
+            else
+            {
+                if (dotProduct(ab * abc, ao) > 0.0f)
+                {
+                    s.points = {a, b, {0, 0, 0}, {0, 0, 0}};
+                    s.size = 2;
+                    return self();
+                }
+                else
+                {
+                    if (dotProduct(abc, ao) > 0.0f)
+                    {
+                        d = abc;
+                    }
+                    else
+                    {
+                        s.points = {a, c, b, {0, 0, 0}};
+                        d = -abc;
+                    }
+                }
+            }
+            return false;
+        }
+
+        case 4:
+        {
+            sas::math::Vec3 A = s.points[0];
+            sas::math::Vec3 B = s.points[1];
+            sas::math::Vec3 C = s.points[2];
+            sas::math::Vec3 D = s.points[3];
+
+            sas::math::Vec3 ab = B - A;
+            sas::math::Vec3 ac = C - A;
+            sas::math::Vec3 ad = D - A;
+            sas::math::Vec3 ao = -A;
+
+            sas::math::Vec3 abc = ab * ac;
+            sas::math::Vec3 acd = ac * ad;
+            sas::math::Vec3 adb = ad * ab;
+
+            if (dotProduct(abc, ad) > 0.0f)
+                abc = -abc;
+            if (dotProduct(acd, ab) > 0.0f)
+                acd = -acd;
+            if (dotProduct(adb, ac) > 0.0f)
+                adb = -adb;
+
+            if (dotProduct(abc, ao) > 0.0f)
+            {
+                s.points = {A, B, C, {0, 0, 0}};
+                s.size = 3;
+                return self();
+            }
+            if (dotProduct(acd, ao) > 0.0f)
+            {
+                s.points = {A, C, D, {0, 0, 0}};
+                s.size = 3;
+                return self();
+            }
+            if (dotProduct(adb, ao) > 0.0f)
+            {
+                s.points = {A, D, B, {0, 0, 0}};
+                s.size = 3;
+                return self();
+            }
+
+            return true;
+        }
+
+        default:
+            BaseLogger::error("Do simplex has a weird value: " + std::to_string(s.size));
+            std::unreachable();
+            return false;
+        }
+    };
+
+    s.points[0] = supportD(d);
+    d = -s.points[0];
+
+    constexpr size_t maxIterations = 20;
+    size_t counter = 0;
+
+    while (counter < maxIterations)
+    {
+        BaseLogger::log("Trying to find with counter = " + std::to_string(counter));
+        ++counter;
+        const auto &p = supportD(d);
+        if (math::dotProduct(p, d) < -1e-6)
+        {
+            return false;
+        }
+
+        s.push_front(p);
+        if (doSimplex())
+        {
+            return true;
+        }
+    }
+
     return false;
+};
+#else
+//==================================================================================================
+
+struct Simplex
+{
+    std::array<sas::math::Vec3, 4> points;
+    int size = 0;
+
+    void push_front(const sas::math::Vec3 &point)
+    {
+        points = {point, points[0], points[1], points[2]};
+        size = std::min(size + 1, 4);
+    }
+};
+
+[[nodiscard]] static sas::math::Vec3 localSupport(const sas::Shape3D &shape, const sas::math::Vec3 &localDir) noexcept
+{
+    if (shape.type == sas::ShapeType3D::Orthotope)
+    {
+        return {
+            localDir.x >= 0.0f ? shape.halfSize.x : -shape.halfSize.x,
+            localDir.y >= 0.0f ? shape.halfSize.y : -shape.halfSize.y,
+            localDir.z >= 0.0f ? shape.halfSize.z : -shape.halfSize.z};
+    }
+    else
+    {
+        float xzLenSq = localDir.x * localDir.x + localDir.z * localDir.z;
+        float px = 0.0f, pz = 0.0f;
+
+        if (xzLenSq > 1e-8f)
+        {
+            float xzLen = std::sqrt(xzLenSq);
+            px = (localDir.x / xzLen) * shape.radHeight.x;
+            pz = (localDir.z / xzLen) * shape.radHeight.x;
+        }
+        else
+        {
+            px = shape.radHeight.x;
+            pz = 0.0f;
+        }
+
+        float py = localDir.y >= 0.0f ? shape.radHeight.y : -shape.radHeight.y;
+        return {px, py, pz};
+    }
+};
+
+[[nodiscard]] static sas::math::Vec3 supportFunction(const sas::Shape3D &shape, const sas::Transform3D &tf, const sas::math::Vec3 &globalDir) noexcept
+{
+    using namespace sas;
+    math::Vec3 localDir = tf.quaterion.inverse() * globalDir;
+
+    localDir.x = !math::floatAlmostEqual(tf.scale.x, 0.0f) ? localDir.x / tf.scale.x : 0.0f;
+    localDir.y = !math::floatAlmostEqual(tf.scale.y, 0.0f) ? localDir.y / tf.scale.y : 0.0f;
+    localDir.z = !math::floatAlmostEqual(tf.scale.z, 0.0f) ? localDir.z / tf.scale.z : 0.0f;
+
+    math::Vec3 localPoint = localSupport(shape, localDir);
+
+    localPoint.x *= tf.scale.x;
+    localPoint.y *= tf.scale.y;
+    localPoint.z *= tf.scale.z;
+
+    return tf.position + (tf.quaterion * localPoint);
+};
+
+[[nodiscard]] static sas::math::Vec3 distanceM(const sas::Shape3D &s1, const sas::Transform3D &trf1,
+                                               const sas::Shape3D &s2, const sas::Transform3D &trf2,
+                                               const sas::math::Vec3 &globalDir) noexcept
+{
+    sas::math::Vec3 p1 = supportFunction(s1, trf1, globalDir);
+    sas::math::Vec3 p2 = supportFunction(s2, trf2, -globalDir);
+    return p1 - p2;
+};
+[[nodiscard]] static std::optional<Simplex> GJK(const sas::Body3D &body1, const sas::Body3D &body2) noexcept
+{
+    using namespace sas;
+
+    const sas::Shape3D &shape1 = body1.shape;
+    const sas::Transform3D &tf1 = body1.transform;
+    const sas::Shape3D &shape2 = body2.shape;
+    const sas::Transform3D &tf2 = body2.transform;
+
+    if (shape1.type != sas::ShapeType3D::Cilinder && shape1.type != sas::ShapeType3D::Orthotope) [[unlikely]]
+    {
+        BaseLogger::warn(std::string("Shape 1 is not supported atm. The collisions might be wrong") + sas::enumToString(shape1.type));
+    }
+
+    if (shape2.type != sas::ShapeType3D::Cilinder && shape2.type != sas::ShapeType3D::Orthotope) [[unlikely]]
+    {
+        BaseLogger::warn(std::string("Shape 2 is not supported atm. The collisions might be wrong") + sas::enumToString(shape2.type));
+    }
+
+    math::Vec3 dir = (tf2.position - tf1.position) + math::Vec3(0.001f, 0.001f, 0.001f);
+
+    Simplex simplex;
+    simplex.push_front(distanceM(shape1, tf1, shape2, tf2, dir));
+    dir = -simplex.points[0];
+
+    auto solveSimplex = [&](this auto &&self) noexcept
+    {
+        switch (simplex.size)
+        {
+        case 2:
+        {
+            math::Vec3 a = simplex.points[0];
+            math::Vec3 b = simplex.points[1];
+            math::Vec3 ab = b - a;
+            math::Vec3 ao = -a;
+
+            if (dotProduct(ab, ao) > 0.0f)
+            {
+                dir = (ab * ao) * ab;
+                if (dir.lengthSq() < 1e-6f)
+                {
+                    sas::math::Vec3 up(0, 1, 0);
+                    dir = ab * up;
+                    if (dir.lengthSq() < 1e-6f)
+                        dir = ab * sas::math::Vec3(1, 0, 0);
+                }
+            }
+            else
+            {
+                simplex.points = {a, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+                simplex.size = 1;
+                dir = ao;
+            }
+            return false;
+        }
+        case 3:
+        {
+            math::Vec3 a = simplex.points[0];
+            math::Vec3 b = simplex.points[1];
+            math::Vec3 c = simplex.points[2];
+
+            math::Vec3 ab = b - a;
+            math::Vec3 ac = c - a;
+            math::Vec3 ao = -a;
+
+            math::Vec3 abc = ab * ac;
+
+            if (dotProduct(abc * ac, ao) > 0.0f)
+            {
+                if (dotProduct(ac, ao) > 0.0f)
+                {
+                    simplex.points = {a, c, {0, 0, 0}, {0, 0, 0}};
+                    simplex.size = 2;
+                    return self();
+                }
+                else
+                {
+                    simplex.points = {a, b, {0, 0, 0}, {0, 0, 0}};
+                    simplex.size = 2;
+                    return self();
+                }
+            }
+            else
+            {
+                if (dotProduct(ab * abc, ao) > 0.0f)
+                {
+                    simplex.points = {a, b, {0, 0, 0}, {0, 0, 0}};
+                    simplex.size = 2;
+                    return self();
+                }
+                else
+                {
+                    if (dotProduct(abc, ao) > 0.0f)
+                    {
+                        dir = abc;
+                    }
+                    else
+                    {
+                        simplex.points = {a, c, b, {0, 0, 0}};
+                        dir = -abc;
+                    }
+                }
+            }
+            return false;
+        }
+        case 4:
+        {
+            math::Vec3 a = simplex.points[0];
+            math::Vec3 b = simplex.points[1];
+            math::Vec3 c = simplex.points[2];
+            math::Vec3 d = simplex.points[3];
+
+            math::Vec3 ab = b - a;
+            math::Vec3 ac = c - a;
+            math::Vec3 ad = d - a;
+            math::Vec3 ao = -a;
+
+            math::Vec3 abc = ab * ac;
+            math::Vec3 acd = ac * ad;
+            math::Vec3 adb = ad * ab;
+
+            if (dotProduct(abc, ad) > 0.0f)
+                abc = -abc;
+            if (dotProduct(acd, ab) > 0.0f)
+                acd = -acd;
+            if (dotProduct(adb, ac) > 0.0f)
+                adb = -adb;
+
+            if (dotProduct(abc, ao) > 0.0f)
+            {
+                simplex.points = {a, b, c, {0, 0, 0}};
+                simplex.size = 3;
+                return self();
+            }
+            if (dotProduct(acd, ao) > 0.0f)
+            {
+                simplex.points = {a, c, d, {0, 0, 0}};
+                simplex.size = 3;
+                return self();
+            }
+            if (dotProduct(adb, ao) > 0.0f)
+            {
+                simplex.points = {a, d, b, {0, 0, 0}};
+                simplex.size = 3;
+                return self();
+            }
+
+            return true;
+        }
+        default:
+            BaseLogger::error("Simplex Size is unkkown" + std::to_string(simplex.size));
+            std::unreachable();
+            return false;
+        }
+    };
+
+    const int MAX_ITERATIONS = 64;
+
+    for (int i = 0; i < MAX_ITERATIONS; ++i)
+    {
+        math::Vec3 p = distanceM(shape1, tf1, shape2, tf2, dir);
+
+        if (dotProduct(p, dir) <= 0.0f)
+        {
+            return std::nullopt;
+        }
+
+        for (int j = 0; j < simplex.size; ++j)
+        {
+            if ((simplex.points[j] - p).lengthSq() < 1e-5f)
+            {
+                return std::nullopt;
+            }
+        }
+
+        simplex.push_front(p);
+
+        if (solveSimplex())
+        {
+            return simplex;
+        }
+    }
+
+    return std::nullopt;
+}
+#endif
+
+#if 1
+
+static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D &outContact) noexcept
+{
+    using namespace sas;
+    struct Face
+    {
+        math::Vec3 x;
+        math::Vec3 y;
+        math::Vec3 z;
+        math::Vec3 normal{0.f};
+        bool visible = false;
+    };
+
+    const math::Vec3 A = simplex.points[0];
+    const math::Vec3 B = simplex.points[1];
+    const math::Vec3 C = simplex.points[2];
+    const math::Vec3 D = simplex.points[3];
+
+    const math::Vec3 center = (A + B + C + D) * 0.25f;
+
+    std::vector<Face> faces = {
+        {A, B, C},
+        {A, C, D},
+        {A, D, B},
+        {B, C, D}};
+
+    static constexpr size_t maxIterations = 100;
+    for (size_t i = 0; i < maxIterations; ++i)
+    {
+
+        if (faces.empty())
+        {
+            BaseLogger::warn("Epa deleted all faces");
+            break;
+        }
+        float minimDistance = std::numeric_limits<float>::max();
+        // This will be invalidate when I
+        // No longer need closestFace
+        Face *closestFace = &faces[0];
+
+        for (Face &current : faces)
+        {
+            const auto &edge1 = current.x - current.z;
+            const auto &edge2 = current.y - current.z;
+
+            auto perpNorm = (edge1 * edge2).normalized();
+
+            if (math::dotProduct(perpNorm, current.x - center) < 1e-4f)
+            {
+                perpNorm = -perpNorm;
+            }
+            current.normal = perpNorm;
+
+            float distance = std::abs(math::dotProduct(perpNorm, current.x));
+
+            if (distance < minimDistance)
+            {
+                minimDistance = distance;
+                closestFace = &current;
+            }
+        }
+
+        const auto &newPoint = distanceM(obj.shape, obj.transform, other.shape, other.transform, closestFace->normal);
+        const float newDistance = math::dotProduct(newPoint, closestFace->normal);
+
+        const float comparedDist = newDistance - minimDistance;
+
+        if (comparedDist < 1e-3 || i == maxIterations - 1)
+        {
+            ContactPoint3D point{newPoint, newDistance};
+            outContact.normal = closestFace->normal;
+            outContact.points[0] = point;
+            outContact.pointCount = 1;
+            outContact.overlap = newDistance;
+
+            return;
+        }
+
+        struct UndirectedEdge
+        {
+            math::Vec3 minV;
+            math::Vec3 maxV;
+            math::Vec3 originalFrom;
+            math::Vec3 originalTo;
+
+            static UndirectedEdge make(const math::Vec3 &a, const math::Vec3 &b)
+            {
+                if (a < b)
+                {
+                    return {a, b, a, b};
+                }
+                return {b, a, a, b};
+            }
+
+            bool equals(const UndirectedEdge &o) const
+            {
+                return minV == o.minV && maxV == o.maxV;
+            }
+        };
+
+        std::vector<UndirectedEdge> horizon;
+
+        auto addOrRemoveEdge = [&](const math::Vec3 &a, const math::Vec3 &b)
+        {
+            UndirectedEdge edge = UndirectedEdge::make(a, b);
+
+            for (size_t horizonInd = 0; horizonInd < horizon.size(); ++horizonInd)
+            {
+                if (horizon[horizonInd].equals(edge))
+                {
+                    horizon[horizonInd] = horizon.back();
+                    horizon.pop_back();
+                    return;
+                }
+            }
+
+            horizon.push_back(edge);
+        };
+
+        for (Face &current : faces)
+        {
+
+            if (math::dotProduct(newPoint - current.x, current.normal) > 0.0f)
+            {
+                current.visible = true;
+
+                addOrRemoveEdge(current.x, current.y);
+                addOrRemoveEdge(current.y, current.z);
+                addOrRemoveEdge(current.z, current.x);
+            }
+        }
+
+        std::erase_if(faces, [](const Face &face)
+                      { return face.visible; });
+
+        for (const auto &edge : horizon)
+        {
+            faces.push_back({edge.originalFrom, edge.originalTo, newPoint});
+        }
+    }
+
+    BaseLogger::log("Finished EPA with empty stuff");
+    return;
+}
+#else
+
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+namespace sas
+{
+    // Helper structures for EPA internal calculations
+    struct EPAFace
+    {
+        sas::math::Vec3 a, b, c;
+        sas::math::Vec3 normal;
+        float distance;
+    };
+
+    struct EPAEdge
+    {
+        sas::math::Vec3 a, b;
+    };
 }
 
-bool sas::Traits3D::OrthopeCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
+static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D &outContact) noexcept
 {
-    return false;
+    // Ensure we have a tetrahedron to start with
+    if (simplex.size < 4)
+        return;
+
+    std::vector<sas::EPAFace> faces;
+    faces.reserve(64); // Pre-allocate to avoid frequent allocations
+
+    // Helper to calculate face normal, distance, and ensure it faces outward from origin
+    auto addFace = [&faces](const sas::math::Vec3 &a, const sas::math::Vec3 &b, const sas::math::Vec3 &c)
+    {
+        // Assume standard cross/dot/length implementations exist in sas::math
+        sas::math::Vec3 ab = {b.x - a.x, b.y - a.y, b.z - a.z};
+        sas::math::Vec3 ac = {c.x - a.x, c.y - a.y, c.z - a.z};
+
+        sas::math::Vec3 normal = {
+            ab.y * ac.z - ab.z * ac.y,
+            ab.z * ac.x - ab.x * ac.z,
+            ab.x * ac.y - ab.y * ac.x};
+
+        float length = std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+        if (length > 0.000001f)
+        {
+            normal.x /= length;
+            normal.y /= length;
+            normal.z /= length;
+        }
+
+        float distance = (normal.x * a.x + normal.y * a.y + normal.z * a.z);
+
+        if (distance < 0.0f)
+        {
+            // Reverse winding if the face is pointing towards the origin
+            faces.push_back({a, c, b, {-normal.x, -normal.y, -normal.z}, -distance});
+        }
+        else
+        {
+            faces.push_back({a, b, c, normal, distance});
+        }
+    };
+
+    // 1. Build initial polytope from the GJK tetrahedron simplex
+    addFace(simplex.points[0], simplex.points[1], simplex.points[2]);
+    addFace(simplex.points[0], simplex.points[2], simplex.points[3]);
+    addFace(simplex.points[0], simplex.points[3], simplex.points[1]);
+    addFace(simplex.points[1], simplex.points[3], simplex.points[2]);
+
+    const float EPA_TOLERANCE = 0.0001f;
+    const int MAX_ITERATIONS = 64;
+
+    for (int iter = 0; iter < MAX_ITERATIONS; ++iter)
+    {
+        // 2. Find the face closest to the origin
+        int closestFaceIdx = 0;
+        float minDist = faces[0].distance;
+
+        for (size_t i = 1; i < faces.size(); ++i)
+        {
+            if (faces[i].distance < minDist)
+            {
+                minDist = faces[i].distance;
+                closestFaceIdx = static_cast<int>(i);
+            }
+        }
+
+        sas::EPAFace closestFace = faces[closestFaceIdx];
+        sas::math::Vec3 searchDir = closestFace.normal;
+
+        // 3. Search for a new support point in the direction of the closest face's normal
+        // NOTE: Assumes Body3D has .shape and .transform members. Adjust accessors as needed.
+        sas::math::Vec3 p = distanceM(obj.shape, obj.transform, other.shape, other.transform, searchDir);
+
+        float pDist = (p.x * searchDir.x + p.y * searchDir.y + p.z * searchDir.z);
+
+        // 4. If the new point is not significantly further than the face, we found the boundary
+        if (pDist - minDist < EPA_TOLERANCE)
+        {
+            outContact.normal = closestFace.normal;
+            outContact.overlap = pDist; // The depth of penetration
+
+            // NOTE: True local contact points require tracking individual support points
+            // and calculating the barycentric coordinates of the origin projected on this face.
+            // As a simplified fallback for standard resolution, we set the global Minkowski point:
+            outContact.pointCount = 1;
+            outContact.points[0].position = {
+                closestFace.normal.x * pDist,
+                closestFace.normal.y * pDist,
+                closestFace.normal.z * pDist};
+            outContact.points[0].depth = pDist;
+
+            // Populate bodies (Assuming Body3D has an .id or similar property)
+            // outContact.bodyA = obj.id;
+            // outContact.bodyB = other.id;
+            return;
+        }
+
+        // 5. If we haven't reached the boundary, expand the polytope
+        std::vector<sas::EPAEdge> uniqueEdges;
+
+        // Helper to add edges: if an edge exists backwards, it's shared and internal (not a silhouette edge)
+        auto addEdge = [&uniqueEdges](const sas::math::Vec3 &a, const sas::math::Vec3 &b)
+        {
+            auto it = std::find_if(uniqueEdges.begin(), uniqueEdges.end(), [&](const sas::EPAEdge &e)
+                                   {
+                // Tolerance-based equality for floating point vectors
+                return std::abs(e.a.x - b.x) < 0.0001f && std::abs(e.a.y - b.y) < 0.0001f && std::abs(e.a.z - b.z) < 0.0001f &&
+                       std::abs(e.b.x - a.x) < 0.0001f && std::abs(e.b.y - a.y) < 0.0001f && std::abs(e.b.z - a.z) < 0.0001f; });
+
+            if (it != uniqueEdges.end())
+            {
+                uniqueEdges.erase(it); // Remove shared edge
+            }
+            else
+            {
+                uniqueEdges.push_back({a, b});
+            }
+        };
+
+        // 6. Find all faces that can "see" the new support point and extract silhouette edges
+        for (int i = static_cast<int>(faces.size()) - 1; i >= 0; --i)
+        {
+            float dotSight = (faces[i].normal.x * (p.x - faces[i].a.x) +
+                              faces[i].normal.y * (p.y - faces[i].a.y) +
+                              faces[i].normal.z * (p.z - faces[i].a.z));
+
+            if (dotSight > 0.0f)
+            {
+                addEdge(faces[i].a, faces[i].b);
+                addEdge(faces[i].b, faces[i].c);
+                addEdge(faces[i].c, faces[i].a);
+                faces.erase(faces.begin() + i); // Remove visible face
+            }
+        }
+
+        // 7. Stitch new faces from the silhouette edges to the new support point
+        for (const auto &edge : uniqueEdges)
+        {
+            addFace(edge.a, edge.b, p);
+        }
+    }
 }
 
-bool sas::Traits3D::CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
-{
-    return false;
-}
+#endif
 
-bool sas::Traits3D::CilinderOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept
+bool sas::Traits3D::GJKEPA(const sas::Body3D &obj, const sas::Body3D &other, sas::Contact3D &outContact) noexcept
 {
-    return false;
-}
+    const auto &simplex = GJK(obj, other);
 
-bool sas::Traits3D::CilinderCilinder(const Body &obj, const Body &other, Contact &outContact) noexcept
-{
+    if (simplex)
+    {
+        EPA(obj, other, *simplex, outContact);
+        BaseLogger::log("Epa completed");
+        return true;
+    }
+
     return false;
 }
