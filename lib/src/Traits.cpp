@@ -1570,8 +1570,6 @@ struct Simplex
 }
 #endif
 
-#if 1
-
 static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D &outContact) noexcept
 {
     using namespace sas;
@@ -1641,7 +1639,7 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
         if (comparedDist < 1e-3 || i == maxIterations - 1)
         {
             ContactPoint3D point{newPoint, newDistance};
-            outContact.normal = closestFace->normal;
+            outContact.normal = -closestFace->normal;
             outContact.points[0] = point;
             outContact.pointCount = 1;
             outContact.overlap = newDistance;
@@ -1712,175 +1710,9 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
         }
     }
 
-    BaseLogger::log("Finished EPA with empty stuff");
+    BaseLogger::warn("Finished EPA with empty stuff");
     return;
 }
-#else
-
-#include <vector>
-#include <algorithm>
-#include <cmath>
-
-namespace sas
-{
-    // Helper structures for EPA internal calculations
-    struct EPAFace
-    {
-        sas::math::Vec3 a, b, c;
-        sas::math::Vec3 normal;
-        float distance;
-    };
-
-    struct EPAEdge
-    {
-        sas::math::Vec3 a, b;
-    };
-}
-
-static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D &outContact) noexcept
-{
-    // Ensure we have a tetrahedron to start with
-    if (simplex.size < 4)
-        return;
-
-    std::vector<sas::EPAFace> faces;
-    faces.reserve(64); // Pre-allocate to avoid frequent allocations
-
-    // Helper to calculate face normal, distance, and ensure it faces outward from origin
-    auto addFace = [&faces](const sas::math::Vec3 &a, const sas::math::Vec3 &b, const sas::math::Vec3 &c)
-    {
-        // Assume standard cross/dot/length implementations exist in sas::math
-        sas::math::Vec3 ab = {b.x - a.x, b.y - a.y, b.z - a.z};
-        sas::math::Vec3 ac = {c.x - a.x, c.y - a.y, c.z - a.z};
-
-        sas::math::Vec3 normal = {
-            ab.y * ac.z - ab.z * ac.y,
-            ab.z * ac.x - ab.x * ac.z,
-            ab.x * ac.y - ab.y * ac.x};
-
-        float length = std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-        if (length > 0.000001f)
-        {
-            normal.x /= length;
-            normal.y /= length;
-            normal.z /= length;
-        }
-
-        float distance = (normal.x * a.x + normal.y * a.y + normal.z * a.z);
-
-        if (distance < 0.0f)
-        {
-            // Reverse winding if the face is pointing towards the origin
-            faces.push_back({a, c, b, {-normal.x, -normal.y, -normal.z}, -distance});
-        }
-        else
-        {
-            faces.push_back({a, b, c, normal, distance});
-        }
-    };
-
-    // 1. Build initial polytope from the GJK tetrahedron simplex
-    addFace(simplex.points[0], simplex.points[1], simplex.points[2]);
-    addFace(simplex.points[0], simplex.points[2], simplex.points[3]);
-    addFace(simplex.points[0], simplex.points[3], simplex.points[1]);
-    addFace(simplex.points[1], simplex.points[3], simplex.points[2]);
-
-    const float EPA_TOLERANCE = 0.0001f;
-    const int MAX_ITERATIONS = 64;
-
-    for (int iter = 0; iter < MAX_ITERATIONS; ++iter)
-    {
-        // 2. Find the face closest to the origin
-        int closestFaceIdx = 0;
-        float minDist = faces[0].distance;
-
-        for (size_t i = 1; i < faces.size(); ++i)
-        {
-            if (faces[i].distance < minDist)
-            {
-                minDist = faces[i].distance;
-                closestFaceIdx = static_cast<int>(i);
-            }
-        }
-
-        sas::EPAFace closestFace = faces[closestFaceIdx];
-        sas::math::Vec3 searchDir = closestFace.normal;
-
-        // 3. Search for a new support point in the direction of the closest face's normal
-        // NOTE: Assumes Body3D has .shape and .transform members. Adjust accessors as needed.
-        sas::math::Vec3 p = distanceM(obj.shape, obj.transform, other.shape, other.transform, searchDir);
-
-        float pDist = (p.x * searchDir.x + p.y * searchDir.y + p.z * searchDir.z);
-
-        // 4. If the new point is not significantly further than the face, we found the boundary
-        if (pDist - minDist < EPA_TOLERANCE)
-        {
-            outContact.normal = closestFace.normal;
-            outContact.overlap = pDist; // The depth of penetration
-
-            // NOTE: True local contact points require tracking individual support points
-            // and calculating the barycentric coordinates of the origin projected on this face.
-            // As a simplified fallback for standard resolution, we set the global Minkowski point:
-            outContact.pointCount = 1;
-            outContact.points[0].position = {
-                closestFace.normal.x * pDist,
-                closestFace.normal.y * pDist,
-                closestFace.normal.z * pDist};
-            outContact.points[0].depth = pDist;
-
-            // Populate bodies (Assuming Body3D has an .id or similar property)
-            // outContact.bodyA = obj.id;
-            // outContact.bodyB = other.id;
-            return;
-        }
-
-        // 5. If we haven't reached the boundary, expand the polytope
-        std::vector<sas::EPAEdge> uniqueEdges;
-
-        // Helper to add edges: if an edge exists backwards, it's shared and internal (not a silhouette edge)
-        auto addEdge = [&uniqueEdges](const sas::math::Vec3 &a, const sas::math::Vec3 &b)
-        {
-            auto it = std::find_if(uniqueEdges.begin(), uniqueEdges.end(), [&](const sas::EPAEdge &e)
-                                   {
-                // Tolerance-based equality for floating point vectors
-                return std::abs(e.a.x - b.x) < 0.0001f && std::abs(e.a.y - b.y) < 0.0001f && std::abs(e.a.z - b.z) < 0.0001f &&
-                       std::abs(e.b.x - a.x) < 0.0001f && std::abs(e.b.y - a.y) < 0.0001f && std::abs(e.b.z - a.z) < 0.0001f; });
-
-            if (it != uniqueEdges.end())
-            {
-                uniqueEdges.erase(it); // Remove shared edge
-            }
-            else
-            {
-                uniqueEdges.push_back({a, b});
-            }
-        };
-
-        // 6. Find all faces that can "see" the new support point and extract silhouette edges
-        for (int i = static_cast<int>(faces.size()) - 1; i >= 0; --i)
-        {
-            float dotSight = (faces[i].normal.x * (p.x - faces[i].a.x) +
-                              faces[i].normal.y * (p.y - faces[i].a.y) +
-                              faces[i].normal.z * (p.z - faces[i].a.z));
-
-            if (dotSight > 0.0f)
-            {
-                addEdge(faces[i].a, faces[i].b);
-                addEdge(faces[i].b, faces[i].c);
-                addEdge(faces[i].c, faces[i].a);
-                faces.erase(faces.begin() + i); // Remove visible face
-            }
-        }
-
-        // 7. Stitch new faces from the silhouette edges to the new support point
-        for (const auto &edge : uniqueEdges)
-        {
-            addFace(edge.a, edge.b, p);
-        }
-    }
-}
-
-#endif
 
 bool sas::Traits3D::GJKEPA(const sas::Body3D &obj, const sas::Body3D &other, sas::Contact3D &outContact) noexcept
 {
@@ -1889,7 +1721,6 @@ bool sas::Traits3D::GJKEPA(const sas::Body3D &obj, const sas::Body3D &other, sas
     if (simplex)
     {
         EPA(obj, other, *simplex, outContact);
-        BaseLogger::log("Epa completed");
         return true;
     }
 

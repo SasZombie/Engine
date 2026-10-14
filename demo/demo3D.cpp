@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <rlgl.h>
+#include <raymath.h>
 #include <vector>
 #include <iostream>
 
@@ -12,8 +13,6 @@ struct Entity
     sas::BodyHandle<sas::Traits3D> bodyHandle;
 
     Color c;
-
-    sas::ShapeType3D type;
 };
 static Vector3 toRaylibVector(const sas::math::Vec3 &v) noexcept
 {
@@ -23,47 +22,8 @@ static Vector3 toRaylibVector(const sas::math::Vec3 &v) noexcept
         v.data[2]};
 }
 
-int main()
+static void setUpBox(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
 {
-    constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
-    // constexpr float circleRad = 25.f, e = 1.f;
-
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
-    SetTargetFPS(60);
-
-    auto lambda = [](const sas::AABB3D &aabb, bool isLeaf)
-    {
-        // float width = aabb.maxX - aabb.minX;
-        // float height = aabb.maxY - aabb.minY;
-        // float length = aabb.maxZ - aabb.minZ;
-
-        BoundingBox box = {
-            .min = (Vector3){aabb.minX, aabb.minY, aabb.minZ},
-            .max = (Vector3){aabb.maxX, aabb.maxY, aabb.maxZ}};
-
-        DrawBoundingBox(box, isLeaf ? PURPLE : YELLOW);
-    };
-
-    Camera3D camera;
-    camera.position = (Vector3){12.5105f, 13.5f, 26.869f};
-    camera.target = (Vector3){0.0f, 2.0f, 0.0f};
-    camera.up = (Vector3){0.0f, 1.0f, 0.0f};
-    camera.fovy = 60.0f;
-    camera.projection = CAMERA_PERSPECTIVE;
-
-    float dt = 0;
-    bool drawHitbox = false;
-    DisableCursor();
-
-    // ==== Entitites ====
-    sas::PhysicsWorld<sas::Traits3D> world;
-    sas::PhysicsSettings &settings = world.settings;
-    settings.dragCoeff = 0.47f;
-    settings.gravity = {0, -3, 0};
-
-    std::vector<Entity> entities;
-    std::vector<Entity> arenaWalls;
-
     sas::Transform3D t;
     t.position = {0, 20, 0};
 
@@ -89,61 +49,157 @@ int main()
 
     sas::BodyHandle3D Wall4BH = world.createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
-    arenaWalls.push_back({RoofBH, LIME, sas::ShapeType3D::Orthotope});
-    arenaWalls.push_back({FloorBH, LIME, sas::ShapeType3D::Orthotope});
-    arenaWalls.push_back({Wall1BH, RED, sas::ShapeType3D::Orthotope});
-    arenaWalls.push_back({Wall2BH, RED, sas::ShapeType3D::Orthotope});
-    arenaWalls.push_back({Wall3BH, RED, sas::ShapeType3D::Orthotope});
-    arenaWalls.push_back({Wall4BH, RED, sas::ShapeType3D::Orthotope});
+    objects.push_back({RoofBH, LIME});
+    objects.push_back({FloorBH, LIME});
+    objects.push_back({Wall1BH, RED});
+    objects.push_back({Wall2BH, RED});
+    objects.push_back({Wall3BH, RED});
+    objects.push_back({Wall4BH, RED});
+}
 
-    t.position = {0, 15, 0};
+static void setUpModeOne(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
+{
+    sas::Transform3D t;
+    t.position = {0.5105f, 13.5f, 29.869f};
+
+    sas::Kinematics3D k;
+    k.angularVelocity = {1, 1, 1};
+
+    sas::BodyHandle3D demoSphere = world.createBody(sas::Shape3D::MakeSphere(0.5), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    objects.push_back({demoSphere, PURPLE});
+
+    t.position = {0.5105f, 13.5f, 27.869f};
+
+    sas::BodyHandle3D demoCube = world.createBody(sas::Shape3D::MakeOrthotope(1, 1, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    objects.push_back({demoCube, YELLOW});
+
+    t.position = {0.5105f, 13.5f, 25.869f};
+    sas::BodyHandle3D demoCil = world.createBody(sas::Shape3D::MakeCilinder(0.5, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
+    objects.push_back({demoCil, CLITERAL(Color){0, 255, 255, 255}});
+}
+
+static void drawEntity(const Entity &entity) noexcept
+{
+    const auto &handle = entity.bodyHandle.get();
+    switch (handle->shape.type)
+    {
+    case sas::ShapeType3D::Sphere:
+    {
+        const auto &pos = handle->transform.position;
+        const auto &scale = handle->transform.scale;
+
+        float radius = handle->shape.radius;
+
+        rlPushMatrix();
+
+        rlTranslatef(pos.x, pos.y, pos.z);
+
+        rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
+
+        rlScalef(scale.x, scale.y, scale.z);
+        DrawSphere({0.0f, 0.0f, 0.0f}, radius, entity.c);
+
+        DrawSphereWires({0.0f, 0.0f, 0.0f}, radius, 16, 16, BLACK);
+
+        rlPopMatrix();
+        break;
+    }
+
+    case sas::ShapeType3D::Orthotope:
+    {
+
+        const auto &pos = handle->transform.position;
+        const auto &scale = handle->transform.scale;
+
+        rlPushMatrix();
+
+        rlTranslatef(pos.x, pos.y, pos.z);
+        rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
+        rlScalef(scale.x, scale.y, scale.z);
+
+        DrawCube({0.0f, 0.0f, 0.0f}, handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, handle->shape.halfSize.z * 2, entity.c);
+        DrawCubeWires({0.0f, 0.0f, 0.0f}, handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, handle->shape.halfSize.z * 2, BLACK);
+
+        rlPopMatrix();
+        break;
+    }
+
+    case sas::ShapeType3D::Cilinder:
+    {
+        const auto &pos = handle->transform.position;
+        const auto &scale = handle->transform.scale;
+
+        const float radius = handle->shape.radHeight.x;
+        const float halfHeight = handle->shape.radHeight.y;
+        const float fullHeight = halfHeight * 2.f;
+
+        const int slices = 16;
+
+        const Vector3 basePos = {0.0f, -halfHeight, 0.0f};
+
+        rlPushMatrix();
+
+        rlTranslatef(pos.x, pos.y, pos.z);
+        rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
+        rlScalef(scale.x, scale.y, scale.z);
+
+        // Draw using the shifted base and full height
+        DrawCylinder(basePos, radius, radius, fullHeight, slices, entity.c);
+        DrawCylinderWires(basePos, radius, radius, fullHeight, slices, BLACK);
+
+        rlPopMatrix();
+        break;
+    }
+    }
+}
+int main()
+{
+    constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
+
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
+    SetTargetFPS(60);
+
+    auto lambda = [](const sas::AABB3D &aabb, bool isLeaf)
+    {
+        BoundingBox box = {
+            .min = (Vector3){aabb.minX, aabb.minY, aabb.minZ},
+            .max = (Vector3){aabb.maxX, aabb.maxY, aabb.maxZ}};
+
+        DrawBoundingBox(box, isLeaf ? PURPLE : YELLOW);
+    };
+
+    Camera3D camera;
+    camera.position = (Vector3){5.20857, 13.5, 27.9685f};
+    camera.target = (Vector3){-23.862, 10.6888, 23.1718};
+    camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+    camera.fovy = 60.0f;
+    camera.projection = CAMERA_PERSPECTIVE;
+
+    float dt = 0;
+    bool drawHitbox = false;
+    DisableCursor();
+
+    // ==== Entitites ====
+    sas::PhysicsWorld<sas::Traits3D> world;
+    sas::PhysicsSettings &settings = world.settings;
+    settings.dragCoeff = 0.47f;
+    settings.gravity = {0, -3, 0};
+
+    std::vector<Entity> entities;
+    std::vector<Entity> demoEntities;
+    std::vector<Entity> arenaWalls;
+    setUpBox(world, arenaWalls);
+    setUpModeOne(world, demoEntities);
+
+    sas::Kinematics3D boucyKinematics;
+    boucyKinematics.pushForce = 10;
 
     // Bouncy :D
-    k.restitution = 1;
-    k.pushForce = 1;
-    k.inverseMass = 0.2;
+    boucyKinematics.restitution = 1;
+    boucyKinematics.pushForce = 1;
+    boucyKinematics.inverseMass = 0.2;
 
-    // sas::BodyHandle3D Sphere = world.createBody(sas::Shape3D::MakeSphere(1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    // entities.push_back({Sphere, PURPLE, sas::ShapeType3D::Sphere});
-
-    // Sphere->kinematics.angularVelocity = {1, 1, 1};
-
-    t.position = {0, 3, 0};
-    sas::BodyHandle3D Cube = world.createBody(sas::Shape3D::MakeOrthotope(3, 3, 3), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    entities.push_back({Cube, PURPLE, sas::ShapeType3D::Orthotope});
-    t.position = {0, 0, 0};
-    sas::BodyHandle3D Cube3 = world.createBody(sas::Shape3D::MakeOrthotope(3, 3, 3), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    entities.push_back({Cube3, PURPLE, sas::ShapeType3D::Orthotope});
-    // Cube->transform.scale = {3, 3, 3};
-
-    // Cube->kinematics.angularVelocity = {1, 0, 0};
-
-    t.position = {0, 15, 0};
-    sas::BodyHandle3D Cilinder = world.createBody(sas::Shape3D::MakeCilinder(1, 2), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    entities.push_back({Cilinder, PURPLE, sas::ShapeType3D::Cilinder});
-
-    t.position = {15, 15, 0};
-    sas::BodyHandle3D Cilinder2 = world.createBody(sas::Shape3D::MakeCilinder(1, 2), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    entities.push_back({Cilinder2, PURPLE, sas::ShapeType3D::Cilinder});
-    Cilinder2->kinematics.angularVelocity = {1, 1, 1};
-
-    t.position = {4, 15, 4};
-    sas::BodyHandle3D Cilinder3 = world.createBody(sas::Shape3D::MakeCilinder(1, 2), t, k, sas::Flags::Active | sas::Flags::RigidBodyDynamic);
-    entities.push_back({Cilinder3, PURPLE, sas::ShapeType3D::Cilinder});
-    // Cilinder2->kinematics.angularVelocity = {1, 1, 1};
-
-    t.position = {10, 15, 0};
-    sas::BodyHandle3D Cube2 = world.createBody(sas::Shape3D::MakeOrthotope(1, 3, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    entities.push_back({Cube2, PURPLE, sas::ShapeType3D::Orthotope});
-
-    // Cilinder->kinematics.angularVelocity = {1, 1, 1};
-
-    // t.position = {0, 3, 0};
-    // t.position = {0, 15, 0};
-    // sas::BodyHandle3D Spehere = world.createBody(sas::Shape3D::MakeSphere(1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    // entities.push_back({Spehere, PURPLE, sas::ShapeType3D::Sphere});
-
-    // ColSphere->kinematics.angularVelocity = {1, 1, 1};
+    sas::ShapeType3D currentType = sas::ShapeType3D::Sphere;
 
     while (!WindowShouldClose())
     {
@@ -161,8 +217,21 @@ int main()
         if (IsKeyPressed(KEY_P))
         {
             std::cout << camera.position.x << ' ' << camera.position.y << ' ' << camera.position.z << '\n';
+            std::cout << camera.target.x << ' ' << camera.target.y << ' ' << camera.target.z << '\n';
         }
 
+        if (IsKeyPressed(KEY_ONE))
+        {
+            currentType = sas::ShapeType3D::Sphere;
+        }
+        if (IsKeyPressed(KEY_TWO))
+        {
+            currentType = sas::ShapeType3D::Orthotope;
+        }
+        if (IsKeyPressed(KEY_THREE))
+        {
+            currentType = sas::ShapeType3D::Cilinder;
+        }
         if (IsKeyDown(KEY_SPACE))
         {
             camera.position.y += 0.1;
@@ -177,6 +246,11 @@ int main()
         {
             world.clear();
             entities.clear();
+            demoEntities.clear();
+            arenaWalls.clear();
+
+            setUpBox(world, arenaWalls);
+            setUpModeOne(world, demoEntities);
         }
 
         if (IsKeyPressed(KEY_Q))
@@ -194,28 +268,58 @@ int main()
             drawHitbox = !drawHitbox;
         }
 
-        float playerSpeed = 3.f;
-        sas::math::Vec3 newVelocity = sas::math::Vec3{0};
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            Vector3 forward = {
+                camera.target.x - camera.position.x,
+                camera.target.y - camera.position.y,
+                camera.target.z - camera.position.z};
+            forward = Vector3Normalize(forward);
 
-        if (IsKeyDown(KEY_LEFT))
-        {
-            newVelocity.x = -playerSpeed;
-        }
-        if (IsKeyDown(KEY_RIGHT))
-        {
-            newVelocity.x = playerSpeed;
-        }
-        if (IsKeyDown(KEY_UP))
-        {
-            newVelocity.y = -playerSpeed;
-        }
-        if (IsKeyDown(KEY_DOWN))
-        {
-            newVelocity.y = playerSpeed;
-        }
+            constexpr float spawnDistance = 10.0f;
 
-        // Set the velocity directly!
-        Cilinder->kinematics.velocity = newVelocity;
+            sas::Transform3D worldPos;
+            worldPos.position = {
+                camera.position.x + forward.x * spawnDistance,
+                camera.position.y + forward.y * spawnDistance, 
+                camera.position.z + forward.z * spawnDistance};
+
+            switch (currentType)
+            {
+            case sas::ShapeType3D::Sphere:
+            {
+                sas::BodyHandle3D newSphere = world.createBody(
+                    sas::Shape3D::MakeSphere(0.5f),
+                    worldPos,
+                    boucyKinematics,
+                    sas::Flags::Active | sas::Flags::RigidBodyDynamic);
+                entities.push_back({newSphere, PURPLE});
+                break;
+            }
+
+            case sas::ShapeType3D::Cilinder:
+            {
+                sas::BodyHandle3D newCilinder = world.createBody(
+                    sas::Shape3D::MakeCilinder(0.5f, 1.0f),
+                    worldPos,
+                    boucyKinematics,
+                    sas::Flags::Active | sas::Flags::RigidBodyDynamic);
+                entities.push_back({newCilinder, CLITERAL(Color){0, 255, 255, 255}});
+                break;
+            }
+
+            case sas::ShapeType3D::Orthotope:
+            {
+                sas::BodyHandle3D newOrthope = world.createBody(
+                    sas::Shape3D::MakeOrthotope(1.0f, 1.0f, 1.0f),
+                    worldPos,
+                    boucyKinematics,
+                    sas::Flags::Active | sas::Flags::RigidBodyDynamic);
+                entities.push_back({newOrthope, YELLOW});
+                break;
+            }
+            }
+        }
 
         world.step(dt);
 
@@ -250,111 +354,64 @@ int main()
             }
         }
 
+        for (const auto &entity : demoEntities)
+        {
+            drawEntity(entity);
+        }
+
         for (const auto &entity : entities)
         {
-            const auto &handle = entity.bodyHandle.get();
-            // std::cout << handle->transform.quaterion.x << ' ' << handle->transform.quaterion.y << ' ' << handle->transform.quaterion.z << ' ' << handle->transform.quaterion.w << '\n';
-            switch (entity.type)
-            {
-            case sas::ShapeType3D::Sphere:
-            {
-                const auto &pos = handle->transform.position;
-                const auto &scale = handle->transform.scale;
-
-                float radius = handle->shape.radius;
-
-                rlPushMatrix();
-
-                rlTranslatef(pos.x, pos.y, pos.z);
-
-                rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
-
-                rlScalef(scale.x, scale.y, scale.z);
-                DrawSphere({0.0f, 0.0f, 0.0f}, radius, entity.c);
-
-                DrawSphereWires({0.0f, 0.0f, 0.0f}, radius, 16, 16, BLACK);
-
-                rlPopMatrix();
-                break;
-            }
-
-            case sas::ShapeType3D::Orthotope:
-            {
-
-                const auto &pos = handle->transform.position;
-                const auto &scale = handle->transform.scale;
-
-                rlPushMatrix();
-
-                rlTranslatef(pos.x, pos.y, pos.z);
-                rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
-                rlScalef(scale.x, scale.y, scale.z);
-
-                DrawCube({0.0f, 0.0f, 0.0f}, handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, handle->shape.halfSize.z * 2, entity.c);
-                DrawCubeWires({0.0f, 0.0f, 0.0f}, handle->shape.halfSize.x * 2, handle->shape.halfSize.y * 2, handle->shape.halfSize.z * 2, BLACK);
-
-                rlPopMatrix();
-                break;
-            }
-
-            case sas::ShapeType3D::Cilinder:
-            {
-                // const auto &pos = handle->transform.position;
-                // const auto &scale = handle->transform.scale;
-
-                // float radius = handle->shape.radHeight.x * scale.x;
-                // float halfHeight = handle->shape.radHeight.y * scale.y;
-
-                // rlPushMatrix();
-                // rlTranslatef(pos.x, pos.y, pos.z);
-                // rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
-
-                // // Draw a box that perfectly wraps your physics cylinder bounds
-                // DrawCubeWires({0, 0, 0}, radius * 2, halfHeight * 2, radius * 2, RED);
-
-                // rlPopMatrix();
-                // break;
-
-                const auto &pos = handle->transform.position;
-                const auto &scale = handle->transform.scale;
-
-                const float radius = handle->shape.radHeight.x;
-                const float halfHeight = handle->shape.radHeight.y;
-                const float fullHeight = halfHeight * 2.0f; // Total height
-
-                const int slices = 16;
-
-                // Shift the base DOWN by half the height so drawing UP by fullHeight centers it
-                const Vector3 basePos = {0.0f, -halfHeight, 0.0f};
-
-                rlPushMatrix();
-
-                rlTranslatef(pos.x, pos.y, pos.z);
-                rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
-                rlScalef(scale.x, scale.y, scale.z);
-
-                // Draw using the shifted base and full height
-                DrawCylinder(basePos, radius, radius, fullHeight, slices, entity.c);
-                DrawCylinderWires(basePos, radius, radius, fullHeight, slices, BLACK);
-
-                rlPopMatrix();
-                break;
-            }
-            }
+            drawEntity(entity);
         }
 
         EndMode3D();
 
-        if (Cilinder.isColliding())
+        for (size_t i = 0; i < demoEntities.size(); ++i)
         {
-            std::cout << "Collision Detected\n";
-        }
+            const auto &handle = demoEntities[i].bodyHandle.get();
 
-        if (Cilinder3.isColliding())
-        {
-            std::cout << "Collision Detected\n";
+            Vector3 topAnchor = {
+                handle->transform.position.x,
+                handle->transform.position.y + 0.8f,
+                handle->transform.position.z};
 
-            std::cout << Cilinder3.getCollisions()[0].depth << Cilinder3.getCollisions()[0].normal.x << ' ' << Cilinder3.getCollisions()[0].normal.y << '\n';
+            Vector3 toTarget = Vector3Subtract(topAnchor, camera.position);
+
+            Vector3 forward = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+
+            if (Vector3DotProduct(forward, toTarget) > 0.0f)
+            {
+                Vector2 screenPos = GetWorldToScreen(topAnchor, camera);
+
+                if (screenPos.x >= 0 && screenPos.x <= GetScreenWidth() &&
+                    screenPos.y >= 0 && screenPos.y <= GetScreenHeight())
+                {
+                    const char *label = "";
+                    switch (i)
+                    {
+                    case 0:
+                        label = "Press [1]";
+                        break;
+                    case 1:
+                        label = "Press [2]";
+                        break;
+                    case 2:
+                        label = "Press [3]";
+                        break;
+                    default:
+                        break;
+                    }
+
+                    constexpr int fontSize = 20;
+                    int textWidth = MeasureText(label, fontSize);
+
+                    int drawX = static_cast<int>(screenPos.x) - textWidth / 2;
+                    int drawY = static_cast<int>(screenPos.y);
+
+                    DrawText(label, drawX + 1, drawY + 1, fontSize, BLACK);
+                    DrawText(label, drawX, drawY, fontSize, RAYWHITE);
+                }
+            }
         }
 
         const std::string msg1("Gravity = " + std::to_string(settings.gravity.y));

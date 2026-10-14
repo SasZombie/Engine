@@ -26,12 +26,16 @@ add_executable(Tests2D
 add_executable(MathTests
     math_tests.cpp)
 
+add_executable(PerformanceTests3D
+    3D/performance_tests.cpp
+)
 add_executable(Tests3D
     # 3D/physics_tests.cpp
-    # 3D/collision_tests_circle.cpp
-    # 3D/collision_tests_box.cpp
-    # 3D/collision_tests_mixed.cpp
-    3D/collision_tests_GJK.cpp
+    3D/collision_tests_circle.cpp
+    3D/collision_tests_box.cpp
+    3D/collision_tests_mixed.cpp
+    3D/collision_tests_cilinder.cpp
+    # 3D/collision_tests_GJK.cpp
     # 3D/angular_tests_box.cpp
     # 3D/performance_tests.cpp
 )
@@ -52,6 +56,14 @@ target_link_libraries(Tests3D PRIVATE
 )
 
 target_link_libraries(MathTests PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+    GTest::gtest_main
+)
+
+target_link_libraries(PerformanceTests3D PRIVATE
     sas_physics
     project_warnings
     project_sanitizers

@@ -1,46 +1,46 @@
 #include <gtest/gtest.h>
 #include "Fixture.hpp"
 
-TEST_F(FixtureTest2D, BoxCollide2D)
+TEST_F(FixtureTest3D, CubeCube3D)
 {
-    sas::Transform2D t1;
-    t1.position = {400, 400};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {410, 400};
+    sas::Transform3D t2;
+    t2.position = {5, 5, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {1, 0, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {-1, 0, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
     bh1.setCollisionOn();
     bh2.setCollisionOn();
-    
+
     world->step(1.f / 60.f);
 
+    ASSERT_EQ(world->contacts.size(), 1);
     EXPECT_TRUE(bh1.isColliding());
     EXPECT_TRUE(bh2.isColliding());
-    ASSERT_EQ(world->contacts.size(), 1);
 }
 
-TEST_F(FixtureTest2D, BoxDontCollide2D)
+TEST_F(FixtureTest3D, CubeDontCollide3D)
 {
-    sas::Transform2D t1;
-    t1.position = {400, 400};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {450, 400};
+    sas::Transform3D t2;
+    t2.position = {0, 0, 0};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, 0, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 0, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
@@ -53,244 +53,25 @@ TEST_F(FixtureTest2D, BoxDontCollide2D)
     EXPECT_FALSE(bh2.isColliding());
 }
 
-TEST_F(FixtureTest2D, BoxCollideAfterMoving2D)
+TEST_F(FixtureTest3D, CubeCollideAfterMoving3D)
 {
-    sas::Transform2D t1;
-    t1.position = {310, 200};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {510, 200};
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {100, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
     k1.inverseMass = 0.2f;
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-100, 0};
-    k2.inverseMass = 0.2f;
-
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1.setCollisionOn();
-    bh2.setCollisionOn();
-
-    bool bothColide = false;
-    for(int i = 0; i < 1500; ++i)
-    {
-        world->step(1.f / 60.f);
-        if(bh1.isColliding() && bh2.isColliding())
-        {
-            bothColide = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(bothColide) << "Failed to collide! Final distance: " 
-                            << std::abs(bh1->transform.position.x - bh2->transform.position.x);
-}
-
-
-TEST_F(FixtureTest2D, BoxsDontCollideAfterMoving2D)
-{
-    sas::Transform2D t1;
-    t1.position = {310, 200};
-
-    sas::Transform2D t2;
-    t2.position = {510, 200};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {-10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1.setCollisionOn();
-    bh2.setCollisionOn();
-
-    bool bothColide = false;
-
-    for(int i = 0; i < 1500; ++i)
-    {
-        world->step(1.f / 60.f);
-        if(bh1.isColliding() && bh2.isColliding())
-        {
-            bothColide = true;
-        }
-    }
-
-    EXPECT_FALSE(bothColide);
-}
-
-
-TEST_F(FixtureTest2D, BoxsWithoutCollisionsDontCollide2D)
-{
-    sas::Transform2D t1;
-    t1.position = {310, 200};
-
-    sas::Transform2D t2;
-    t2.position = {510, 200};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1.setCollisionOff();
-    bh2.setCollisionOff();
-
-    bool bothColide = false;
-
-    for(int i = 0; i < 1500; ++i)
-    {
-        world->step(1.f / 60.f);
-        if(bh1.isColliding() && bh2.isColliding())
-        {
-            bothColide = true;
-        }
-    }
-
-    EXPECT_FALSE(bothColide);
-}
-
-TEST_F(FixtureTest2D, DifferentLayersDontCollideBoxes2D)
-{
-    sas::Transform2D t1;
-    t1.position = {510, 200};
-
-    sas::Transform2D t2;
-    t2.position = {510, 200};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
-
-    world->step(1.f / 60.f);
-
-    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
-}
-
-TEST_F(FixtureTest2D, LayerTwoCollidesBoxes2D)
-{
-    sas::Transform2D t1;
-    t1.position = {510, 200};
-
-    sas::Transform2D t2;
-    t2.position = {510, 200};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
-
-    world->step(1.f / 60.f);
-
-    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
-}
-
-
-TEST_F(FixtureTest2D, ScaledBoxCollide2D)
-{
-    sas::Transform2D t1;
-    t1.position = {400, 400};
-
-    sas::Transform2D t2;
-    t2.position = {410, 400};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
-
-    bh1.setCollisionOn();
-    bh2.setCollisionOn();
-
-    world->step(1.f / 60.f);
-
-    ASSERT_EQ(world->contacts.size(), 1);
-    EXPECT_TRUE(bh1.isColliding());
-    EXPECT_TRUE(bh2.isColliding());
-}
-
-TEST_F(FixtureTest2D, ScaledBoxDontCollide2D)
-{
-    sas::Transform2D t1;
-    t1.position = {200, 400};
-
-    sas::Transform2D t2;
-    t2.position = {450, 400};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
-
-    sas::BodyHandle bh1 = AddBox(t1, k1);
-    sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
-
-    bh1.setCollisionOn();
-    bh2.setCollisionOn();
-    world->step(1.f / 60.f);
-
-    EXPECT_FALSE(bh1.isColliding());
-    EXPECT_FALSE(bh2.isColliding());
-}
-
-TEST_F(FixtureTest2D, ScaledBoxCollideAfterMoving2D)
-{
-    sas::Transform2D t1;
-    t1.position = {310, 200};
-
-    sas::Transform2D t2;
-    t2.position = {510, 200};
-
-    sas::Kinematics2D k1;
-    k1.velocity = {100, 0};
-    k1.inverseMass = 0.2f;
-
-    sas::Kinematics2D k2;
-    k2.velocity = {-100, 0};
     k2.inverseMass = 0.2f;
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
 
     bh1.setCollisionOn();
     bh2.setCollisionOn();
@@ -310,25 +91,22 @@ TEST_F(FixtureTest2D, ScaledBoxCollideAfterMoving2D)
                             << std::abs(bh1->transform.position.x - bh2->transform.position.x);
 }
 
-TEST_F(FixtureTest2D, ScaledBoxsDontCollideAfterMoving2D)
+TEST_F(FixtureTest3D, CubesDontCollideAfterMoving3D)
 {
-    sas::Transform2D t1;
-    t1.position = {310, 200};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {610, 200};
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {-10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, 1, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {0, -1, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
 
     bh1.setCollisionOn();
     bh2.setCollisionOn();
@@ -347,25 +125,22 @@ TEST_F(FixtureTest2D, ScaledBoxsDontCollideAfterMoving2D)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest2D, ScaledBoxsWithoutCollisionsDontCollide2D)
+TEST_F(FixtureTest3D, CubesWithoutCollisionsDontCollide3D)
 {
-    sas::Transform2D t1;
-    t1.position = {310, 200};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {510, 200};
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
 
     bh1.setCollisionOff();
     bh2.setCollisionOff();
@@ -384,25 +159,22 @@ TEST_F(FixtureTest2D, ScaledBoxsWithoutCollisionsDontCollide2D)
     EXPECT_FALSE(bothColide);
 }
 
-TEST_F(FixtureTest2D, ScaledBoxDifferentLayersDontCollide2D)
+TEST_F(FixtureTest3D, CubeDifferentLayersDontCollide3D)
 {
-    sas::Transform2D t1;
-    t1.position = {510, 200};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {510, 200};
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
-
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
 
     bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
     bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
@@ -412,25 +184,253 @@ TEST_F(FixtureTest2D, ScaledBoxDifferentLayersDontCollide2D)
     EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
 }
 
-TEST_F(FixtureTest2D, ScaledBoxLayerTwoCollides2D)
+TEST_F(FixtureTest3D, CubeLayerTwoCollides3D)
 {
-    sas::Transform2D t1;
-    t1.position = {510, 200};
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
 
-    sas::Transform2D t2;
-    t2.position = {510, 200};
+    sas::Transform3D t2;
+    t2.position = {5, 5, 5};
 
-    sas::Kinematics2D k1;
-    k1.velocity = {10, 0};
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
 
-    sas::Kinematics2D k2;
-    k2.velocity = {-10, 0};
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
 
     sas::BodyHandle bh1 = AddBox(t1, k1);
     sas::BodyHandle bh2 = AddBox(t2, k2);
 
-    bh1->transform.scale = {2, 2};
-    bh2->transform.scale = {2, 2};
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+
+    world->step(1.f / 60.f);
+
+    EXPECT_TRUE(bh1.isColliding() && bh2.isColliding());
+}
+
+TEST_F(FixtureTest3D, ScaledCubeCollide3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 1, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+
+    world->step(1.f / 60.f);
+
+    ASSERT_EQ(world->contacts.size(), 1);
+    EXPECT_TRUE(bh1.isColliding());
+    EXPECT_TRUE(bh2.isColliding());
+}
+
+TEST_F(FixtureTest3D, ScaledCubeDontCollide3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 8, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, 1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, -1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+    world->step(1.f / 60.f);
+
+    EXPECT_FALSE(bh1.isColliding());
+    EXPECT_FALSE(bh2.isColliding());
+}
+
+TEST_F(FixtureTest3D, ScaledCubeCollideAfterMoving3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
+    k1.inverseMass = 0.2f;
+    k2.inverseMass = 0.2f;
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+
+    bool bothColide = false;
+    for (int i = 0; i < 1500; ++i)
+    {
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
+        {
+            bothColide = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(bothColide) << "Failed to collide! Final distance: "
+                            << std::abs(bh1->transform.position.x - bh2->transform.position.x);
+}
+
+TEST_F(FixtureTest3D, ScaledCubesDontCollideAfterMoving3D)
+{
+    walls.clear();
+    world->clear();
+    sas::Transform3D t1;
+    t1.position = {5, 8, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, 1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, -1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollisionOn();
+    bh2.setCollisionOn();
+
+    bool bothColide = false;
+
+    for (int i = 0; i < 1500; ++i)
+    {
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
+        {
+            bothColide = true;
+        }
+    }
+
+    EXPECT_FALSE(bothColide);
+}
+
+TEST_F(FixtureTest3D, ScaledCubesWithoutCollisionsDontCollide3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 0, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollisionOff();
+    bh2.setCollisionOff();
+
+    bool bothColide = false;
+
+    for (int i = 0; i < 1500; ++i)
+    {
+        world->step(1.f / 60.f);
+        if (bh1.isColliding() && bh2.isColliding())
+        {
+            bothColide = true;
+        }
+    }
+
+    EXPECT_FALSE(bothColide);
+}
+
+TEST_F(FixtureTest3D, ScaledCubeDifferentLayersDontCollide3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 5, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
+
+    bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
+    bh2.setCollision(sas::Flags::Layer1, sas::Flags::Mask1);
+
+    world->step(1.f / 60.f);
+
+    EXPECT_FALSE(bh1.isColliding() && bh2.isColliding());
+}
+
+TEST_F(FixtureTest3D, ScaledCubeLayerTwoCollides3D)
+{
+    sas::Transform3D t1;
+    t1.position = {5, 5, 5};
+
+    sas::Transform3D t2;
+    t2.position = {5, 5, 5};
+
+    sas::Kinematics3D k1;
+    k1.velocity = {0, -1, 0};
+
+    sas::Kinematics3D k2;
+    k2.velocity = {0, 1, 0};
+
+    sas::BodyHandle bh1 = AddBox(t1, k1);
+    sas::BodyHandle bh2 = AddBox(t2, k2);
+
+    bh1->transform.scale = {2, 2, 2};
+    bh2->transform.scale = {2, 2, 2};
 
     bh1.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
     bh2.setCollision(sas::Flags::Layer2, sas::Flags::Mask2);
