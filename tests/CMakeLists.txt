@@ -30,8 +30,14 @@ add_executable(PerformanceTests3D
     3D/performance_tests.cpp
 )
 
-add_executable(ProfilingTests3D
-    3D/profiling_tests.cpp
+add_executable(ProfilingTests3D1
+    3D/Profiling/profiling_tests1.cpp
+)
+add_executable(ProfilingTests3D2
+    3D/Profiling/profiling_tests2.cpp
+)
+add_executable(ProfilingTests3D3
+    3D/Profiling/profiling_tests3.cpp
 )
 add_executable(Tests3D
     # 3D/physics_tests.cpp
@@ -75,10 +81,23 @@ target_link_libraries(PerformanceTests3D PRIVATE
     GTest::gtest_main
 )
 
-target_link_libraries(ProfilingTests3D PRIVATE
+target_link_libraries(ProfilingTests3D1 PRIVATE
     sas_physics
     project_warnings
     project_sanitizers
     project_options
-    GTest::gtest_main
+)
+
+target_link_libraries(ProfilingTests3D2 PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+)
+
+target_link_libraries(ProfilingTests3D3 PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
 )

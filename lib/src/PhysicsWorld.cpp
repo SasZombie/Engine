@@ -3,6 +3,15 @@
 #include <utility>
 #include <algorithm>
 
+#ifdef _OPENMP
+#include <omp.h>
+#else
+#define omp_get_thread_num() 0
+#define omp_get_num_threads() 1
+#define omp_get_max_threads() 1
+#define omp_get_wtime() 0.0
+#endif
+
 template <sas::DimensionalTraits Traits>
 sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
@@ -178,41 +187,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
         }
     }
 
-    for (uint32_t id : activeIDs)
-    {
-        Body &obj = bodies[sparse[id]];
-        if (obj.hasFlag(Flags::RigidBodyStatic) || obj.hasFlag(Flags::Trigger))
-        {
-            obj.kinematics.reset();
-            continue;
-        }
-
-        std::vector<uint32_t> potentialCollisions;
-        potentialCollisions.reserve(contacts.capacity());
-
-        root.query(Traits::computeTightAABB(obj), potentialCollisions);
-
-        for (uint32_t otherID : potentialCollisions)
-        {
-            auto &other = bodies[sparse[otherID]];
-
-            bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) || other.hasFlag(Flags::Trigger);
-
-            if (!otherIsSkipped && obj.bodyID >= otherID)
-                continue;
-
-            uint32_t objLayer = obj.collisionMask & 0x0000FFFF;
-            uint32_t objMask = (obj.collisionMask & 0xFFFF0000) >> 16;
-
-            uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
-            uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
-
-            if (!(objMask & otherLayer) || !(otherMask & objLayer))
-                continue;
-
-            Traits::checkCollisionDispatcher(obj, other, contacts);
-        }
-    }
+    broadPhase();
 
     auto resolvableEnd = std::partition(contacts.begin(), contacts.end(), [&](const Contact &c)
                                         {
@@ -235,7 +210,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
 
     for (auto it = contacts.begin(); it != resolvableEnd; ++it)
     {
-        auto& contact = *it;
+        auto &contact = *it;
 
         Body &obj = getBodyFromSparse(contact.bodyA);
         Body &other = getBodyFromSparse(contact.bodyB);
@@ -250,6 +225,68 @@ void sas::PhysicsWorld<Traits>::step() noexcept
     }
 
     updateCollisionFlags();
+}
+
+template <sas::DimensionalTraits Traits>
+void sas::PhysicsWorld<Traits>::broadPhase() noexcept
+{
+    const int maxThreads = omp_get_max_threads();
+    std::vector<std::vector<Contact>> perThreadContacts(maxThreads);
+
+    #pragma omp parallel
+    {
+
+        int threadId = omp_get_thread_num();
+        auto &localContacts = perThreadContacts[threadId];
+
+        std::vector<uint32_t> potentialCollisions;
+        potentialCollisions.reserve(contacts.capacity());
+
+        #pragma omp for schedule(guided)
+        for (size_t i = 0; i < activeIDs.size(); ++i)
+        {
+            uint32_t id = activeIDs[i];
+            Body &obj = bodies[sparse[id]];
+
+            if (obj.hasFlag(Flags::RigidBodyStatic) || obj.hasFlag(Flags::Trigger))
+            {
+                obj.kinematics.reset();
+                continue;
+            }
+
+            potentialCollisions.clear();
+            root.query(Traits::computeTightAABB(obj), potentialCollisions);
+
+            uint32_t objLayer = obj.collisionMask & 0x0000FFFF;
+            uint32_t objMask = (obj.collisionMask & 0xFFFF0000) >> 16;
+
+            for (uint32_t otherID : potentialCollisions)
+            {
+                auto &other = bodies[sparse[otherID]];
+                bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) || other.hasFlag(Flags::Trigger);
+
+                if (!otherIsSkipped && obj.bodyID >= otherID)
+                    continue;
+
+                uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
+                uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
+
+                if (!(objMask & otherLayer) || !(otherMask & objLayer))
+                    continue;
+
+                Traits::checkCollisionDispatcher(obj, other, localContacts);
+            }
+        }
+    }
+    size_t totalContacts = 0;
+    for (const auto &list : perThreadContacts)
+        totalContacts += list.size();
+
+    contacts.reserve(contacts.size() + totalContacts);
+    for (auto &list : perThreadContacts)
+    {
+        contacts.insert(contacts.end(), list.begin(), list.end());
+    }
 }
 
 template <sas::DimensionalTraits Traits>

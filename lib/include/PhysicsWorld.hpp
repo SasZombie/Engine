@@ -8,6 +8,12 @@
 
 namespace sas
 {
+    enum struct DeviceOptions
+    {
+        CPU,
+        GPU
+    };
+
     template <DimensionalTraits Traits>
     struct CollisionInfo;
 
@@ -89,7 +95,10 @@ namespace sas
 
         void clear() noexcept;
 
-        PhysicsWorld() noexcept = default;
+        PhysicsWorld(DeviceOptions options = DeviceOptions::CPU) noexcept
+        {
+
+        }
         ~PhysicsWorld() noexcept = default;
 
     private:
@@ -98,6 +107,8 @@ namespace sas
         void step() noexcept;
         void updateCollisionFlags() noexcept;
         void reset(Body &obj) const noexcept;
+
+        void broadPhase() noexcept;
 
         void setupCollision(Body &body) noexcept;
         // This is unchecked

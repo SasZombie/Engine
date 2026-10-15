@@ -69,17 +69,17 @@ protected:
         sas::Kinematics3D k;
         k.pushForce = 10;
 
-        sas::BodyHandle3D RoofBH = world->createBody(sas::Shape3D::MakeOrthotope(40, 0.1, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        sas::BodyHandle3D RoofBH = world->createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
         t.position = {0, 0, 0};
-        sas::BodyHandle3D FloorBH = world->createBody(sas::Shape3D::MakeOrthotope(40, 0.1, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        t.position = {20, 20, 0};
-        sas::BodyHandle3D Wall1BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 40, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        t.position = {-20, 20, 0};
-        sas::BodyHandle3D Wall2BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        t.position = {0, 20, 20};
-        sas::BodyHandle3D Wall3BH = world->createBody(sas::Shape3D::MakeOrthotope(40, 40, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        t.position = {0, 20, -20};
-        sas::BodyHandle3D Wall4BH = world->createBody(sas::Shape3D::MakeOrthotope(40, 40, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        sas::BodyHandle3D FloorBH = world->createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {10, 10, 0};
+        sas::BodyHandle3D Wall1BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {-10, 10, 0};
+        sas::BodyHandle3D Wall2BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {0, 10, 10};
+        sas::BodyHandle3D Wall3BH = world->createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {0, 10, -10};
+        sas::BodyHandle3D Wall4BH = world->createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
         walls.push_back(RoofBH);
         walls.push_back(FloorBH);

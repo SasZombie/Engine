@@ -4,6 +4,8 @@ project(PhysicsEngine)
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(OpenMP)
+
 option(BUILD_DEMO "Build the GUI demo app" ${PROJECT_IS_TOP_LEVEL})
 option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 
@@ -12,8 +14,14 @@ add_library(project_sanitizers INTERFACE)
 add_library(project_options INTERFACE)
 
 target_compile_options(project_options INTERFACE
-    -freflection 
+    -freflection
 )
+
+if(OpenMP_FOUND)
+    target_link_libraries(project_options INTERFACE OpenMP::OpenMP_CXX)
+else()
+    message(STATUS "OpenMP not available; falling back to serial execution.")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(project_warnings INTERFACE
@@ -29,7 +37,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fsanitize=undefined -fsanitize=address -fsanitize=leak
     )
 else()
-    target_compile_options(project_warnings INTERFACE -O3 -DNDEBUG -ggdb -march=native -ffast-math -fno-math-errno -flto -fno-semantic-interposition -funroll-loops -fno-strict-aliasing)
+    target_compile_options(project_warnings INTERFACE -DRELEASE -O3 -DNDEBUG -ggdb -march=native -ffast-math
+        -mno-omit-leaf-frame-pointer -fno-math-errno -flto -fno-semantic-interposition -funroll-loops -fno-strict-aliasing)
 endif()
 
 add_subdirectory(lib)
