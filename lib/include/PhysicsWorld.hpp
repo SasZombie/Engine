@@ -34,8 +34,9 @@ namespace sas
 
         PhysicsSettings settings;
         uint32_t idCounter = 0;
-
+        
     private:
+        DeviceOptions deviceOptions; 
         float deltaTime;
         float timeAccumulator = 0;
         AABBTree root;
@@ -95,9 +96,16 @@ namespace sas
 
         void clear() noexcept;
 
-        PhysicsWorld(DeviceOptions options = DeviceOptions::CPU) noexcept
+        PhysicsWorld(DeviceOptions devOptions = DeviceOptions::CPU) noexcept
+            : deviceOptions(devOptions)
         {
-
+#if !HAS_CUDA
+            if(deviceOptions == DeviceOptions::GPU)
+            {
+                deviceOptions = DeviceOptions::CPU;
+                BaseLogger::warn("Trying to do gpu work without cuda! Fallback on cpu");
+            }
+#endif
         }
         ~PhysicsWorld() noexcept = default;
 
@@ -108,7 +116,8 @@ namespace sas
         void updateCollisionFlags() noexcept;
         void reset(Body &obj) const noexcept;
 
-        void broadPhase() noexcept;
+        void broadPhaseCpu() noexcept;
+        void broadPhaseGpu() noexcept;
 
         void setupCollision(Body &body) noexcept;
         // This is unchecked

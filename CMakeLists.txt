@@ -1,10 +1,9 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 project(PhysicsEngine)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenMP)
 
 option(BUILD_DEMO "Build the GUI demo app" ${PROJECT_IS_TOP_LEVEL})
 option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
@@ -17,11 +16,11 @@ target_compile_options(project_options INTERFACE
     -freflection
 )
 
+find_package(OpenMP)
 if(OpenMP_FOUND)
     target_link_libraries(project_options INTERFACE OpenMP::OpenMP_CXX)
-else()
-    message(STATUS "OpenMP not available; falling back to serial execution.")
 endif()
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(project_warnings INTERFACE

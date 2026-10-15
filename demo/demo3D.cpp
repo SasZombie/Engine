@@ -356,7 +356,7 @@ int main()
     DisableCursor();
 
     // ==== Entitites ====
-    sas::PhysicsWorld<sas::Traits3D> world;
+    sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::GPU};
     sas::PhysicsSettings &settings = world.settings;
     settings.dragCoeff = 0.47f;
     settings.gravity = {0, -3, 0};

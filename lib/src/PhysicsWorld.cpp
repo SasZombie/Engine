@@ -12,6 +12,13 @@
 #define omp_get_wtime() 0.0
 #endif
 
+#if HAS_CUDA
+#include "CudaFunctions.hpp"
+
+#else
+
+#endif
+
 template <sas::DimensionalTraits Traits>
 sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
 {
@@ -187,7 +194,14 @@ void sas::PhysicsWorld<Traits>::step() noexcept
         }
     }
 
-    broadPhase();
+    if (deviceOptions == DeviceOptions::CPU)
+    {
+        broadPhaseCpu();
+    }
+    else
+    {
+        broadPhaseGpu();
+    }
 
     auto resolvableEnd = std::partition(contacts.begin(), contacts.end(), [&](const Contact &c)
                                         {
@@ -228,12 +242,12 @@ void sas::PhysicsWorld<Traits>::step() noexcept
 }
 
 template <sas::DimensionalTraits Traits>
-void sas::PhysicsWorld<Traits>::broadPhase() noexcept
+void sas::PhysicsWorld<Traits>::broadPhaseCpu() noexcept
 {
     const int maxThreads = omp_get_max_threads();
     std::vector<std::vector<Contact>> perThreadContacts(maxThreads);
 
-    #pragma omp parallel
+#pragma omp parallel
     {
 
         int threadId = omp_get_thread_num();
@@ -242,7 +256,7 @@ void sas::PhysicsWorld<Traits>::broadPhase() noexcept
         std::vector<uint32_t> potentialCollisions;
         potentialCollisions.reserve(contacts.capacity());
 
-        #pragma omp for schedule(guided)
+#pragma omp for schedule(guided)
         for (size_t i = 0; i < activeIDs.size(); ++i)
         {
             uint32_t id = activeIDs[i];
@@ -288,6 +302,17 @@ void sas::PhysicsWorld<Traits>::broadPhase() noexcept
         contacts.insert(contacts.end(), list.begin(), list.end());
     }
 }
+
+
+template <sas::DimensionalTraits Traits>
+void sas::PhysicsWorld<Traits>::broadPhaseGpu() noexcept
+{
+    #if HAS_CUDA
+    runGpuHello();
+    #endif
+}
+
+
 
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::updateCollisionFlags() noexcept
