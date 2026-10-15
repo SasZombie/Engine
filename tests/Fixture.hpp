@@ -58,32 +58,36 @@ protected:
         world->settings.gravity = {0.f, 0.f, 0.f};
         world->settings.dragCoeff = 0.47f;
 
+        
+    }
+
+    void addWalls() noexcept
+    {
         sas::Transform3D t;
         t.position = {0, 20, 0};
 
         sas::Kinematics3D k;
         k.pushForce = 10;
 
-        // sas::BodyHandle3D RoofBH = world->createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        // t.position = {0, 0, 0};
-        // sas::BodyHandle3D FloorBH = world->createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        // t.position = {10, 10, 0};
-        // sas::BodyHandle3D Wall1BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        // t.position = {-10, 10, 0};
-        // sas::BodyHandle3D Wall2BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        // t.position = {0, 10, 10};
-        // sas::BodyHandle3D Wall3BH = world->createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-        // t.position = {0, 10, -10};
-        // sas::BodyHandle3D Wall4BH = world->createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        sas::BodyHandle3D RoofBH = world->createBody(sas::Shape3D::MakeOrthotope(40, 0.1, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {0, 0, 0};
+        sas::BodyHandle3D FloorBH = world->createBody(sas::Shape3D::MakeOrthotope(40, 0.1, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {20, 20, 0};
+        sas::BodyHandle3D Wall1BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 40, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {-20, 20, 0};
+        sas::BodyHandle3D Wall2BH = world->createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 40), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {0, 20, 20};
+        sas::BodyHandle3D Wall3BH = world->createBody(sas::Shape3D::MakeOrthotope(40, 40, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+        t.position = {0, 20, -20};
+        sas::BodyHandle3D Wall4BH = world->createBody(sas::Shape3D::MakeOrthotope(40, 40, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
-        // walls.push_back(RoofBH);
-        // walls.push_back(FloorBH);
-        // walls.push_back(Wall1BH);
-        // walls.push_back(Wall2BH);
-        // walls.push_back(Wall3BH);
-        // walls.push_back(Wall4BH);
+        walls.push_back(RoofBH);
+        walls.push_back(FloorBH);
+        walls.push_back(Wall1BH);
+        walls.push_back(Wall2BH);
+        walls.push_back(Wall3BH);
+        walls.push_back(Wall4BH);
     }
-
     void TearDown() override
     {
         world->clear();

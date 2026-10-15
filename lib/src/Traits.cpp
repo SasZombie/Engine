@@ -601,7 +601,7 @@ void sas::Traits3D::initializeBodyPhysics(Body &body) noexcept
 
     if (body.hasFlag(Flags::BodyFlags::Trigger))
     {
-        body.kinematics.pushForce = 0;
+        body.kinematics.pushForce = 0.f;
     }
     else
     {

@@ -3,8 +3,10 @@
 #include <raymath.h>
 #include <vector>
 #include <iostream>
-
+#include <random>
 #include "PhysicsWorld.hpp"
+
+#define CYAN CLITERAL(Color){0, 255, 255, 255}
 
 extern "C" const char *__lsan_default_suppressions();
 
@@ -57,7 +59,7 @@ static void setUpBox(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) n
     objects.push_back({Wall4BH, RED});
 }
 
-static void setUpModeOne(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
+static void setUpInteractive(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
 {
     sas::Transform3D t;
     t.position = {0.5105f, 13.5f, 29.869f};
@@ -75,7 +77,181 @@ static void setUpModeOne(sas::PhysicsWorld3D &world, std::vector<Entity> &object
 
     t.position = {0.5105f, 13.5f, 25.869f};
     sas::BodyHandle3D demoCil = world.createBody(sas::Shape3D::MakeCilinder(0.5, 1), t, k, sas::Flags::Active | sas::Flags::RigidBodyKinematic);
-    objects.push_back({demoCil, CLITERAL(Color){0, 255, 255, 255}});
+    objects.push_back({demoCil, CYAN});
+}
+
+static void setUpTestOne(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
+{
+    std::mt19937 rng(1337);
+    std::uniform_real_distribution<float> distX(-8.5f, 8.5f);
+    std::uniform_real_distribution<float> distY(1.5f, 18.5f);
+    std::uniform_real_distribution<float> distZ(-8.5f, 8.5f);
+
+    sas::Kinematics3D boucyKinematics;
+    boucyKinematics.pushForce = 10;
+    boucyKinematics.restitution = 1;
+    boucyKinematics.pushForce = 1;
+    boucyKinematics.inverseMass = 0.2;
+
+    const uint32_t dynamicFlags = sas::Flags::Active | sas::Flags::RigidBodyDynamic;
+
+    for (int i = 0; i < 100; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D sphereBH = world.createBody(
+            sas::Shape3D::MakeSphere(0.35f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({sphereBH, PURPLE});
+    }
+
+    for (int i = 0; i < 250; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cubeBH = world.createBody(
+            sas::Shape3D::MakeOrthotope(0.6f, 0.6f, 0.6f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cubeBH, YELLOW});
+    }
+
+    for (int i = 0; i < 500; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cylinderBH = world.createBody(
+            sas::Shape3D::MakeCilinder(0.25f, 0.7f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cylinderBH, CYAN});
+    }
+}
+
+static void setUpTestTwo(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
+{
+    std::mt19937 rng(1337);
+    std::uniform_real_distribution<float> distX(-8.5f, 8.5f);
+    std::uniform_real_distribution<float> distY(1.5f, 18.5f);
+    std::uniform_real_distribution<float> distZ(-8.5f, 8.5f);
+
+    sas::Kinematics3D boucyKinematics;
+    boucyKinematics.pushForce = 10;
+    boucyKinematics.restitution = 1;
+    boucyKinematics.pushForce = 1;
+    boucyKinematics.inverseMass = 0.2;
+
+    const auto dynamicFlags = sas::Flags::Active | sas::Flags::RigidBodyDynamic;
+
+    for (int i = 0; i < 250; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D sphereBH = world.createBody(
+            sas::Shape3D::MakeSphere(0.35f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({sphereBH, PURPLE});
+    }
+
+    for (int i = 0; i < 500; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cubeBH = world.createBody(
+            sas::Shape3D::MakeOrthotope(0.6f, 0.6f, 0.6f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cubeBH, YELLOW});
+    }
+
+    for (int i = 0; i < 1000; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cylinderBH = world.createBody(
+            sas::Shape3D::MakeCilinder(0.25f, 0.7f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cylinderBH, CYAN});
+    }
+}
+
+static void setUpTestThree(sas::PhysicsWorld3D &world, std::vector<Entity> &objects) noexcept
+{
+    std::mt19937 rng(1337);
+    std::uniform_real_distribution<float> distX(-8.5f, 8.5f);
+    std::uniform_real_distribution<float> distY(1.5f, 18.5f);
+    std::uniform_real_distribution<float> distZ(-8.5f, 8.5f);
+
+    sas::Kinematics3D boucyKinematics;
+    boucyKinematics.pushForce = 10;
+    boucyKinematics.restitution = 1;
+    boucyKinematics.pushForce = 1;
+    boucyKinematics.inverseMass = 0.2;
+
+    const auto dynamicFlags = sas::Flags::Active | sas::Flags::RigidBodyDynamic;
+
+    for (int i = 0; i < 500; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D sphereBH = world.createBody(
+            sas::Shape3D::MakeSphere(0.35f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({sphereBH, PURPLE});
+    }
+
+    for (int i = 0; i < 1000; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cubeBH = world.createBody(
+            sas::Shape3D::MakeOrthotope(0.6f, 0.6f, 0.6f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cubeBH, YELLOW});
+    }
+
+    for (int i = 0; i < 2500; ++i)
+    {
+        sas::Transform3D t;
+        t.position = {distX(rng), distY(rng), distZ(rng)};
+
+        sas::BodyHandle3D cylinderBH = world.createBody(
+            sas::Shape3D::MakeCilinder(0.25f, 0.7f),
+            t,
+            boucyKinematics,
+            dynamicFlags);
+
+        objects.push_back({cylinderBH, CYAN});
+    }
 }
 
 static void drawEntity(const Entity &entity) noexcept
@@ -189,7 +365,7 @@ int main()
     std::vector<Entity> demoEntities;
     std::vector<Entity> arenaWalls;
     setUpBox(world, arenaWalls);
-    setUpModeOne(world, demoEntities);
+    setUpInteractive(world, demoEntities);
 
     sas::Kinematics3D boucyKinematics;
     boucyKinematics.pushForce = 10;
@@ -200,6 +376,19 @@ int main()
     boucyKinematics.inverseMass = 0.2;
 
     sas::ShapeType3D currentType = sas::ShapeType3D::Sphere;
+
+    auto resetObjects = [&]() noexcept
+    {
+        world.clear();
+        entities.clear();
+        demoEntities.clear();
+        arenaWalls.clear();
+
+        setUpBox(world, arenaWalls);
+        setUpInteractive(world, demoEntities);
+    };
+
+    size_t testCount = 0;
 
     while (!WindowShouldClose())
     {
@@ -212,6 +401,25 @@ int main()
                 EnableCursor();
             else
                 DisableCursor();
+        }
+
+        if (IsKeyPressed(KEY_M))
+        {
+
+            resetObjects();
+            if (testCount % 3 == 0)
+            {
+                setUpTestOne(world, entities);
+            }
+            else if (testCount % 3 == 1)
+            {
+                setUpTestTwo(world, entities);
+            }
+            else
+            {
+                setUpTestThree(world, entities);
+            }
+            ++testCount;
         }
 
         if (IsKeyPressed(KEY_P))
@@ -244,13 +452,7 @@ int main()
 
         if (IsKeyPressed(KEY_R))
         {
-            world.clear();
-            entities.clear();
-            demoEntities.clear();
-            arenaWalls.clear();
-
-            setUpBox(world, arenaWalls);
-            setUpModeOne(world, demoEntities);
+            resetObjects();
         }
 
         if (IsKeyPressed(KEY_Q))
@@ -281,7 +483,7 @@ int main()
             sas::Transform3D worldPos;
             worldPos.position = {
                 camera.position.x + forward.x * spawnDistance,
-                camera.position.y + forward.y * spawnDistance, 
+                camera.position.y + forward.y * spawnDistance,
                 camera.position.z + forward.z * spawnDistance};
 
             switch (currentType)
@@ -304,7 +506,7 @@ int main()
                     worldPos,
                     boucyKinematics,
                     sas::Flags::Active | sas::Flags::RigidBodyDynamic);
-                entities.push_back({newCilinder, CLITERAL(Color){0, 255, 255, 255}});
+                entities.push_back({newCilinder, CYAN});
                 break;
             }
 
@@ -421,8 +623,7 @@ int main()
         DrawText(msg1.c_str(), 0, 0, 30, RED);
         DrawText(msg2.c_str(), 0, 30, 30, RED);
         DrawText(msg3.c_str(), 0, 60, 30, RED);
-        DrawText(std::to_string(dt).c_str(), 650, 40, 30, RED);
-
+        DrawFPS(650, 40);
         EndDrawing();
     }
 

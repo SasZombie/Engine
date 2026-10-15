@@ -29,6 +29,10 @@ add_executable(MathTests
 add_executable(PerformanceTests3D
     3D/performance_tests.cpp
 )
+
+add_executable(ProfilingTests3D
+    3D/profiling_tests.cpp
+)
 add_executable(Tests3D
     # 3D/physics_tests.cpp
     3D/collision_tests_circle.cpp
@@ -64,6 +68,14 @@ target_link_libraries(MathTests PRIVATE
 )
 
 target_link_libraries(PerformanceTests3D PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+    GTest::gtest_main
+)
+
+target_link_libraries(ProfilingTests3D PRIVATE
     sas_physics
     project_warnings
     project_sanitizers

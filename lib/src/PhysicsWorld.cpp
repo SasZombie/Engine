@@ -188,6 +188,7 @@ void sas::PhysicsWorld<Traits>::step() noexcept
         }
 
         std::vector<uint32_t> potentialCollisions;
+        potentialCollisions.reserve(contacts.capacity());
 
         root.query(Traits::computeTightAABB(obj), potentialCollisions);
 
@@ -211,45 +212,35 @@ void sas::PhysicsWorld<Traits>::step() noexcept
 
             Traits::checkCollisionDispatcher(obj, other, contacts);
         }
-        
     }
 
-    const auto &shouldResolveCollision = [&](const Contact &contact)
-    {
-        const Body &bodyA = getBodyFromSparse(contact.bodyA);
-        const Body &bodyB = getBodyFromSparse(contact.bodyB);
-        if (bodyA.hasFlag(Flags::Trigger) || bodyB.hasFlag(Flags::Trigger))
-        {
-            return false;
-        }
-
-        return true;
-    };
+    auto resolvableEnd = std::partition(contacts.begin(), contacts.end(), [&](const Contact &c)
+                                        {
+    const Body &bodyA = getBodyFromSparse(c.bodyA);
+    const Body &bodyB = getBodyFromSparse(c.bodyB);
+    return !bodyA.hasFlag(Flags::Trigger) && !bodyB.hasFlag(Flags::Trigger); });
 
     constexpr size_t solverIterations = 10;
     for (size_t i = 0; i < solverIterations; ++i)
     {
-        for (auto &contact : contacts)
+        for (auto it = contacts.begin(); it != resolvableEnd; ++it)
         {
-            if (shouldResolveCollision(contact))
-            {
-                Body &obj = getBodyFromSparse(contact.bodyA);
-                Body &other = getBodyFromSparse(contact.bodyB);
+            auto &contact = *it;
+            Body &obj = getBodyFromSparse(contact.bodyA);
+            Body &other = getBodyFromSparse(contact.bodyB);
 
-                Traits::resolveCollision(obj, other, contact);
-            }
+            Traits::resolveCollision(obj, other, contact);
         }
     }
 
-    for (auto &c : contacts)
+    for (auto it = contacts.begin(); it != resolvableEnd; ++it)
     {
-        if (shouldResolveCollision(c))
-        {
-            Body &obj = getBodyFromSparse(c.bodyA);
-            Body &other = getBodyFromSparse(c.bodyB);
+        auto& contact = *it;
 
-            Traits::correctPosition(obj, other, c);
-        }
+        Body &obj = getBodyFromSparse(contact.bodyA);
+        Body &other = getBodyFromSparse(contact.bodyB);
+
+        Traits::correctPosition(obj, other, contact);
     }
 
     for (uint32_t id : activeIDs)
@@ -294,7 +285,7 @@ void sas::PhysicsWorld<Traits>::removeFromCollisionPool(Body &body) noexcept
         root.remove(body.bodyID);
     }
 }
-//Maybe in future we must reset something else
+// Maybe in future we must reset something else
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::reset(Body &obj) const noexcept
 {

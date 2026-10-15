@@ -29,7 +29,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         -fsanitize=undefined -fsanitize=address -fsanitize=leak
     )
 else()
-    target_compile_options(project_warnings INTERFACE -O3)
+    target_compile_options(project_warnings INTERFACE -O3 -DNDEBUG -ggdb -march=native -ffast-math -fno-math-errno -flto -fno-semantic-interposition -funroll-loops -fno-strict-aliasing)
 endif()
 
 add_subdirectory(lib)
