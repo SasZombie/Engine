@@ -332,8 +332,10 @@ int main()
 {
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
 
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
-    SetTargetFPS(60);
+    sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::GPU};
+    sas::PhysicsSettings &settings = world.settings;
+    settings.dragCoeff = 0.47f;
+    settings.gravity = {0, -3, 0};
 
     auto lambda = [](const sas::AABB3D &aabb, bool isLeaf)
     {
@@ -356,11 +358,6 @@ int main()
     DisableCursor();
 
     // ==== Entitites ====
-    sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::GPU};
-    sas::PhysicsSettings &settings = world.settings;
-    settings.dragCoeff = 0.47f;
-    settings.gravity = {0, -3, 0};
-
     std::vector<Entity> entities;
     std::vector<Entity> demoEntities;
     std::vector<Entity> arenaWalls;
@@ -389,6 +386,9 @@ int main()
     };
 
     size_t testCount = 0;
+
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Physics Engine");
+    SetTargetFPS(60);
 
     while (!WindowShouldClose())
     {
@@ -560,9 +560,21 @@ int main()
         {
             drawEntity(entity);
         }
-
+        
         for (const auto &entity : entities)
         {
+            for(int i = 0; i < 3; ++i)
+            {
+                std::cout << entity.bodyHandle.get()->transform.position.data[i] << ' ';
+            }
+            std::cout << '\n';
+
+            if(entity.bodyHandle.isColliding())
+            {
+                const auto& col =  entity.bodyHandle.getCollisions();
+
+                std::cout << col[0].depth << ' ' << col[0].normal.x << ' ' << col[0].normal.y << ' ' << col[0].normal.z << '\n';
+            }
             drawEntity(entity);
         }
 

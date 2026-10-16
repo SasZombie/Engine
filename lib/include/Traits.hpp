@@ -2,6 +2,13 @@
 #include "Logger.hpp"
 #include "Contact.hpp"
 #include "AABBTree.hpp"
+
+#if HAS_CUDA
+
+#include "CudaFunctions.hpp"
+
+#endif
+
 namespace sas
 {
 
@@ -17,6 +24,27 @@ namespace sas
         using Transform = Transform2D;
         using Kinematics = Kinematics2D;
         using DrawCallback = DrawCallback2D;
+
+#if HAS_CUDA
+        [[nodiscard]] static inline PairCategory classifyPair(sas::ShapeType2D a, sas::ShapeType2D b) noexcept
+        {
+            if (a > b)
+            {
+                std::swap(a, b);
+            }
+            if (a == ShapeType2D::Circle || b == ShapeType2D::Circle)
+            {
+                return PairCategory::Analytic;
+            }
+
+            if (a == ShapeType2D::Box && b == ShapeType2D::Box)
+            {
+                return PairCategory::Sat;
+            }
+
+            return PairCategory::GjkEpa;
+        };
+#endif
 
         // ======= Creation =======
         static void initializeBodyPhysics(Body &body) noexcept;
@@ -93,6 +121,27 @@ namespace sas
         using Kinematics = Kinematics3D;
         using DrawCallback = DrawCallback3D;
 
+#if HAS_CUDA
+        [[nodiscard]] static inline PairCategory classifyPair(ShapeType3D a, ShapeType3D b) noexcept
+        {
+            if (a > b)
+            {
+                std::swap(a, b);
+            }
+            if (a == ShapeType3D::Sphere || b == ShapeType3D::Sphere)
+            {
+                return PairCategory::Analytic;
+            }
+
+            if (a == ShapeType3D::Orthotope && b == ShapeType3D::Orthotope)
+            {
+                return PairCategory::Sat;
+            }
+
+            return PairCategory::GjkEpa;
+        };
+#endif
+
         // ======= Creation =======
         static void initializeBodyPhysics(Body &body) noexcept;
         [[nodiscard]] static AABB3D computeTightAABB(Body &body) noexcept
@@ -126,8 +175,8 @@ namespace sas
 
             return false;
         }
-        [[nodiscard]]static bool OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept;
-        [[nodiscard]]static inline bool CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
+        [[nodiscard]] static bool OrthopeOrthope(const Body &obj, const Body &other, Contact &outContact) noexcept;
+        [[nodiscard]] static inline bool CilinderSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
         {
             if (SphereCilinder(other, obj, outContact))
             {
@@ -136,17 +185,15 @@ namespace sas
             }
 
             return false;
-        }        
+        }
         [[nodiscard]] static bool GJKEPA(const Body &obj, const Body &other, Contact &outContact) noexcept;
-
 
         using CollisionHandler = bool (*)(const Body &, const Body &, Contact &) noexcept;
 
         static inline const CollisionHandler DispatchTable[static_cast<size_t>(ShapeType3DCount)][static_cast<size_t>(ShapeType3DCount)] = {
             {&SphereSphere, &SphereOrthotope, &SphereCilinder},
             {&OrthopeSphere, &OrthopeOrthope, &GJKEPA},
-            {&CilinderSphere, &GJKEPA, &GJKEPA}
-        };
+            {&CilinderSphere, &GJKEPA, &GJKEPA}};
 
         static void checkCollisionDispatcher(const Body &a, const Body &b, std::vector<Contact> &contacts) noexcept
         {

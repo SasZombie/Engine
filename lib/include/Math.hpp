@@ -6,7 +6,10 @@ namespace sas
 {
     namespace math
     {
-        bool floatAlmostEqual(float a, float b, float epsilon = std::numeric_limits<float>::epsilon());
+        constexpr bool floatAlmostEqual(float a, float b, float epsilon = 1.19209290e-7F)
+        {
+            return std::abs(a - b) < epsilon;
+        }
 
         struct alignas(16) Vec2
         {
@@ -75,7 +78,7 @@ namespace sas
                 return *this * invLen;
             }
 
-            [[nodiscard]] Vec2 operator-() const
+            [[nodiscard]] constexpr Vec2 operator-() const
             {
                 return {-x, -y};
             }
@@ -124,7 +127,7 @@ namespace sas
                     return cmp;
                 return z <=> other.z;
             }
-            
+
             // data(0, 1, 2) is proven to be one next to the other
             constexpr Vec3 &operator+=(const Vec3 &other) noexcept
             {
@@ -208,7 +211,7 @@ namespace sas
                 return *this * invLen;
             }
 
-            [[nodiscard]] Vec3 operator-() const
+            [[nodiscard]] constexpr Vec3 operator-() const
             {
                 return {-x, -y, -z};
             }
@@ -339,7 +342,7 @@ namespace sas
                 return *this * invLen;
             }
 
-            [[nodiscard]] Vec4 operator-() const
+            [[nodiscard]] constexpr Vec4 operator-() const
             {
                 return {-x, -y, -z, -w};
             }
@@ -362,7 +365,7 @@ namespace sas
         private:
             float data[4];
 
-            size_t getIndex(size_t row, size_t col) const noexcept
+            constexpr size_t getIndex(size_t row, size_t col) const noexcept
             {
                 return col * Rows + row;
             }
@@ -466,7 +469,7 @@ namespace sas
         private:
             float data[9];
 
-            size_t getIndex(size_t row, size_t col) const noexcept
+            constexpr size_t getIndex(size_t row, size_t col) const noexcept
             {
                 return col * Rows + row;
             }
@@ -584,7 +587,7 @@ namespace sas
         private:
             float data[16];
 
-            size_t getIndex(size_t row, size_t col) const noexcept
+            constexpr size_t getIndex(size_t row, size_t col) const noexcept
             {
                 return col * Rows + row;
             }
@@ -735,7 +738,7 @@ namespace sas
         concept customVector = std::same_as<T, Vec2> || std::same_as<T, Vec3> || std::same_as<T, Vec4> || std::same_as<T, Quaterion>;
 
         template <customVector T>
-        [[nodiscard]] float dotProduct(const T &vec1, const T &vec2) noexcept
+        [[nodiscard]] constexpr float dotProduct(const T &vec1, const T &vec2) noexcept
         {
             float result = 0.0f;
             for (int i = 0; i < T::ElementCount; ++i)

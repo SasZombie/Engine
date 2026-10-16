@@ -722,6 +722,7 @@ void sas::Traits3D::correctPosition(Body &obj, Body &other, Contact &contact) no
     other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
 }
 
+
 bool sas::Traits3D::SphereSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
 {
     float dx = obj.transform.position.x - other.transform.position.x;
@@ -958,9 +959,9 @@ bool sas::Traits3D::OrthopeOrthope(const Body &obj, const Body &other, Contact &
     math::Vec3 posB = other.transform.position;
 
     math::Vec3 extA = {
-        obj.shape.halfSize.x * other.transform.scale.x,
-        obj.shape.halfSize.y * other.transform.scale.y,
-        obj.shape.halfSize.z * other.transform.scale.z};
+        obj.shape.halfSize.x * obj.transform.scale.x,
+        obj.shape.halfSize.y * obj.transform.scale.y,
+        obj.shape.halfSize.z * obj.transform.scale.z};
 
     math::Vec3 extB = {
         other.shape.halfSize.x * other.transform.scale.x,

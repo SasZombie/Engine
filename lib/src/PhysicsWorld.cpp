@@ -14,10 +14,26 @@
 
 #if HAS_CUDA
 #include "CudaFunctions.hpp"
+#endif
 
+template <sas::DimensionalTraits Traits>
+sas::PhysicsWorld<Traits>::PhysicsWorld(sas::DeviceOptions devOptions) noexcept
+    : deviceOptions(devOptions)
+{
+#if !HAS_CUDA
+    if (deviceOptions == DeviceOptions::GPU)
+    {
+        deviceOptions = DeviceOptions::CPU;
+        BaseLogger::warn("Trying to do gpu work without cuda! Fallback on cpu");
+    }
 #else
+    if (deviceOptions == DeviceOptions::GPU)
+    {
+        initCuda();
+    }
 
 #endif
+}
 
 template <sas::DimensionalTraits Traits>
 sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
@@ -256,8 +272,9 @@ void sas::PhysicsWorld<Traits>::broadPhaseCpu() noexcept
         std::vector<uint32_t> potentialCollisions;
         potentialCollisions.reserve(contacts.capacity());
 
+        const size_t activesSize = activeIDs.size();
 #pragma omp for schedule(guided)
-        for (size_t i = 0; i < activeIDs.size(); ++i)
+        for (size_t i = 0; i < activesSize; ++i)
         {
             uint32_t id = activeIDs[i];
             Body &obj = bodies[sparse[id]];
@@ -303,17 +320,110 @@ void sas::PhysicsWorld<Traits>::broadPhaseCpu() noexcept
     }
 }
 
+#if HAS_CUDA
+// [ |[#####][####][#####] | [###][###][###]]
+
+static void flattenBins(
+    const std::vector<std::array<std::vector<sas::CandidatePair>, 3>> &perThreadBins,
+    std::vector<sas::CandidatePair> &analytic,
+    std::vector<sas::CandidatePair> &boxBox,
+    std::vector<sas::CandidatePair> &gjkEpa)
+{
+    size_t count0 = 0, count1 = 0, count2 = 0;
+    for (const auto &tb : perThreadBins)
+    {
+        count0 += tb[0].size();
+        count1 += tb[1].size();
+        count2 += tb[2].size();
+    }
+
+    analytic.reserve(count0);
+    boxBox.reserve(count1);
+    gjkEpa.reserve(count2);
+
+    for (const auto &tb : perThreadBins)
+    {
+        analytic.insert(analytic.end(), tb[0].begin(), tb[0].end());
+        boxBox.insert(boxBox.end(), tb[1].begin(), tb[1].end());
+        gjkEpa.insert(gjkEpa.end(), tb[2].begin(), tb[2].end());
+    }
+}
+
+// My pc can skip the broadphase since a rtx 3070
+// Can do over 500_000 checks in microsecconds
+template <sas::DimensionalTraits Traits>
+void sas::PhysicsWorld<Traits>::broadPhaseGpu() noexcept
+{
+    const int maxThreads = omp_get_max_threads();
+
+    using ThreadBins = std::array<std::vector<CandidatePair>, 3>;
+    std::vector<ThreadBins> perThreadBins(maxThreads);
+
+#pragma omp parallel
+    {
+        int threadId = omp_get_thread_num();
+        auto &localBins = perThreadBins[threadId];
+
+        std::vector<uint32_t> potentialCollisions;
+        potentialCollisions.reserve(128);
+
+        const size_t activesSize = activeIDs.size();
+
+#pragma omp for schedule(guided)
+        for (size_t i = 0; i < activesSize; ++i)
+        {
+            uint32_t id = activeIDs[i];
+            uint32_t denseIdxA = sparse[id];
+            Body &obj = bodies[denseIdxA];
+
+            if (obj.hasFlag(Flags::RigidBodyStatic) || obj.hasFlag(Flags::Trigger))
+            {
+                obj.kinematics.reset();
+                continue;
+            }
+
+            potentialCollisions.clear();
+            root.query(Traits::computeTightAABB(obj), potentialCollisions);
+
+            uint32_t objLayer = obj.collisionMask & 0x0000FFFF;
+            uint32_t objMask = (obj.collisionMask & 0xFFFF0000) >> 16;
+
+            for (uint32_t otherID : potentialCollisions)
+            {
+                uint32_t denseIdxB = sparse[otherID];
+                auto &other = bodies[denseIdxB];
+                bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) || other.hasFlag(Flags::Trigger);
+
+                if (!otherIsSkipped && obj.bodyID >= otherID)
+                    continue;
+
+                uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
+                uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
+
+                if (!(objMask & otherLayer) || !(otherMask & objLayer))
+                    continue;
+
+                PairCategory cat = Traits::classifyPair(obj.shape.type, other.shape.type);
+                localBins[static_cast<size_t>(cat)].push_back(
+                    {obj.bodyID, otherID, denseIdxA, denseIdxB});
+            }
+        }
+    }
+    std::vector<CandidatePair> analyticPairs, boxBoxPairs, gjkEpaPairs;
+    flattenBins(perThreadBins, analyticPairs, boxBoxPairs, gjkEpaPairs);
+
+    launchGpu(analyticPairs, boxBoxPairs, gjkEpaPairs, bodies, contacts);
+}
+#else
 
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::broadPhaseGpu() noexcept
 {
-    #if HAS_CUDA
-    runGpuHello();
-    #endif
+    BaseLogger::error("How did we get here?");
+    std::unreachable();
 }
 
-
-
+#endif
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::updateCollisionFlags() noexcept
 {
@@ -321,7 +431,7 @@ void sas::PhysicsWorld<Traits>::updateCollisionFlags() noexcept
     {
         collisionFlags[contact.bodyA] = 1;
         collisionFlags[contact.bodyB] = 1;
-
+        
         frameContacts.emplace_back(contact);
     }
 }

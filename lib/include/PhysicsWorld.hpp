@@ -94,19 +94,10 @@ namespace sas
         void removeBody(const BodyHandle<Traits> &handle) noexcept;
         void removeBody(uint32_t bodyID) noexcept;
 
+        
         void clear() noexcept;
 
-        PhysicsWorld(DeviceOptions devOptions = DeviceOptions::CPU) noexcept
-            : deviceOptions(devOptions)
-        {
-#if !HAS_CUDA
-            if(deviceOptions == DeviceOptions::GPU)
-            {
-                deviceOptions = DeviceOptions::CPU;
-                BaseLogger::warn("Trying to do gpu work without cuda! Fallback on cpu");
-            }
-#endif
-        }
+        PhysicsWorld(DeviceOptions devOptions = DeviceOptions::CPU) noexcept;
         ~PhysicsWorld() noexcept = default;
 
     private:
