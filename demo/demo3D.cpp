@@ -333,6 +333,7 @@ int main()
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
 
     sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::GPU};
+    // sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::CPU};
     sas::PhysicsSettings &settings = world.settings;
     settings.dragCoeff = 0.47f;
     settings.gravity = {0, -3, 0};
@@ -563,18 +564,18 @@ int main()
         
         for (const auto &entity : entities)
         {
-            for(int i = 0; i < 3; ++i)
-            {
-                std::cout << entity.bodyHandle.get()->transform.position.data[i] << ' ';
-            }
-            std::cout << '\n';
+            // for(int i = 0; i < 3; ++i)
+            // {
+            //     std::cout << entity.bodyHandle.get()->transform.position.data[i] << ' ';
+            // }
+            // std::cout << '\n';
 
-            if(entity.bodyHandle.isColliding())
-            {
-                const auto& col =  entity.bodyHandle.getCollisions();
+            // if(entity.bodyHandle.isColliding())
+            // {
+            //     const auto& col =  entity.bodyHandle.getCollisions();
 
-                std::cout << col[0].depth << ' ' << col[0].normal.x << ' ' << col[0].normal.y << ' ' << col[0].normal.z << '\n';
-            }
+            //     std::cout << col[0].depth << ' ' << col[0].normal.x << ' ' << col[0].normal.y << ' ' << col[0].normal.z << '\n';
+            // }
             drawEntity(entity);
         }
 

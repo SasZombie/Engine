@@ -722,7 +722,6 @@ void sas::Traits3D::correctPosition(Body &obj, Body &other, Contact &contact) no
     other.transform.position = other.transform.position - correction * other.kinematics.inverseMass;
 }
 
-
 bool sas::Traits3D::SphereSphere(const Body &obj, const Body &other, Contact &outContact) noexcept
 {
     float dx = obj.transform.position.x - other.transform.position.x;
@@ -1583,6 +1582,47 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
         bool visible = false;
     };
 
+    struct UndirectedEdge
+    {
+        math::Vec3 minV;
+        math::Vec3 maxV;
+        math::Vec3 originalFrom;
+        math::Vec3 originalTo;
+
+        static UndirectedEdge make(const math::Vec3 &a, const math::Vec3 &b)
+        {
+            if (a < b)
+            {
+                return {a, b, a, b};
+            }
+            return {b, a, a, b};
+        }
+
+        bool equals(const UndirectedEdge &o) const
+        {
+            return minV == o.minV && maxV == o.maxV;
+        }
+    };
+
+    std::vector<UndirectedEdge> horizon;
+
+    auto addOrRemoveEdge = [&](const math::Vec3 &a, const math::Vec3 &b)
+    {
+        UndirectedEdge edge = UndirectedEdge::make(a, b);
+
+        for (size_t horizonInd = 0; horizonInd < horizon.size(); ++horizonInd)
+        {
+            if (horizon[horizonInd].equals(edge))
+            {
+                horizon[horizonInd] = horizon.back();
+                horizon.pop_back();
+                return;
+            }
+        }
+
+        horizon.push_back(edge);
+    };
+
     const math::Vec3 A = simplex.points[0];
     const math::Vec3 B = simplex.points[1];
     const math::Vec3 C = simplex.points[2];
@@ -1645,49 +1685,12 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
             outContact.pointCount = 1;
             outContact.overlap = newDistance;
 
+            BaseLogger::log("Finished with: " + std::to_string(faces.size()) + " " + std::to_string(horizon.size()));
+
             return;
         }
 
-        struct UndirectedEdge
-        {
-            math::Vec3 minV;
-            math::Vec3 maxV;
-            math::Vec3 originalFrom;
-            math::Vec3 originalTo;
-
-            static UndirectedEdge make(const math::Vec3 &a, const math::Vec3 &b)
-            {
-                if (a < b)
-                {
-                    return {a, b, a, b};
-                }
-                return {b, a, a, b};
-            }
-
-            bool equals(const UndirectedEdge &o) const
-            {
-                return minV == o.minV && maxV == o.maxV;
-            }
-        };
-
-        std::vector<UndirectedEdge> horizon;
-
-        auto addOrRemoveEdge = [&](const math::Vec3 &a, const math::Vec3 &b)
-        {
-            UndirectedEdge edge = UndirectedEdge::make(a, b);
-
-            for (size_t horizonInd = 0; horizonInd < horizon.size(); ++horizonInd)
-            {
-                if (horizon[horizonInd].equals(edge))
-                {
-                    horizon[horizonInd] = horizon.back();
-                    horizon.pop_back();
-                    return;
-                }
-            }
-
-            horizon.push_back(edge);
-        };
+        horizon.clear();
 
         for (Face &current : faces)
         {

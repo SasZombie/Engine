@@ -16,7 +16,8 @@ void sas::initCuda() noexcept
     cudaSetDevice(0);
     cudaFree(0);
     size_t freeMem = 0, totalMem = 0;
-    cudaError_t memErr = cudaMemGetInfo(&freeMem, &totalMem);
+
+    auto memErr = cudaMemGetInfo(&freeMem, &totalMem);
     if (memErr != cudaSuccess)
     {
         std::fprintf(stderr, "[CUDA MEM INFO ERROR]: %s\n", cudaGetErrorString(memErr));
@@ -546,6 +547,7 @@ __device__ sas::math::Vec3 distanceM(const sas::Shape3D &s1, const sas::Transfor
     return p1 - p2;
 };
 
+
 __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
 {
     using namespace sas;
@@ -595,13 +597,15 @@ __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
             {
                 simplex.points = {a, c, {0, 0, 0}, {0, 0, 0}};
                 simplex.size = 2;
-                return solveSimplex(simplex, dir);
+                // return solveSimplex(simplex, dir);
+                return false;
             }
             else
             {
                 simplex.points = {a, b, {0, 0, 0}, {0, 0, 0}};
                 simplex.size = 2;
-                return solveSimplex(simplex, dir);
+                // return solveSimplex(simplex, dir);
+                return false;
             }
         }
         else
@@ -610,7 +614,8 @@ __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
             {
                 simplex.points = {a, b, {0, 0, 0}, {0, 0, 0}};
                 simplex.size = 2;
-                return solveSimplex(simplex, dir);
+                // return solveSimplex(simplex, dir);
+                return false;
             }
             else
             {
@@ -654,19 +659,22 @@ __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
         {
             simplex.points = {a, b, c, {0, 0, 0}};
             simplex.size = 3;
-            return solveSimplex(simplex, dir);
+            // return solveSimplex(simplex, dir);
+            return false;
         }
         if (dotProduct(acd, ao) > 0.0f)
         {
             simplex.points = {a, c, d, {0, 0, 0}};
             simplex.size = 3;
-            return solveSimplex(simplex, dir);
+            // return solveSimplex(simplex, dir);
+            return false;
         }
         if (dotProduct(adb, ao) > 0.0f)
         {
             simplex.points = {a, d, b, {0, 0, 0}};
             simplex.size = 3;
-            return solveSimplex(simplex, dir);
+            // return solveSimplex(simplex, dir);
+            return false;
         }
 
         return true;
@@ -781,6 +789,9 @@ __host__ __device__ void gpu_erase_if(GpuVector<T, Capacity> &vec, Predicate pre
     }
     vec.count = writeIdx;
 }
+constexpr int MAX_EPA_FACES    = 48;
+constexpr int MAX_EPA_HORIZON  = 16;
+constexpr int MAX_EPA_VERTS    = 32;
 
 __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D *contacts, int *contactCount, size_t maxContacts) noexcept
 {
@@ -801,7 +812,7 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
 
     const math::Vec3 center = (A + B + C + D) * 0.25f;
 
-    GpuVector<Face, 128> faces;
+    GpuVector<Face, MAX_EPA_FACES> faces;
 
     faces.push_back({A, B, C});
     faces.push_back({A, C, D});
@@ -891,7 +902,7 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
             }
         };
 
-        GpuVector<UndirectedEdge, 128> horizon;
+        GpuVector<UndirectedEdge, MAX_EPA_HORIZON> horizon;
 
         auto addOrRemoveEdge = [&](const math::Vec3 &a, const math::Vec3 &b)
         {
