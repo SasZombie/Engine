@@ -814,7 +814,7 @@ __device__ bool GJK(const sas::Body3D &body1, const sas::Body3D &body2, Simplex 
     simplex.push_front(distanceM(shape1, tf1, shape2, tf2, dir));
     dir = -simplex.points[0];
 
-    const int MAX_ITERATIONS = 64;
+    const int MAX_ITERATIONS = 10;
 
     for (int i = 0; i < MAX_ITERATIONS; ++i)
     {
@@ -936,7 +936,7 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
     faces.push_back({A, D, B});
     faces.push_back({B, C, D});
 
-    static constexpr size_t maxIterations = 100;
+    static constexpr size_t maxIterations = 10;
     for (size_t i = 0; i < maxIterations; ++i)
     {
 
@@ -1103,7 +1103,7 @@ __global__ void narrowPhaseGjkEpaKernel(const sas::CandidatePair *pairs, size_t 
     {
         sas::Contact3D outContact;
         outContact.bodyA = obj.bodyID;
-        outContact.bodyA = other.bodyID;
+        outContact.bodyB = other.bodyID;
         EPA(obj, other, s, contacts, contactCount, maxContacts);
     }
 }
