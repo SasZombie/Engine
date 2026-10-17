@@ -13,15 +13,18 @@
 #endif
 
 #if HAS_CUDA
+// I dont want the header
+// To know about this
 #include "CudaFunctions.hpp"
+
 #endif
 
 template <sas::DimensionalTraits Traits>
 sas::PhysicsWorld<Traits>::PhysicsWorld(sas::DeviceOptions devOptions) noexcept
     : deviceOptions(devOptions)
-    {
-        
-    #if !HAS_CUDA
+{
+
+#if !HAS_CUDA
     if (deviceOptions == DeviceOptions::GPU)
     {
         deviceOptions = DeviceOptions::CPU;
@@ -31,10 +34,25 @@ sas::PhysicsWorld<Traits>::PhysicsWorld(sas::DeviceOptions devOptions) noexcept
     if (deviceOptions == DeviceOptions::GPU)
     {
         initCuda();
+        buffers = new CollisionPipelineAlloc{15000, 131072, 65536};
     }
 
 #endif
 }
+
+#if HAS_CUDA
+
+template <sas::DimensionalTraits Traits>
+sas::PhysicsWorld<Traits>::~PhysicsWorld() noexcept
+{
+
+    if (deviceOptions == DeviceOptions::GPU)
+    {
+        delete buffers;
+    }
+}
+
+#endif
 
 template <sas::DimensionalTraits Traits>
 sas::BodyHandle<Traits> sas::PhysicsWorld<Traits>::createBody(Shape shape, const Transform &trans, uint32_t options) noexcept
@@ -327,14 +345,14 @@ void sas::PhysicsWorld<Traits>::broadPhaseCpu() noexcept
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::broadPhaseGpu() noexcept
 {
-    runCollisionPipeline(activeIDs, sparse, bodies, root.flatten(), contacts);
+    runCollisionPipeline(*buffers, activeIDs, sparse, bodies, root.flatten(), contacts);
 }
 #else
 
 template <sas::DimensionalTraits Traits>
 void sas::PhysicsWorld<Traits>::broadPhaseGpu() noexcept
 {
-    
+
     BaseLogger::error("How did we get here?");
     std::unreachable();
 }
@@ -347,7 +365,7 @@ void sas::PhysicsWorld<Traits>::updateCollisionFlags() noexcept
     {
         collisionFlags[contact.bodyA] = 1;
         collisionFlags[contact.bodyB] = 1;
-        
+
         frameContacts.emplace_back(contact);
     }
 }

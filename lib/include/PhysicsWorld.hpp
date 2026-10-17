@@ -20,6 +20,8 @@ namespace sas
     template <DimensionalTraits Traits>
     struct BodyHandle;
 
+    struct CollisionPipelineAlloc;
+
     template <DimensionalTraits Traits>
     class PhysicsWorld
     {
@@ -34,12 +36,15 @@ namespace sas
 
         PhysicsSettings settings;
         uint32_t idCounter = 0;
-        
+
     private:
-        DeviceOptions deviceOptions; 
+        DeviceOptions deviceOptions;
         float deltaTime;
         float timeAccumulator = 0;
         AABBTree root;
+#if HAS_CUDA
+        CollisionPipelineAlloc *buffers;
+#endif
 
     public:
         // Cashe locality
@@ -94,11 +99,15 @@ namespace sas
         void removeBody(const BodyHandle<Traits> &handle) noexcept;
         void removeBody(uint32_t bodyID) noexcept;
 
-        
         void clear() noexcept;
 
         PhysicsWorld(DeviceOptions devOptions = DeviceOptions::CPU) noexcept;
+
+#if HAS_CUDA
+        ~PhysicsWorld() noexcept;
+#else
         ~PhysicsWorld() noexcept = default;
+#endif
 
     private:
         BodyHandle<Traits> createBodyFull(Shape shape, const Transform &trans, const Kinematics &kin, uint32_t options) noexcept;
