@@ -1642,7 +1642,6 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
 
         if (faces.empty())
         {
-            BaseLogger::warn("Epa deleted all faces");
             break;
         }
         float minimDistance = std::numeric_limits<float>::max();
@@ -1714,7 +1713,6 @@ static void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex 
         }
     }
 
-    BaseLogger::warn("Finished EPA with empty stuff");
     return;
 }
 

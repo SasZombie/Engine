@@ -2,10 +2,11 @@
 #include "Logger.hpp"
 #include "Contact.hpp"
 #include "AABBTree.hpp"
+#include "Body.hpp"
 
 #if HAS_CUDA
 
-#include "CudaFunctions.hpp"
+#include "CudaObjects.hpp"
 
 #endif
 
@@ -23,28 +24,7 @@ namespace sas
         using AABBTree = AABBTree2D;
         using Transform = Transform2D;
         using Kinematics = Kinematics2D;
-        using DrawCallback = DrawCallback2D;
-
-#if HAS_CUDA
-        [[nodiscard]] static inline PairCategory classifyPair(sas::ShapeType2D a, sas::ShapeType2D b) noexcept
-        {
-            if (a > b)
-            {
-                std::swap(a, b);
-            }
-            if (a == ShapeType2D::Circle || b == ShapeType2D::Circle)
-            {
-                return PairCategory::Analytic;
-            }
-
-            if (a == ShapeType2D::Box && b == ShapeType2D::Box)
-            {
-                return PairCategory::Sat;
-            }
-
-            return PairCategory::GjkEpa;
-        };
-#endif
+        using DrawCallback = AABBTree::DrawCallback;
 
         // ======= Creation =======
         static void initializeBodyPhysics(Body &body) noexcept;
@@ -119,28 +99,8 @@ namespace sas
         using AABBTree = AABBTree3D;
         using Transform = Transform3D;
         using Kinematics = Kinematics3D;
-        using DrawCallback = DrawCallback3D;
+        using DrawCallback = AABBTree::DrawCallback;
 
-#if HAS_CUDA
-        [[nodiscard]] static inline PairCategory classifyPair(ShapeType3D a, ShapeType3D b) noexcept
-        {
-            if (a > b)
-            {
-                std::swap(a, b);
-            }
-            if (a == ShapeType3D::Sphere || b == ShapeType3D::Sphere)
-            {
-                return PairCategory::Analytic;
-            }
-
-            if (a == ShapeType3D::Orthotope && b == ShapeType3D::Orthotope)
-            {
-                return PairCategory::Sat;
-            }
-
-            return PairCategory::GjkEpa;
-        };
-#endif
 
         // ======= Creation =======
         static void initializeBodyPhysics(Body &body) noexcept;

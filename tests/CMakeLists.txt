@@ -39,6 +39,16 @@ add_executable(ProfilingTests3D2
 add_executable(ProfilingTests3D3
     3D/Profiling/profiling_tests3.cpp
 )
+
+add_executable(ProfilingTests3D1GPU
+    3D/Profiling/profiling_tests1GPU.cpp
+)
+add_executable(ProfilingTests3D2GPU
+    3D/Profiling/profiling_tests2GPU.cpp
+)
+add_executable(ProfilingTests3D3GPU
+    3D/Profiling/profiling_tests3GPU.cpp
+)
 add_executable(Tests3D
     # 3D/physics_tests.cpp
     3D/collision_tests_circle.cpp
@@ -96,6 +106,28 @@ target_link_libraries(ProfilingTests3D2 PRIVATE
 )
 
 target_link_libraries(ProfilingTests3D3 PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+)
+
+
+target_link_libraries(ProfilingTests3D1GPU PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+)
+
+target_link_libraries(ProfilingTests3D2GPU PRIVATE
+    sas_physics
+    project_warnings
+    project_sanitizers
+    project_options
+)
+
+target_link_libraries(ProfilingTests3D3GPU PRIVATE
     sas_physics
     project_warnings
     project_sanitizers

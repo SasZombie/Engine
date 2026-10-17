@@ -28,7 +28,7 @@ if(CMAKE_CUDA_COMPILER_LOADED)
     )
 
     target_compile_options(sas_cuda_backend PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr -lineinfo>
     )
 
     set_target_properties(sas_cuda_backend PROPERTIES

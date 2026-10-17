@@ -6,10 +6,26 @@
 #include <cstdio>
 #include <cuda_runtime.h>
 
-__global__ void helloKernel()
-{
-    printf("GPU executing from Physics Engine!\n");
-}
+
+
+#define cudaCheck(call)                                                      \
+    do {                                                                      \
+        cudaError_t err = (call);                                             \
+        if (err != cudaSuccess) {                                             \
+            fprintf(stderr, "CUDA Error at %s:%d -> %s\n",                    \
+                    __FILE__, __LINE__, cudaGetErrorString(err));             \
+            exit(EXIT_FAILURE);                                               \
+        }                                                                     \
+    } while (0)
+
+
+// void cudaCheck(cudaError_t err, const std::source_location location = std::source_location::current())
+// {
+//     if (err != cudaSuccess)
+//     {
+//         std::fprintf(stderr, "CUDA Error at %s : %s -> %s\n", location.file_name(), location.line(), cudaGetErrorString(err));
+//     }
+// }
 
 void sas::initCuda() noexcept
 {
@@ -198,6 +214,108 @@ __device__ bool checkSphereOrthotope(const sas::Body3D &sphereBody, const sas::B
     }
 
     return false;
+}
+
+__device__ inline void emitPair(sas::DevicePairBins bins, sas::PairCategory cat, sas::CandidatePair pair)
+{
+    uint32_t catIdx = static_cast<uint32_t>(cat);
+
+    unsigned int activeMask = __activemask();
+#if __CUDA_ARCH__ >= 700
+    unsigned int matchMask = __match_any_sync(activeMask, catIdx);
+#else
+    unsigned int matchMask = activeMask;
+#endif
+
+    int leader = __ffs(matchMask) - 1;
+    int laneId = threadIdx.x & 31;
+    int totalInWarp = __popc(matchMask);
+    int rankInWarp = __popc(matchMask & ((1u << laneId) - 1));
+
+    uint32_t baseOffset = 0;
+    if (laneId == leader)
+    {
+        baseOffset = atomicAdd(&bins.counters[catIdx], totalInWarp);
+    }
+    baseOffset = __shfl_sync(matchMask, baseOffset, leader);
+
+    uint32_t writeIdx = baseOffset + rankInWarp;
+    if (writeIdx < bins.maxCapacity)
+    {
+        bins.pairs[catIdx][writeIdx] = pair;
+    }
+}
+
+template <typename Traits>
+__global__ void queryAndClassifyKernel(const uint32_t *__restrict__ activeIDs, uint32_t numActives,
+                                       const uint32_t *__restrict__ sparse, const typename Traits::BodyType *__restrict__ bodies,
+                                       const sas::FlatNode<typename Traits::AABBType> *__restrict__ treeNodes, int nodeCount,
+                                       sas::DevicePairBins bins)
+{
+    using namespace sas;
+    uint32_t tid = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tid >= numActives)
+        return;
+
+    uint32_t idA = activeIDs[tid];
+    uint32_t denseIdxA = sparse[idA];
+    const auto &objA = bodies[denseIdxA];
+
+    if (hasFlag(objA, Flags::RigidBodyStatic) || objA.hasFlag(Flags::Trigger))
+    {
+        return;
+    }
+
+    auto queryAABB = Traits::computeTightAABB(objA);
+
+    uint32_t objLayer = objA.collisionMask & 0x0000FFFF;
+    uint32_t objMask = (objA.collisionMask & 0xFFFF0000) >> 16;
+
+    int index = 0;
+    while (index < nodeCount && index >= 0)
+    {
+        const auto &node = treeNodes[index];
+
+        if (aabbOverlap(node.aabb, queryAABB))
+        {
+            if (node.objectID >= 0)
+            {
+                // Leaf hit
+                uint32_t otherID = static_cast<uint32_t>(node.objectID);
+                uint32_t denseIdxB = sparse[otherID];
+                const auto &other = bodies[denseIdxB];
+
+                bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) ||
+                                      other.hasFlag(Flags::Trigger);
+
+                if (!otherIsSkipped && objA.bodyID >= otherID)
+                {
+                    index++;
+                    continue;
+                }
+
+                uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
+                uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
+
+                if ((objMask & otherLayer) && (otherMask & objLayer))
+                {
+                    PairCategory cat = Traits::classifyPair(objA.shape.type, other.shape.type);
+                    CandidatePair pair = {objA.bodyID, otherID, denseIdxA, denseIdxB};
+                    emitPair(bins, cat, pair);
+                }
+
+                index++;
+            }
+            else
+            {
+                index++;
+            }
+        }
+        else
+        {
+            index = node.missOffset;
+        }
+    }
 }
 
 __device__ bool checkSphereCilinder(const sas::Body3D &obj, const sas::Body3D &other, sas::Contact3D *contacts,
@@ -547,7 +665,6 @@ __device__ sas::math::Vec3 distanceM(const sas::Shape3D &s1, const sas::Transfor
     return p1 - p2;
 };
 
-
 __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
 {
     using namespace sas;
@@ -789,9 +906,9 @@ __host__ __device__ void gpu_erase_if(GpuVector<T, Capacity> &vec, Predicate pre
     }
     vec.count = writeIdx;
 }
-constexpr int MAX_EPA_FACES    = 48;
-constexpr int MAX_EPA_HORIZON  = 16;
-constexpr int MAX_EPA_VERTS    = 32;
+constexpr int MAX_EPA_FACES = 48;
+constexpr int MAX_EPA_HORIZON = 16;
+constexpr int MAX_EPA_VERTS = 32;
 
 __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D *contacts, int *contactCount, size_t maxContacts) noexcept
 {
@@ -946,6 +1063,30 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
     return;
 }
 
+[[nodiscard]] __device__ static inline sas::PairCategory classifyPair(sas::ShapeType3D a, sas::ShapeType3D b) noexcept
+{
+    if (a > b)
+    {
+        std::swap(a, b);
+    }
+    if (a == sas::ShapeType3D::Sphere || b == sas::ShapeType3D::Sphere)
+    {
+        return sas::PairCategory::Analytic;
+    }
+
+    if (a == sas::ShapeType3D::Orthotope && b == sas::ShapeType3D::Orthotope)
+    {
+        return sas::PairCategory::Sat;
+    }
+
+    return sas::PairCategory::GjkEpa;
+};
+
+[[nodiscard]] __device__ static inline sas::PairCategory classifyPair(sas::ShapeType2D a, sas::ShapeType2D b) noexcept
+{
+    return sas::PairCategory::GjkEpa;
+};
+
 __global__ void narrowPhaseGjkEpaKernel(const sas::CandidatePair *pairs, size_t pairsSize, const sas::Body3D *bodies,
                                         sas::Contact3D *contacts, int *contactCount, size_t maxContacts)
 
@@ -967,92 +1108,261 @@ __global__ void narrowPhaseGjkEpaKernel(const sas::CandidatePair *pairs, size_t 
     }
 }
 
-// MARK: GPU
-//==================================================
-void sas::launchGpu(const std::vector<CandidatePair> &analyticPairs,
-                    const std::vector<CandidatePair> &boxBoxPairs,
-                    const std::vector<CandidatePair> &gjkEpaPairs,
-                    const std::vector<Body3D> &bodies,
-                    std::vector<Contact3D> &outContacts) noexcept
+// Holy parameters
+template <typename Traits>
+__global__ void broadphaseKernel(const uint32_t *__restrict__ activeIDs,
+                                 uint32_t numActives, const uint32_t *__restrict__ sparse, const typename Traits::BodyType *__restrict__ bodies,
+                                 const sas::FlatNode<typename Traits::AABBType> *__restrict__ treeNodes, int nodeCount, sas::CandidatePair *__restrict__ outPairs,
+                                 int *__restrict__ counters, int maxPairsPerCat)
 {
-
-    size_t totalPairs = analyticPairs.size() + boxBoxPairs.size() + gjkEpaPairs.size();
-    if (totalPairs == 0)
-    {
+    using namespace sas;
+    uint32_t tid = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tid >= numActives)
         return;
+
+    uint32_t idA = activeIDs[tid];
+    uint32_t denseIdxA = sparse[idA];
+    const auto &objA = bodies[denseIdxA];
+
+    if (objA.hasFlag(Flags::RigidBodyStatic) || objA.hasFlag(Flags::Trigger))
+        return;
+
+    auto queryAABB = Traits::computeTight(objA);
+    uint32_t objLayer = objA.collisionMask & 0x0000FFFF;
+    uint32_t objMask = (objA.collisionMask & 0xFFFF0000) >> 16;
+
+    int index = 0;
+    while (index < nodeCount && index >= 0)
+    {
+        const auto &node = treeNodes[index];
+
+        if (node.aabb.overlaps(queryAABB))
+        {
+            if (node.objectID >= 0)
+            {
+                uint32_t otherID = static_cast<uint32_t>(node.objectID);
+                uint32_t denseIdxB = sparse[otherID];
+                const auto &other = bodies[denseIdxB];
+
+                bool otherIsSkipped = other.hasFlag(Flags::RigidBodyStatic) || other.hasFlag(Flags::Trigger);
+                if (!otherIsSkipped && objA.bodyID >= otherID)
+                {
+                    index++;
+                    continue;
+                }
+
+                uint32_t otherLayer = other.collisionMask & 0x0000FFFF;
+                uint32_t otherMask = (other.collisionMask & 0xFFFF0000) >> 16;
+
+                if ((objMask & otherLayer) && (otherMask & objLayer))
+                {
+                    sas::PairCategory cat = classifyPair(objA.shape.type, other.shape.type);
+                    int catIdx = static_cast<int>(cat);
+
+                    int slot = atomicAdd(&counters[catIdx], 1);
+                    if (slot < maxPairsPerCat)
+                    {
+                        int globalIndex = catIdx * maxPairsPerCat + slot;
+                        outPairs[globalIndex] = sas::CandidatePair{objA.bodyID, otherID, denseIdxA, denseIdxB};
+                    }
+                }
+                index++;
+            }
+            else
+            {
+                index++;
+            }
+        }
+        else
+        {
+            index = node.missOffset;
+        }
     }
+}
 
-    CandidatePair *d_allPairs = nullptr;
-    cudaMalloc(&d_allPairs, totalPairs * sizeof(CandidatePair));
+void sas::runCollisionPipeline( const std::vector<uint32_t> &activeIDs, const std::vector<int> &sparse, const std::vector<sas::Body3D> &bodies,
+    const std::vector<sas::FlatNode<sas::AABB3D>> &flatTree, std::vector<sas::Contact3D> &outContacts)
+{
+    if (activeIDs.empty() || flatTree.empty())
+        return;
 
-    size_t off0 = 0;
-    size_t off1 = analyticPairs.size();
-    size_t off2 = off1 + boxBoxPairs.size();
+    uint32_t *d_activeIDs = nullptr, *d_sparse = nullptr;
+    sas::Body3D *d_bodies = nullptr;
+    sas::FlatNode3D *d_flatNodes = nullptr;
 
-    if (!analyticPairs.empty())
-        cudaMemcpy(d_allPairs + off0, analyticPairs.data(), analyticPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
-    if (!boxBoxPairs.empty())
-        cudaMemcpy(d_allPairs + off1, boxBoxPairs.data(), boxBoxPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
-    if (!gjkEpaPairs.empty())
-        cudaMemcpy(d_allPairs + off2, gjkEpaPairs.data(), gjkEpaPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
+    cudaCheck(cudaMalloc(&d_activeIDs, activeIDs.size() * sizeof(uint32_t)));
+    cudaCheck(cudaMalloc(&d_sparse, sparse.size() * sizeof(uint32_t)));
+    cudaCheck(cudaMalloc(&d_bodies, bodies.size() * sizeof(Body3D)));
+    cudaCheck(cudaMalloc(&d_flatNodes, flatTree.size() * sizeof(FlatNode3D)));
 
-    Body3D *d_bodies = nullptr;
-    cudaMalloc(&d_bodies, bodies.size() * sizeof(Body3D));
-    cudaMemcpy(d_bodies, bodies.data(), bodies.size() * sizeof(Body3D), cudaMemcpyHostToDevice);
+    cudaCheck(cudaMemcpy(d_activeIDs, activeIDs.data(), activeIDs.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(d_sparse, sparse.data(), sparse.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(d_bodies, bodies.data(), bodies.size() * sizeof(Body3D), cudaMemcpyHostToDevice));
+    cudaCheck(cudaMemcpy(d_flatNodes, flatTree.data(), flatTree.size() * sizeof(FlatNode3D), cudaMemcpyHostToDevice));
+
+    const int maxPairsPerCat = 131072;
+    const int totalBufferCapacity = maxPairsPerCat * 3;
+
+    CandidatePair *d_pairs = nullptr;
+    int *d_counters = nullptr;
+    cudaCheck(cudaMalloc(&d_pairs, totalBufferCapacity * sizeof(CandidatePair)));
+    cudaCheck(cudaMalloc(&d_counters, 3 * sizeof(int)));
+    cudaCheck(cudaMemset(d_counters, 0, 3 * sizeof(int)));
 
     const int maxContacts = 65536;
     Contact3D *d_outContacts = nullptr;
     int *d_contactCount = nullptr;
-    cudaMalloc(&d_outContacts, maxContacts * sizeof(Contact3D));
-    cudaMalloc(&d_contactCount, sizeof(int));
-    cudaMemset(d_contactCount, 0, sizeof(int));
+    cudaCheck(cudaMalloc(&d_outContacts, maxContacts * sizeof(Contact3D)));
+    cudaCheck(cudaMalloc(&d_contactCount, sizeof(int)));
+    cudaCheck(cudaMemset(d_contactCount, 0, sizeof(int)));
 
-    const int blockSize = 128;
+    const int bpBlockSize = 128;
+    int bpBlocks = (activeIDs.size() + bpBlockSize - 1) / bpBlockSize;
 
-    if (!analyticPairs.empty())
+    broadphaseKernel<TreeTraits<AABB3D>><<<bpBlocks, bpBlockSize>>>(
+        d_activeIDs, activeIDs.size(), d_sparse, d_bodies,
+        d_flatNodes, flatTree.size(),
+        d_pairs, d_counters, maxPairsPerCat);
+
+    int hostCounters[3] = {0, 0, 0};
+    cudaCheck(cudaMemcpy(hostCounters, d_counters, 3 * sizeof(int), cudaMemcpyDeviceToHost));
+
+    int countAnalytic = std::min(hostCounters[0], maxPairsPerCat);
+    int countBoxBox = std::min(hostCounters[1], maxPairsPerCat);
+    int countGjkEpa = std::min(hostCounters[2], maxPairsPerCat);
+
+    CandidatePair *d_analyticPairs = d_pairs + (0 * maxPairsPerCat);
+    CandidatePair *d_boxBoxPairs = d_pairs + (1 * maxPairsPerCat);
+    CandidatePair *d_gjkEpaPairs = d_pairs + (2 * maxPairsPerCat);
+
+    const int npBlockSize = 128;
+
+    if (countAnalytic > 0)
     {
-        int blocks = (analyticPairs.size() + blockSize - 1) / blockSize;
-        narrowPhaseAnalyticKernel<<<blocks, blockSize>>>(
-            d_allPairs + off0, analyticPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+        int blocks = (countAnalytic + npBlockSize - 1) / npBlockSize;
+        narrowPhaseAnalyticKernel<<<blocks, npBlockSize>>>(
+            d_analyticPairs, countAnalytic, d_bodies, d_outContacts, d_contactCount, maxContacts);
     }
 
-    if (!boxBoxPairs.empty())
+    if (countBoxBox > 0)
     {
-
-        int blocks = (boxBoxPairs.size() + blockSize - 1) / blockSize;
-        narrowPhaseBoxBoxKernel<<<blocks, blockSize>>>(
-            d_allPairs + off1, boxBoxPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+        int blocks = (countBoxBox + npBlockSize - 1) / npBlockSize;
+        narrowPhaseBoxBoxKernel<<<blocks, npBlockSize>>>(
+            d_boxBoxPairs, countBoxBox, d_bodies, d_outContacts, d_contactCount, maxContacts);
     }
 
-    if (!gjkEpaPairs.empty())
+    if (countGjkEpa > 0)
     {
-
-        int blocks = (gjkEpaPairs.size() + blockSize - 1) / blockSize;
-        narrowPhaseGjkEpaKernel<<<blocks, blockSize>>>(
-            d_allPairs + off2, gjkEpaPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+        int blocks = (countGjkEpa + npBlockSize - 1) / npBlockSize;
+        narrowPhaseGjkEpaKernel<<<blocks, npBlockSize>>>(
+            d_gjkEpaPairs, countGjkEpa, d_bodies, d_outContacts, d_contactCount, maxContacts);
     }
 
-    cudaError_t err = cudaDeviceSynchronize();
-    if (err != cudaSuccess)
-    {
-        printf("CUDA Kernel Error: %s\n", cudaGetErrorString(err));
-    }
-    int finalCount = 0;
-    cudaMemcpy(&finalCount, d_contactCount, sizeof(int), cudaMemcpyDeviceToHost);
-    finalCount = std::min(finalCount, maxContacts);
+    int finalContactCount = 0;
+    cudaCheck(cudaMemcpy(&finalContactCount, d_contactCount, sizeof(int), cudaMemcpyDeviceToHost));
+    finalContactCount = std::min(finalContactCount, maxContacts);
 
-    if (finalCount > 0)
+    outContacts.resize(finalContactCount);
+    if (finalContactCount > 0)
     {
-        size_t prevSize = outContacts.size();
-        outContacts.resize(prevSize + finalCount);
-        cudaMemcpy(outContacts.data() + prevSize, d_outContacts, finalCount * sizeof(Contact3D), cudaMemcpyDeviceToHost);
+        cudaCheck(cudaMemcpy(outContacts.data(), d_outContacts, finalContactCount * sizeof(Contact3D), cudaMemcpyDeviceToHost));
     }
 
-    cudaFree(d_allPairs);
-    cudaFree(d_bodies);
-    cudaFree(d_outContacts);
-    cudaFree(d_contactCount);
+    cudaCheck(cudaFree(d_activeIDs));
+    cudaCheck(cudaFree(d_sparse));
+    cudaCheck(cudaFree(d_bodies));
+    cudaCheck(cudaFree(d_flatNodes));
+    cudaCheck(cudaFree(d_pairs));
+    cudaCheck(cudaFree(d_counters));
+    cudaCheck(cudaFree(d_outContacts));
+    cudaCheck(cudaFree(d_contactCount));
 }
+// MARK: GPU
+//==================================================
+// void sas::launchGpu(const std::vector<CandidatePair> &analyticPairs,
+//                     const std::vector<CandidatePair> &boxBoxPairs,
+//                     const std::vector<CandidatePair> &gjkEpaPairs,
+//                     const std::vector<Body3D> &bodies,
+//                     std::vector<Contact3D> &outContacts) noexcept
+// {
+
+//     size_t totalPairs = analyticPairs.size() + boxBoxPairs.size() + gjkEpaPairs.size();
+//     if (totalPairs == 0)
+//     {
+//         return;
+//     }
+
+//     CandidatePair *d_allPairs = nullptr;
+//     cudaMalloc(&d_allPairs, totalPairs * sizeof(CandidatePair));
+
+//     size_t off0 = 0;
+//     size_t off1 = analyticPairs.size();
+//     size_t off2 = off1 + boxBoxPairs.size();
+
+//     if (!analyticPairs.empty())
+//         cudaMemcpy(d_allPairs + off0, analyticPairs.data(), analyticPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
+//     if (!boxBoxPairs.empty())
+//         cudaMemcpy(d_allPairs + off1, boxBoxPairs.data(), boxBoxPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
+//     if (!gjkEpaPairs.empty())
+//         cudaMemcpy(d_allPairs + off2, gjkEpaPairs.data(), gjkEpaPairs.size() * sizeof(CandidatePair), cudaMemcpyHostToDevice);
+
+//     Body3D *d_bodies = nullptr;
+//     cudaMalloc(&d_bodies, bodies.size() * sizeof(Body3D));
+//     cudaMemcpy(d_bodies, bodies.data(), bodies.size() * sizeof(Body3D), cudaMemcpyHostToDevice);
+
+//     const int maxContacts = 65536;
+//     Contact3D *d_outContacts = nullptr;
+//     int *d_contactCount = nullptr;
+//     cudaMalloc(&d_outContacts, maxContacts * sizeof(Contact3D));
+//     cudaMalloc(&d_contactCount, sizeof(int));
+//     cudaMemset(d_contactCount, 0, sizeof(int));
+
+//     const int blockSize = 128;
+
+//     if (!analyticPairs.empty())
+//     {
+//         int blocks = (analyticPairs.size() + blockSize - 1) / blockSize;
+//         narrowPhaseAnalyticKernel<<<blocks, blockSize>>>(
+//             d_allPairs + off0, analyticPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+//     }
+
+//     if (!boxBoxPairs.empty())
+//     {
+
+//         int blocks = (boxBoxPairs.size() + blockSize - 1) / blockSize;
+//         narrowPhaseBoxBoxKernel<<<blocks, blockSize>>>(
+//             d_allPairs + off1, boxBoxPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+//     }
+
+//     if (!gjkEpaPairs.empty())
+//     {
+
+//         int blocks = (gjkEpaPairs.size() + blockSize - 1) / blockSize;
+//         narrowPhaseGjkEpaKernel<<<blocks, blockSize>>>(
+//             d_allPairs + off2, gjkEpaPairs.size(), d_bodies, d_outContacts, d_contactCount, maxContacts);
+//     }
+
+//     cudaError_t err = cudaDeviceSynchronize();
+//     if (err != cudaSuccess)
+//     {
+//         printf("CUDA Kernel Error: %s\n", cudaGetErrorString(err));
+//     }
+//     int finalCount = 0;
+//     cudaMemcpy(&finalCount, d_contactCount, sizeof(int), cudaMemcpyDeviceToHost);
+//     finalCount = std::min(finalCount, maxContacts);
+
+//     if (finalCount > 0)
+//     {
+//         size_t prevSize = outContacts.size();
+//         outContacts.resize(prevSize + finalCount);
+//         cudaMemcpy(outContacts.data() + prevSize, d_outContacts, finalCount * sizeof(Contact3D), cudaMemcpyDeviceToHost);
+//     }
+
+//     cudaFree(d_allPairs);
+//     cudaFree(d_bodies);
+//     cudaFree(d_outContacts);
+//     cudaFree(d_contactCount);
+// }
 
 void sas::launchGpu(const std::vector<CandidatePair> &analyticPairs,
                     const std::vector<CandidatePair> &boxBoxPairs,
@@ -1061,4 +1371,10 @@ void sas::launchGpu(const std::vector<CandidatePair> &analyticPairs,
                     std::vector<Contact2D> &outContacts) noexcept
 {
     // TODO
+}
+
+void sas::runCollisionPipeline(const std::vector<uint32_t> &activeIDs,
+                               const std::vector<int> &sparse, const std::vector<sas::Body2D> &bodies,
+                               const std::vector<sas::FlatNode<sas::AABB2D>> &flatTree, std::vector<sas::Contact2D> &outContacts)
+{
 }

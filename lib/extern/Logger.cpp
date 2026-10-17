@@ -75,8 +75,8 @@ void sas::Logger::log(std::string_view message) noexcept
 
 void sas::Logger::warn(std::string_view message) noexcept
 {
-    if constexpr (kIsDebugBuild)
-    {
+    // if constexpr (kIsDebugBuild)
+    // {
         if (settings.inactive || settings.settings.ingoreWarns)
         {
             return;
@@ -89,13 +89,13 @@ void sas::Logger::warn(std::string_view message) noexcept
         {
             logerSink->startLogging(preMessageTransform, message, postMessage);
         }
-    }
+    // }
 }
 
 void sas::Logger::error(std::string_view message) noexcept
 {
-    if constexpr (kIsDebugBuild)
-    {
+    // if constexpr (kIsDebugBuild)
+    // {
         if (settings.inactive || settings.settings.ignoreErrors)
         {
             return;
@@ -106,7 +106,7 @@ void sas::Logger::error(std::string_view message) noexcept
         {
             logerSink->startLogging(preMessageTransform, message, postMessage);
         }
-    }
+    // }
 }
 
 void sas::LoggerSettingsInternal::applySettings(const LoggerSettings &newSettings) noexcept
