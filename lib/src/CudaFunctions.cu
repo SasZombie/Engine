@@ -6,25 +6,26 @@
 #include <cstdio>
 #include <cuda_runtime.h>
 
-#define cudaCheck(call)                                           \
-    do                                                            \
-    {                                                             \
-        cudaError_t err = (call);                                 \
-        if (err != cudaSuccess)                                   \
-        {                                                         \
-            fprintf(stderr, "CUDA Error at %s:%d -> %s\n",        \
-                    __FILE__, __LINE__, cudaGetErrorString(err)); \
-            exit(EXIT_FAILURE);                                   \
-        }                                                         \
-    } while (0)
+#include <source_location>
+// #define cudaCheck(call)                                           \
+//     do                                                            \
+//     {                                                             \
+//         cudaError_t err = (call);                                 \
+//         if (err != cudaSuccess)                                   \
+//         {                                                         \
+//             fprintf(stderr, "CUDA Error at %s:%d -> %s\n",        \
+//                     __FILE__, __LINE__, cudaGetErrorString(err)); \
+//             exit(EXIT_FAILURE);                                   \
+//         }                                                         \
+//     } while (0)
 
-// void cudaCheck(cudaError_t err, const std::source_location location = std::source_location::current())
-// {
-//     if (err != cudaSuccess)
-//     {
-//         std::fprintf(stderr, "CUDA Error at %s : %s -> %s\n", location.file_name(), location.line(), cudaGetErrorString(err));
-//     }
-// }
+void cudaCheck(cudaError_t err, const std::source_location location = std::source_location::current())
+{
+    if (err != cudaSuccess)
+    {
+        std::fprintf(stderr, "CUDA Error at %s : %s -> %s\n", location.file_name(), location.line(), cudaGetErrorString(err));
+    }
+}
 
 void sas::initCuda() noexcept
 {
@@ -1185,15 +1186,6 @@ void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::
     if (activeIDs.empty() || flatTree.empty())
         return;
 
-    uint32_t *d_activeIDs = nullptr, *d_sparse = nullptr;
-    sas::Body3D *d_bodies = nullptr;
-    sas::FlatNode3D *d_flatNodes = nullptr;
-
-    // cudaCheck(cudaMalloc(&buffers.d_activeIDs, activeIDs.size() * sizeof(uint32_t)));
-    // cudaCheck(cudaMalloc(&buffers.d_sparse, sparse.size() * sizeof(uint32_t)));
-    // cudaCheck(cudaMalloc(&buffers.d_bodies, bodies.size() * sizeof(Body3D)));
-    // cudaCheck(cudaMalloc(&buffers.d_flatNodes, flatTree.size() * sizeof(FlatNode3D)));
-
     cudaCheck(cudaMemcpy(buffers.d_activeIDs, activeIDs.data(), activeIDs.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
     cudaCheck(cudaMemcpy(buffers.d_sparse, sparse.data(), sparse.size() * sizeof(uint32_t), cudaMemcpyHostToDevice));
     cudaCheck(cudaMemcpy(buffers.d_bodies, bodies.data(), bodies.size() * sizeof(Body3D), cudaMemcpyHostToDevice));
@@ -1203,16 +1195,8 @@ void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::
     const int maxContacts = buffers.maxContacts;
     const int totalBufferCapacity = maxPairsPerCat * 3;
 
-    // CandidatePair *d_pairs = nullptr;
-    // int *d_counters = nullptr;
-    // cudaCheck(cudaMalloc(&buffers.d_pairs, totalBufferCapacity * sizeof(CandidatePair)));
-    // cudaCheck(cudaMalloc(&buffers.d_counters, 3 * sizeof(int)));
     cudaCheck(cudaMemset(buffers.d_counters, 0, 3 * sizeof(int)));
 
-    // Contact3D *d_outContacts = nullptr;
-    // int *d_contactCount = nullptr;
-    // cudaCheck(cudaMalloc(&buffers.d_outContacts, maxContacts * sizeof(Contact3D)));
-    // cudaCheck(cudaMalloc(&buffers.d_contactCount, sizeof(int)));
     cudaCheck(cudaMemset(buffers.d_contactCount, 0, sizeof(int)));
 
     const int bpBlockSize = 128;
@@ -1266,15 +1250,6 @@ void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::
     {
         cudaCheck(cudaMemcpy(outContacts.data(), buffers.d_outContacts, finalContactCount * sizeof(Contact3D), cudaMemcpyDeviceToHost));
     }
-
-    // cudaCheck(cudaFree(d_activeIDs));
-    // cudaCheck(cudaFree(d_sparse));
-    // cudaCheck(cudaFree(d_bodies));
-    // cudaCheck(cudaFree(d_flatNodes));
-    // cudaCheck(cudaFree(d_pairs));
-    // cudaCheck(cudaFree(d_counters));
-    // cudaCheck(cudaFree(d_outContacts));
-    // cudaCheck(cudaFree(d_contactCount));
 }
 
 sas::CollisionPipelineAlloc::CollisionPipelineAlloc(size_t nmaxBodies, size_t nmaxPairs, size_t nmaxContacts) noexcept

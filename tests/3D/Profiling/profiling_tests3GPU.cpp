@@ -14,17 +14,28 @@ static void addWalls() noexcept
     sas::Kinematics3D k;
     k.pushForce = 10;
 
-    sas::BodyHandle3D RoofBH = world.createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    const float sz = 30;
+    const float hsz = sz / 2;
+    const float szW = 2;
+
+    sas::BodyHandle3D RoofBH = world.createBody(sas::Shape3D::MakeOrthotope(sz, szW, sz), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+
     t.position = {0, 0, 0};
-    sas::BodyHandle3D FloorBH = world.createBody(sas::Shape3D::MakeOrthotope(20, 0.1, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    t.position = {10, 10, 0};
-    sas::BodyHandle3D Wall1BH = world.createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    t.position = {-10, 10, 0};
-    sas::BodyHandle3D Wall2BH = world.createBody(sas::Shape3D::MakeOrthotope(0.1, 20, 20), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    t.position = {0, 10, 10};
-    sas::BodyHandle3D Wall3BH = world.createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
-    t.position = {0, 10, -10};
-    sas::BodyHandle3D Wall4BH = world.createBody(sas::Shape3D::MakeOrthotope(20, 20, 0.1), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+
+    sas::BodyHandle3D FloorBH = world.createBody(sas::Shape3D::MakeOrthotope(sz, szW, sz), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+
+    t.position = {hsz, hsz, 0};
+    sas::BodyHandle3D Wall1BH = world.createBody(sas::Shape3D::MakeOrthotope(szW, sz, sz), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+
+    t.position = {-hsz, hsz, 0};
+
+    sas::BodyHandle3D Wall2BH = world.createBody(sas::Shape3D::MakeOrthotope(szW, sz, sz), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    t.position = {0, hsz, hsz};
+
+    sas::BodyHandle3D Wall3BH = world.createBody(sas::Shape3D::MakeOrthotope(sz, sz, szW), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
+    t.position = {0, hsz, -hsz};
+    
+    sas::BodyHandle3D Wall4BH = world.createBody(sas::Shape3D::MakeOrthotope(sz, sz, szW), t, k, sas::Flags::Active | sas::Flags::RigidBodyStatic);
 
     walls.push_back(RoofBH);
     walls.push_back(FloorBH);
@@ -33,7 +44,6 @@ static void addWalls() noexcept
     walls.push_back(Wall3BH);
     walls.push_back(Wall4BH);
 }
-
 
 static sas::BodyHandle3D AddSphere(sas::Transform3D trans, sas::Kinematics3D kin)
 {
@@ -67,7 +77,6 @@ int main()
     boucyKinematics.restitution = 1;
     boucyKinematics.pushForce = 1;
     boucyKinematics.inverseMass = 0.2;
-
 
     for (int i = 0; i < 500; ++i)
     {
