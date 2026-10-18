@@ -12,6 +12,7 @@ namespace sas
     struct Contact3D;
     struct Body2D;
     struct Contact2D;
+    struct EpaWorkItem;
 
     struct CollisionPipelineAlloc
     {
@@ -24,6 +25,11 @@ namespace sas
         int *d_counters = nullptr;
         sas::Contact3D *d_outContacts = nullptr;
         int *d_contactCount = nullptr;
+
+        EpaWorkItem* d_epaWorkQueue = nullptr;
+        int *d_epaCounter = nullptr;
+
+
 
         size_t maxBodies;
         size_t maxPairs;

@@ -23,6 +23,11 @@ set(TARGET_PERFORMANCE_TEST OFF CACHE BOOL "" FORCE)
 set(TARGET_SAMPLES OFF CACHE BOOL "" FORCE)
 set(TARGET_VIEWER OFF CACHE BOOL "" FORCE)
 
+set(JPH_USE_VK OFF CACHE BOOL "" FORCE)
+set(JPH_USE_DX12 OFF CACHE BOOL "" FORCE)
+set(JPH_USE_MTL OFF CACHE BOOL "" FORCE)
+set(JPH_USE_CPU_COMPUTE OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     JoltPhysics
     GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
@@ -38,6 +43,7 @@ target_link_libraries(sas_physics PRIVATE
     project_warnings
     project_sanitizers
     project_options
+    Jolt
 )
 
 if(CMAKE_CUDA_COMPILER_LOADED)

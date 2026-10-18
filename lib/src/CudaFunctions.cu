@@ -21,6 +21,7 @@
 
 void cudaCheck(cudaError_t err, const std::source_location location = std::source_location::current())
 {
+
     if (err != cudaSuccess)
     {
         std::fprintf(stderr, "CUDA Error at %s : %s -> %s\n", location.file_name(), location.line(), cudaGetErrorString(err));
@@ -590,17 +591,28 @@ __global__ void narrowPhaseBoxBoxKernel(const sas::CandidatePair *pairs, size_t 
     }
 }
 //==================================================
-struct Simplex
+namespace sas
 {
-    std::array<sas::math::Vec3, 4> points;
-    int size = 0;
 
-    __device__ void push_front(const sas::math::Vec3 &point)
+    struct GpuSimplex
     {
-        points = {point, points[0], points[1], points[2]};
-        size = std::min(size + 1, 4);
-    }
-};
+        std::array<sas::math::Vec3, 4> points;
+        int size = 0;
+
+        __device__ void push_front(const sas::math::Vec3 &point)
+        {
+            points = {point, points[0], points[1], points[2]};
+            size = std::min(size + 1, 4);
+        }
+    };
+
+    struct EpaWorkItem
+    {
+        uint32_t bodyIndexA;
+        uint32_t bodyIndexB;
+        GpuSimplex simplex;
+    };
+} // namespace sas
 
 __device__ sas::math::Vec3 localSupport(const sas::Shape3D &shape, const sas::math::Vec3 &localDir) noexcept
 {
@@ -665,7 +677,7 @@ __device__ sas::math::Vec3 distanceM(const sas::Shape3D &s1, const sas::Transfor
     return p1 - p2;
 };
 
-__device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
+__device__ bool solveSimplex(sas::GpuSimplex &simplex, sas::math::Vec3 &dir) noexcept
 {
     using namespace sas;
     switch (simplex.size)
@@ -800,7 +812,7 @@ __device__ bool solveSimplex(Simplex &simplex, sas::math::Vec3 &dir) noexcept
         return false;
     }
 }
-__device__ bool GJK(const sas::Body3D &body1, const sas::Body3D &body2, Simplex &simplex) noexcept
+__device__ bool GJK(const sas::Body3D &body1, const sas::Body3D &body2, sas::GpuSimplex &simplex) noexcept
 {
     using namespace sas;
 
@@ -814,7 +826,7 @@ __device__ bool GJK(const sas::Body3D &body1, const sas::Body3D &body2, Simplex 
     simplex.push_front(distanceM(shape1, tf1, shape2, tf2, dir));
     dir = -simplex.points[0];
 
-    const int MAX_ITERATIONS = 160;
+    const int MAX_ITERATIONS = 30;
 
     for (int i = 0; i < MAX_ITERATIONS; ++i)
     {
@@ -908,9 +920,8 @@ __host__ __device__ void gpu_erase_if(GpuVector<T, Capacity> &vec, Predicate pre
 }
 constexpr int MAX_EPA_FACES = 48;
 constexpr int MAX_EPA_HORIZON = 16;
-constexpr int MAX_EPA_VERTS = 32;
 
-__device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simplex &simplex, sas::Contact3D *contacts, int *contactCount, size_t maxContacts) noexcept
+__device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const sas::GpuSimplex &simplex, sas::Contact3D *contacts, int *contactCount, size_t maxContacts) noexcept
 {
     using namespace sas;
     struct Face
@@ -936,7 +947,7 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
     faces.push_back({A, D, B});
     faces.push_back({B, C, D});
 
-    static constexpr size_t maxIterations = 100;
+    static constexpr size_t maxIterations = 20;
     for (size_t i = 0; i < maxIterations; ++i)
     {
 
@@ -1081,11 +1092,52 @@ __device__ void EPA(const sas::Body3D &obj, const sas::Body3D &other, const Simp
 
     return sas::PairCategory::GjkEpa;
 };
-
-[[nodiscard]] __device__ static inline sas::PairCategory classifyPair(sas::ShapeType2D a, sas::ShapeType2D b) noexcept
+// TODO:
+[[nodiscard]][[maybe_unused]] __device__ static inline sas::PairCategory classifyPair(sas::ShapeType2D a, sas::ShapeType2D b) noexcept
 {
     return sas::PairCategory::GjkEpa;
 };
+
+__global__ void narrowPhaseGjkKernel(const sas::CandidatePair *__restrict__ pairs,
+                                     size_t pairsSize, const sas::Body3D *__restrict__ bodies, sas::EpaWorkItem *__restrict__ epaWorkQueue,
+                                     int *__restrict__ epaWorkCount, size_t maxEpaWorkItems)
+{
+    int threadId = blockIdx.x * blockDim.x + threadIdx.x;
+    if (threadId >= pairsSize)
+        return;
+
+    const sas::CandidatePair &pair = pairs[threadId];
+    const auto &obj = bodies[pair.bodyIndexA];
+    const auto &other = bodies[pair.bodyIndexB];
+
+    sas::GpuSimplex s;
+    if (GJK(obj, other, s))
+    {
+        int slot = atomicAdd(epaWorkCount, 1);
+        if (slot < maxEpaWorkItems)
+        {
+            sas::EpaWorkItem item;
+            item.bodyIndexA = pair.bodyIndexA;
+            item.bodyIndexB = pair.bodyIndexB;
+            item.simplex = s;
+            epaWorkQueue[slot] = item;
+        }
+    }
+}
+__global__ void narrowPhaseEpaKernel(const sas::EpaWorkItem *__restrict__ epaWorkQueue,
+    int totalItems, const sas::Body3D *__restrict__ bodies, sas::Contact3D *__restrict__ contacts, int *__restrict__ contactCount,
+    size_t maxContacts)
+{
+    int threadId = blockIdx.x * blockDim.x + threadIdx.x;
+    if (threadId >= totalItems)
+        return;
+
+    const auto &item = epaWorkQueue[threadId];
+    const auto &obj = bodies[item.bodyIndexA];
+    const auto &other = bodies[item.bodyIndexB];
+
+    EPA(obj, other, item.simplex, contacts, contactCount, maxContacts);
+}
 
 __global__ void narrowPhaseGjkEpaKernel(const sas::CandidatePair *pairs, size_t pairsSize, const sas::Body3D *bodies,
                                         sas::Contact3D *contacts, int *contactCount, size_t maxContacts)
@@ -1098,7 +1150,7 @@ __global__ void narrowPhaseGjkEpaKernel(const sas::CandidatePair *pairs, size_t 
     const auto &obj = bodies[pairs[threadId].bodyIndexA];
     const auto &other = bodies[pairs[threadId].bodyIndexB];
     using namespace sas;
-    Simplex s;
+    GpuSimplex s;
     if (GJK(obj, other, s))
     {
         sas::Contact3D outContact;
@@ -1193,11 +1245,11 @@ void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::
 
     const int maxPairsPerCat = buffers.maxPairs;
     const int maxContacts = buffers.maxContacts;
-    const int totalBufferCapacity = maxPairsPerCat * 3;
 
     cudaCheck(cudaMemset(buffers.d_counters, 0, 3 * sizeof(int)));
-
     cudaCheck(cudaMemset(buffers.d_contactCount, 0, sizeof(int)));
+
+    cudaCheck(cudaMemset(buffers.d_epaCounter, 0, sizeof(int)));
 
     const int bpBlockSize = 128;
     int bpBlocks = (activeIDs.size() + bpBlockSize - 1) / bpBlockSize;
@@ -1236,9 +1288,30 @@ void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::
 
     if (countGjkEpa > 0)
     {
-        int blocks = (countGjkEpa + npBlockSize - 1) / npBlockSize;
-        narrowPhaseGjkEpaKernel<<<blocks, npBlockSize>>>(
-            d_gjkEpaPairs, countGjkEpa, buffers.d_bodies, buffers.d_outContacts, buffers.d_contactCount, maxContacts);
+        int gjkBlocks = (countGjkEpa + npBlockSize - 1) / npBlockSize;
+        narrowPhaseGjkKernel<<<gjkBlocks, npBlockSize>>>(
+            d_gjkEpaPairs,
+            countGjkEpa,
+            buffers.d_bodies,
+            buffers.d_epaWorkQueue,
+            buffers.d_epaCounter,
+            maxPairsPerCat);
+
+        int hostEpaCount = 0;
+        cudaCheck(cudaMemcpy(&hostEpaCount, buffers.d_epaCounter, sizeof(int), cudaMemcpyDeviceToHost));
+        int countEpa = std::min(hostEpaCount, maxPairsPerCat);
+
+        if (countEpa > 0)
+        {
+            int epaBlocks = (countEpa + npBlockSize - 1) / npBlockSize;
+            narrowPhaseEpaKernel<<<epaBlocks, npBlockSize>>>(
+                buffers.d_epaWorkQueue,
+                countEpa,
+                buffers.d_bodies,
+                buffers.d_outContacts,
+                buffers.d_contactCount,
+                maxContacts);
+        }
     }
 
     int finalContactCount = 0;
@@ -1264,6 +1337,9 @@ sas::CollisionPipelineAlloc::CollisionPipelineAlloc(size_t nmaxBodies, size_t nm
     cudaMalloc(&d_counters, 3 * sizeof(int));
     cudaMalloc(&d_outContacts, maxContacts * sizeof(sas::Contact3D));
     cudaMalloc(&d_contactCount, sizeof(int));
+
+    cudaMalloc(&d_epaWorkQueue, maxPairs * sizeof(EpaWorkItem));
+    cudaMalloc(&d_epaCounter, sizeof(int));
 }
 
 void sas::CollisionPipelineAlloc::cleanup() noexcept
@@ -1277,6 +1353,8 @@ void sas::CollisionPipelineAlloc::cleanup() noexcept
     cudaFree(d_outContacts);
     cudaFree(d_pairs);
     cudaFree(d_sparse);
+    cudaFree(d_epaWorkQueue);
+    cudaFree(d_epaCounter);
 }
 
 void sas::runCollisionPipeline(sas::CollisionPipelineAlloc &buffers, const std::vector<uint32_t> &activeIDs, const std::vector<int> &sparse, const std::vector<sas::Body2D> &bodies,

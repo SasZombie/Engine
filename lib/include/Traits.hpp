@@ -4,12 +4,6 @@
 #include "AABBTree.hpp"
 #include "Body.hpp"
 
-#if HAS_CUDA
-
-#include "CudaObjects.hpp"
-
-#endif
-
 namespace sas
 {
 

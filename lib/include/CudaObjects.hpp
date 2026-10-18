@@ -25,6 +25,6 @@ namespace sas
         CandidatePair *pairs[3];
         uint32_t *counters;
         uint32_t maxCapacity;
-    };
+    };   
 
 } // namespace sas
