@@ -5,4 +5,4 @@ build-release
 *.script
 *.dat
 *.sqlite
-*.nsys-rep
+*.nsys-repperf.data*
