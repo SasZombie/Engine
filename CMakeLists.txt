@@ -21,23 +21,36 @@ if(OpenMP_FOUND)
     target_link_libraries(project_options INTERFACE OpenMP::OpenMP_CXX)
 endif()
 
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(project_warnings INTERFACE
-        -Wall -Wextra -Wformat-nonliteral -Wcast-align -Wpointer-arith
-        -Wmissing-declarations -Winline -Wundef -Wcast-qual -Wshadow
-        -Wwrite-strings -Wno-unused-parameter -Wfloat-equal
-    )
-    target_compile_options(project_sanitizers INTERFACE
-        -fsanitize=undefined -fsanitize=address -fsanitize=leak -g
-    )
-
-    target_link_options(project_sanitizers INTERFACE
-        -fsanitize=undefined -fsanitize=address -fsanitize=leak
-    )
+#I dont know if this will work... :(
+if(MSVC)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(project_warnings INTERFACE /W4)
+        target_compile_options(project_sanitizers INTERFACE /fsanitize=address)
+    else()
+        target_compile_options(project_warnings INTERFACE /O2 /Oi /Ot /fp:fast)
+    endif()
 else()
-    target_compile_options(project_warnings INTERFACE -DRELEASE -O3 -DNDEBUG -ggdb -march=native -ffast-math
-        -mno-omit-leaf-frame-pointer -fno-math-errno -flto -fno-semantic-interposition -funroll-loops -fno-strict-aliasing)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(project_warnings INTERFACE
+            -Wall -Wextra -Wformat-nonliteral -Wcast-align -Wpointer-arith
+            -Wmissing-declarations -Winline -Wundef -Wcast-qual -Wshadow
+            -Wwrite-strings -Wno-unused-parameter -Wfloat-equal
+        )
+        target_compile_options(project_sanitizers INTERFACE
+            -fsanitize=undefined -fsanitize=address -g
+            $<$<PLATFORM_ID:Linux>:-fsanitize=leak>
+        )
+        target_link_options(project_sanitizers INTERFACE
+            -fsanitize=undefined -fsanitize=address
+            $<$<PLATFORM_ID:Linux>:-fsanitize=leak>
+        )
+    else()
+        target_compile_options(project_warnings INTERFACE 
+            -DRELEASE -O3 -DNDEBUG -ggdb -march=native -ffast-math
+            -mno-omit-leaf-frame-pointer -fno-math-errno -flto 
+            -fno-semantic-interposition -funroll-loops -fno-strict-aliasing
+        )
+    endif()
 endif()
 
 add_subdirectory(lib)

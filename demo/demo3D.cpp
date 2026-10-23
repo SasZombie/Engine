@@ -6,6 +6,7 @@
 #include <random>
 #include "PhysicsWorld.hpp"
 
+//Lol
 #define CYAN CLITERAL(Color){0, 255, 255, 255}
 
 extern "C" const char *__lsan_default_suppressions();
@@ -323,7 +324,6 @@ static void drawEntity(const Entity &entity) noexcept
         rlMultMatrixf(reinterpret_cast<const float *>(&handle->transform.rotMatrix));
         rlScalef(scale.x, scale.y, scale.z);
 
-        // Draw using the shifted base and full height
         DrawCylinder(basePos, radius, radius, fullHeight, slices, entity.c);
         DrawCylinderWires(basePos, radius, radius, fullHeight, slices, BLACK);
 
@@ -336,6 +336,7 @@ int main()
 {
     constexpr float SCREEN_WIDTH = 800, SCREEN_HEIGHT = 450;
 
+    //CPU VS GPU MODE
     sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::GPU};
     // sas::PhysicsWorld<sas::Traits3D> world{sas::DeviceOptions::CPU};
     sas::PhysicsSettings &settings = world.settings;
@@ -568,18 +569,6 @@ int main()
         
         for (const auto &entity : entities)
         {
-            // for(int i = 0; i < 3; ++i)
-            // {
-            //     std::cout << entity.bodyHandle.get()->transform.position.data[i] << ' ';
-            // }
-            // std::cout << '\n';
-
-            // if(entity.bodyHandle.isColliding())
-            // {
-            //     const auto& col =  entity.bodyHandle.getCollisions();
-
-            //     std::cout << col[0].depth << ' ' << col[0].normal.x << ' ' << col[0].normal.y << ' ' << col[0].normal.z << '\n';
-            // }
             drawEntity(entity);
         }
 

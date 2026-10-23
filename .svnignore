@@ -1,0 +1,10 @@
+.git
+build-debug
+build-release
+.vscode
+*.data
+*.script
+*.dat
+*.sqlite
+*.nsys-rep
+perf.data*

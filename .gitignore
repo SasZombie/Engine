@@ -7,3 +7,4 @@ build-release
 *.sqlite
 *.nsys-rep
 perf.data*
+.svn
